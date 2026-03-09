@@ -1,26 +1,17 @@
-// Re-export extractor types only
-export type { SimplifiedDesign } from "./extractors/types.js";
-
-// Flexible extractor system
+// Re-export new MCP response types
 export type {
-  ExtractorFn,
-  TraversalContext,
-  TraversalOptions,
-  GlobalVars,
-  StyleTypes,
-} from "./extractors/index.js";
+  MCPResponse,
+  LayoutNode,
+  FlexNode,
+  NodeStyle,
+  Paint,
+  Effect,
+  TextStyle,
+  Style,
+  Component,
+} from "./figma/types.js";
 
-export {
-  extractFromDesign,
-  simplifyRawFigmaObject,
-  layoutExtractor,
-  textExtractor,
-  visualsExtractor,
-  componentExtractor,
-  allExtractors,
-  layoutAndText,
-  contentOnly,
-  visualsOnly,
-  layoutOnly,
-  collapseSvgContainers,
-} from "./extractors/index.js";
+// Main API
+export { generateMCPResponse, fetchStyles, fetchComponents } from "./figma/index.js";
+
+export type { MCPOptions } from "./figma/index.js";

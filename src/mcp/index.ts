@@ -3,9 +3,9 @@ import { FigmaService, type FigmaAuthOptions } from "../services/figma.js";
 import { Logger } from "../utils/logger.js";
 import {
   downloadFigmaImagesTool,
-  getFigmaDataTool,
+  getFigmaDesignTool,
   type DownloadImagesParams,
-  type GetFigmaDataParams,
+  type GetFigmaDesignParams,
 } from "./tools/index.js";
 
 const serverInfo = {
@@ -43,15 +43,15 @@ function registerTools(
   },
 ): void {
   server.registerTool(
-    getFigmaDataTool.name,
+    getFigmaDesignTool.name,
     {
-      title: "Get Figma Data",
-      description: getFigmaDataTool.description,
-      inputSchema: getFigmaDataTool.parametersSchema,
+      title: "Get Figma Design",
+      description: getFigmaDesignTool.description,
+      inputSchema: getFigmaDesignTool.parametersSchema,
       annotations: { readOnlyHint: true },
     },
-    (params: GetFigmaDataParams) =>
-      getFigmaDataTool.handler(params, figmaService, options.outputFormat),
+    (params: GetFigmaDesignParams) =>
+      getFigmaDesignTool.handler(params, figmaService, options.outputFormat),
   );
 
   if (!options.skipImageDownloads) {

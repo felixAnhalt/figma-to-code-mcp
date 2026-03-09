@@ -1,4 +1,4 @@
-export { getFigmaDataTool } from "./get-figma-data-tool.js";
+export { getFigmaDesignTool } from "./get-figma-design-tool.js";
 export { downloadFigmaImagesTool } from "./download-figma-images-tool.js";
 export type { DownloadImagesParams } from "./download-figma-images-tool.js";
-export type { GetFigmaDataParams } from "./get-figma-data-tool.js";
+export type { GetFigmaDesignParams } from "./get-figma-design-tool.js";
