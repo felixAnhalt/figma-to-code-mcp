@@ -1,6 +1,8 @@
-# Contributing to Framelink MCP for Figma
+# Contributing to Figma Context MCP (LLM-Optimized Fork)
 
-Thank you for your interest in contributing to the Framelink MCP for Figma! This guide will help you get started with contributing to this project.
+Thank you for your interest in contributing to this LLM-optimized fork of the Figma Context MCP! This guide will help you get started.
+
+**Note**: This is a fork of [GLips/Figma-Context-MCP](https://github.com/GLips/Figma-Context-MCP) specialized for LLM UI building.
 
 ## Philosophy
 
@@ -10,12 +12,13 @@ This project adheres to the Unix philosophy: tools should have one job and few a
 
 ### MCP Server Scope
 
-The MCP server should only focus on **ingesting designs for AI consumption**. This is our core responsibility and what we do best. Additional features are best handled externally by other specialized tools. Examples of features that would be out of scope include:
+The MCP server should only focus on **extracting UI-building data from Figma for AI consumption**. This is our core responsibility and what we do best. Additional features are best handled externally by other specialized tools. Examples of features that would be out of scope include:
 
 - Image conversion, cropping, or other image manipulation
 - Syncing design data to CMSes or databases
 - Code generation or framework-specific output
 - Third-party integrations unrelated to design ingestion
+- Preserving Figma-internal metadata that isn't needed for UI building
 
 This focused approach ensures:
 
@@ -23,6 +26,7 @@ This focused approach ensures:
 - Better maintainability
 - Easier testing and debugging
 - More reliable integration with AI tools
+- **Minimal token usage** for LLM consumption
 
 ## Getting Started
 
@@ -37,7 +41,7 @@ This focused approach ensures:
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/GLips/Figma-Context-MCP.git
+   git clone https://github.com/felixAnhalt/Figma-Context-MCP.git
    cd Figma-Context-MCP
    ```
 

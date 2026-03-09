@@ -305,8 +305,7 @@ export function buildNormalizedGraph(
         });
 
       if (blurs.length > 0) {
-        // If we have backdrop blur, it needs to be separate
-        const backdropBlur = blurs.find((b: string) => b.startsWith("backdrop"));
+        // Find layer blur (backdrop blur not currently supported)
         const layerBlur = blurs.find((b: string) => !b.startsWith("backdrop"));
 
         if (layerBlur) {

@@ -1,8 +1,8 @@
 {
   "name": "figma-developer-mcp",
   "version": "0.6.6",
-  "mcpName": "io.github.GLips/Figma-Context-MCP",
-  "description": "Give your coding agent access to your Figma data. Implement designs in any framework in one-shot. Fork of https://github.com/GLips/Figma-Context-MCP.",
+  "mcpName": "io.github.felixAnhalt/Figma-Context-MCP",
+  "description": "LLM-optimized Figma MCP server. Provides UI-building data with 99.5% size reduction via CSS-aligned extraction. Fork of https://github.com/GLips/Figma-Context-MCP.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -46,7 +46,7 @@
     "mcp",
     "typescript"
   ],
-  "author": "",
+  "author": "Felix Anhalt <felix@anhalt.dev>",
   "license": "MIT",
   "dependencies": {
     "@figma/rest-api-spec": "^0.33.0",

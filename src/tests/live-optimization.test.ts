@@ -45,7 +45,6 @@ describeOrSkip("Live Figma Optimization Test (v2)", () => {
     // Find the specific node if nodeId is provided
     // Note: node IDs in Figma use ":" but env var uses "-"
     const searchNodeId = nodeId.replace(/-/g, ":");
-    let targetNode = rawNode;
     if (searchNodeId && searchNodeId !== rawNode.id) {
       const findNode = (node: any, id: string): any => {
         if (node.id === id) return node;
@@ -61,7 +60,8 @@ describeOrSkip("Live Figma Optimization Test (v2)", () => {
       if (!found) {
         throw new Error(`Node with ID ${searchNodeId} not found in file`);
       }
-      targetNode = found;
+      // Verify node was found (assignment kept for potential future debugging)
+      void found;
     }
 
     const rawSize = JSON.stringify(rawResponse).length;

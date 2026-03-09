@@ -6,34 +6,46 @@
 </a>
 
 <div align="center">
-  <h1>Framelink MCP for Figma</h1>
-  <h3>Give your coding agent access to your Figma data.<br/>Implement designs in any framework in one-shot.</h3>
+  <h1>Figma Context MCP - LLM-Optimized Fork</h1>
+  <h3>Give your AI coding agent access to Figma design data in a format optimized for UI building.<br/>99.5% size reduction while preserving all UI-critical information.</h3>
   <a href="https://npmcharts.com/compare/figma-developer-mcp?interval=30">
     <img alt="weekly downloads" src="https://img.shields.io/npm/dm/figma-developer-mcp.svg">
   </a>
-  <a href="https://github.com/GLips/Figma-Context-MCP/blob/main/LICENSE">
-    <img alt="MIT License" src="https://img.shields.io/github/license/GLips/Figma-Context-MCP" />
-  </a>
-  <a href="https://framelink.ai/discord">
-    <img alt="Discord" src="https://img.shields.io/discord/1352337336913887343?color=7389D8&label&logo=discord&logoColor=ffffff" />
+  <a href="https://github.com/felixAnhalt/Figma-Context-MCP/blob/main/LICENSE">
+    <img alt="MIT License" src="https://img.shields.io/github/license/felixAnhalt/Figma-Context-MCP" />
   </a>
   <br />
-  <a href="https://twitter.com/glipsman">
-    <img alt="Twitter" src="https://img.shields.io/twitter/url?url=https%3A%2F%2Fx.com%2Fglipsman&label=%40glipsman" />
-  </a>
+  <p><strong>Fork of <a href="https://github.com/GLips/Figma-Context-MCP">GLips/Figma-Context-MCP</a></strong></p>
 </div>
 
 <br/>
 
+## Why This Fork?
+
+This fork specializes in **extracting only the information LLMs need to build UIs** while removing Figma-specific metadata that isn't relevant for code generation. The result:
+
+- ✅ **99.5% size reduction** on real Figma files (65 MB → 128 KB)
+- ✅ **CSS-aligned property names** (backgroundColor, flexDirection, etc.) matching LLM training data
+- ✅ **Complete UI-building data** preserved (layout, styling, text, components)
+- ✅ **Inline styles** - no separate dictionaries to parse
+- ✅ **Omits Figma internals** - no bounding boxes, constraints, or prototype data
+
+**Example transformation:**
+
+- **Original Framelink MCP**: Returns full Figma API response with all metadata
+- **This fork**: Returns CSS-aligned nodes with `display: "flex"`, `backgroundColor: "rgba(...)"`, etc.
+
+Perfect for AI agents building UIs in React, Vue, Svelte, or any web framework.
+
+---
+
 Give [Cursor](https://cursor.sh/) and other AI-powered coding tools access to your Figma files with this [Model Context Protocol](https://modelcontextprotocol.io/introduction) server.
 
-When Cursor has access to Figma design data, it's **way** better at one-shotting designs accurately than alternative approaches like pasting screenshots.
-
-<h3><a href="https://www.framelink.ai/docs/quickstart?utm_source=github&utm_medium=referral&utm_campaign=readme">See quickstart instructions →</a></h3>
+This fork optimizes the Figma data specifically for **LLM UI building** by converting Figma's internal format to CSS-aligned properties while reducing response size by 99.5%.
 
 ## Demo
 
-[Watch a demo of building a UI in Cursor with Figma design data](https://youtu.be/6G9yb-LrEqg)
+[Watch a demo of building a UI in Cursor with Figma design data](https://youtu.be/6G9yb-LrEqg) (from original Framelink MCP)
 
 [![Watch the video](https://img.youtube.com/vi/6G9yb-LrEqg/maxresdefault.jpg)](https://youtu.be/6G9yb-LrEqg)
 
@@ -41,18 +53,18 @@ When Cursor has access to Figma design data, it's **way** better at one-shotting
 
 1. Open your IDE's chat (e.g. agent mode in Cursor).
 2. Paste a link to a Figma file, frame, or group.
-3. Ask Cursor to do something with the Figma file—e.g. implement the design.
-4. Cursor will fetch the relevant metadata from Figma and use it to write your code.
+3. Ask Cursor to implement the design.
+4. Cursor fetches **CSS-aligned, LLM-optimized** design data and generates accurate code.
 
-This MCP server provides complete design data from the [Figma API](https://www.figma.com/developers/api) in a normalized, LLM-friendly format. It includes:
+This MCP server transforms [Figma API](https://www.figma.com/developers/api) data into an LLM-friendly format:
 
-- **Full layout information** with Flexbox primitives for auto-layout
-- **Complete styling** (fills, strokes, effects, text styles)
-- **Component relationships** and instance hierarchies
-- **Deduplicated assets** for token efficiency
-- **Rate-limited API calls** to respect Figma's API limits
+- **CSS property names** (`backgroundColor`, `flexDirection`, `fontSize`) instead of Figma internals
+- **Inline styles** directly in nodes (no separate dictionaries)
+- **Flexbox primitives** for layout (no absolute positioning)
+- **Complete UI data** (colors, typography, spacing, effects)
+- **99.5% size reduction** while preserving all UI-critical information
 
-The normalized graph structure reduces token usage by ~40-50% while preserving all design information needed for accurate code generation.
+See [`V2_CSS_PROPERTY_MAPPING.md`](./V2_CSS_PROPERTY_MAPPING.md) for complete property mapping details.
 
 ## Getting Started
 
@@ -67,7 +79,7 @@ The `figma-developer-mcp` server can be configured by adding the following to yo
 ```json
 {
   "mcpServers": {
-    "Framelink MCP for Figma": {
+    "Figma Context MCP": {
       "command": "npx",
       "args": ["-y", "figma-developer-mcp", "--figma-api-key=YOUR-KEY", "--stdio"]
     }
@@ -80,7 +92,7 @@ The `figma-developer-mcp` server can be configured by adding the following to yo
 ```json
 {
   "mcpServers": {
-    "Framelink MCP for Figma": {
+    "Figma Context MCP": {
       "command": "cmd",
       "args": ["/c", "npx", "-y", "figma-developer-mcp", "--figma-api-key=YOUR-KEY", "--stdio"]
     }
@@ -90,11 +102,22 @@ The `figma-developer-mcp` server can be configured by adding the following to yo
 
 Or you can set `FIGMA_API_KEY` and `PORT` in the `env` field.
 
-If you need more information on how to configure the Framelink MCP for Figma, see the [Framelink docs](https://www.framelink.ai/docs/quickstart?utm_source=github&utm_medium=referral&utm_campaign=readme).
+## Key Differences from Original
+
+This fork specializes in LLM-optimized output:
+
+| Feature            | Original Framelink MCP                               | This Fork                                    |
+| ------------------ | ---------------------------------------------------- | -------------------------------------------- |
+| **Output format**  | Figma API structure                                  | CSS-aligned properties                       |
+| **Property names** | Figma naming (`layoutMode`, `counterAxisAlignItems`) | CSS naming (`display`, `alignItems`)         |
+| **Size**           | ~50% reduction                                       | **99.5% reduction**                          |
+| **Colors**         | RGBA objects in dictionaries                         | Inline CSS strings (`rgba(r, g, b, a)`)      |
+| **Layout**         | Absolute bounding boxes + flex                       | **Flexbox only** (no absolute positioning)   |
+| **Focus**          | Complete Figma fidelity                              | **UI building only** (omits Figma internals) |
 
 ## Star History
 
-<a href="https://star-history.com/#GLips/Figma-Context-MCP"><img src="https://api.star-history.com/svg?repos=GLips/Figma-Context-MCP&type=Date" alt="Star History Chart" width="600" /></a>
+<a href="https://star-history.com/#felixAnhalt/Figma-Context-MCP"><img src="https://api.star-history.com/svg?repos=felixAnhalt/Figma-Context-MCP&type=Date" alt="Star History Chart" width="600" /></a>
 
 ## Learn More
 
