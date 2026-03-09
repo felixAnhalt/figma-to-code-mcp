@@ -4,6 +4,7 @@ import type {
   GetFileResponse,
   GetFileNodesResponse,
   GetImageFillsResponse,
+  GetLocalVariablesResponse,
   Transform,
 } from "@figma/rest-api-spec";
 import { downloadAndProcessImage, type ImageProcessingResult } from "~/utils/image-processing.js";
@@ -292,6 +293,26 @@ export class FigmaService {
 
     const response = await this.request<GetFileNodesResponse>(endpoint);
     writeLogs("figma-raw.json", response);
+
+    return response;
+  }
+
+  /**
+   * Get local variables from a Figma file.
+   *
+   * Returns all variables and variable collections defined in the file.
+   * Used to resolve VariableAlias references (e.g., { type: "VARIABLE_ALIAS", id: "..." })
+   * to actual values.
+   *
+   * @param fileKey - The Figma file key
+   * @returns Variables and variable collections with values by mode
+   */
+  async getLocalVariables(fileKey: string): Promise<GetLocalVariablesResponse> {
+    const endpoint = `/files/${fileKey}/variables/local`;
+    Logger.log(`Retrieving local variables from ${fileKey}`);
+
+    const response = await this.request<GetLocalVariablesResponse>(endpoint);
+    writeLogs("figma-variables.json", response);
 
     return response;
   }

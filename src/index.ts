@@ -1,14 +1,11 @@
 // Re-export new MCP response types
 export type {
   MCPResponse,
-  LayoutNode,
-  FlexNode,
-  NodeStyle,
+  Node,
   Paint,
-  Effect,
-  TextStyle,
-  Style,
+  GradientStop,
   Component,
+  VariableValue,
 } from "./figma/types.js";
 
 // Main API

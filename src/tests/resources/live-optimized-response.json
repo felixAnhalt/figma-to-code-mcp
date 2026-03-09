@@ -1,0 +1,4611 @@
+{
+  "root": "4012:10704",
+  "nodes": {
+    "4012:10704": {
+      "id": "4012:10704",
+      "type": "INSTANCE",
+      "name": "Grid_Container",
+      "parent": null,
+      "children": [
+        "I4012:10704;0",
+        "I4012:10704;1",
+        "I4012:10704;2",
+        "I4012:10704;3",
+        "I4012:10704;4",
+        "I4012:10704;5",
+        "I4012:10704;6"
+      ],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 24,
+      "padding": {
+        "top": 48,
+        "right": 0,
+        "bottom": 48,
+        "left": 0
+      },
+      "componentId": "4012:10688"
+    },
+    "I4012:10704;0": {
+      "id": "I4012:10704;0",
+      "type": "INSTANCE",
+      "name": "_Container_Background",
+      "parent": "4012:10704",
+      "children": ["I4012:10704;7"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:10259"
+    },
+    "I4012:10704;7": {
+      "id": "I4012:10704;7",
+      "type": "RECTANGLE",
+      "name": "Rectangle 1",
+      "parent": "I4012:10704;0",
+      "backgroundColor": "rgba(229, 238, 236, 1)"
+    },
+    "I4012:10704;1": {
+      "id": "I4012:10704;1",
+      "type": "INSTANCE",
+      "name": ".Grid_Row_1",
+      "parent": "4012:10704",
+      "children": ["I4012:10704;8", "I4012:10704;9", "I4012:10704;10", "I4012:10704;11"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 24,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "componentId": "4012:10581"
+    },
+    "I4012:10704;8": {
+      "id": "I4012:10704;8",
+      "type": "INSTANCE",
+      "name": "headline-combo",
+      "parent": "I4012:10704;1",
+      "children": ["I4012:10704;12", "I4012:10704;13"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 12,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "componentId": "4012:6190"
+    },
+    "I4012:10704;12": {
+      "id": "I4012:10704;12",
+      "type": "TEXT",
+      "name": "Headline",
+      "parent": "I4012:10704;8",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 32,
+      "fontWeight": 400,
+      "lineHeight": 42,
+      "textAlign": "center",
+      "text": "Warum SecureLife wählen?"
+    },
+    "I4012:10704;13": {
+      "id": "I4012:10704;13",
+      "type": "TEXT",
+      "name": "Subtitle",
+      "parent": "I4012:10704;8",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 23,
+      "fontWeight": 700,
+      "lineHeight": 30,
+      "textAlign": "center",
+      "text": "Seit über 30 Jahren schützen wir Familien mit vertrauenswürdigem, zuverlässigem Versicherungsschutz"
+    },
+    "I4012:10704;9": {
+      "id": "I4012:10704;9",
+      "type": "INSTANCE",
+      "name": "headline-combo",
+      "parent": "I4012:10704;1",
+      "children": ["I4012:10704;14", "I4012:10704;15"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 12,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "visible": false,
+      "componentId": "4012:6190"
+    },
+    "I4012:10704;14": {
+      "id": "I4012:10704;14",
+      "type": "TEXT",
+      "name": "Headline",
+      "parent": "I4012:10704;9",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 32,
+      "fontWeight": 400,
+      "lineHeight": 42,
+      "textAlign": "center",
+      "text": "Headline"
+    },
+    "I4012:10704;15": {
+      "id": "I4012:10704;15",
+      "type": "TEXT",
+      "name": "Subtitle",
+      "parent": "I4012:10704;9",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 23,
+      "fontWeight": 700,
+      "lineHeight": 30,
+      "textAlign": "center",
+      "text": "Subtitle"
+    },
+    "I4012:10704;10": {
+      "id": "I4012:10704;10",
+      "type": "INSTANCE",
+      "name": "headline-combo",
+      "parent": "I4012:10704;1",
+      "children": ["I4012:10704;16", "I4012:10704;17"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 12,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "visible": false,
+      "componentId": "4012:6190"
+    },
+    "I4012:10704;16": {
+      "id": "I4012:10704;16",
+      "type": "TEXT",
+      "name": "Headline",
+      "parent": "I4012:10704;10",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 32,
+      "fontWeight": 400,
+      "lineHeight": 42,
+      "textAlign": "center",
+      "text": "Headline"
+    },
+    "I4012:10704;17": {
+      "id": "I4012:10704;17",
+      "type": "TEXT",
+      "name": "Subtitle",
+      "parent": "I4012:10704;10",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 23,
+      "fontWeight": 700,
+      "lineHeight": 30,
+      "textAlign": "center",
+      "text": "Subtitle"
+    },
+    "I4012:10704;11": {
+      "id": "I4012:10704;11",
+      "type": "INSTANCE",
+      "name": "headline-combo",
+      "parent": "I4012:10704;1",
+      "children": ["I4012:10704;18", "I4012:10704;19"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 12,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "visible": false,
+      "componentId": "4012:6190"
+    },
+    "I4012:10704;18": {
+      "id": "I4012:10704;18",
+      "type": "TEXT",
+      "name": "Headline",
+      "parent": "I4012:10704;11",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 32,
+      "fontWeight": 400,
+      "lineHeight": 42,
+      "textAlign": "center",
+      "text": "Headline"
+    },
+    "I4012:10704;19": {
+      "id": "I4012:10704;19",
+      "type": "TEXT",
+      "name": "Subtitle",
+      "parent": "I4012:10704;11",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 23,
+      "fontWeight": 700,
+      "lineHeight": 30,
+      "textAlign": "center",
+      "text": "Subtitle"
+    },
+    "I4012:10704;2": {
+      "id": "I4012:10704;2",
+      "type": "INSTANCE",
+      "name": ".Grid_Row_2",
+      "parent": "4012:10704",
+      "children": ["I4012:10704;20", "I4012:10704;21", "I4012:10704;22", "I4012:10704;23"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 24,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "componentId": "4012:10581"
+    },
+    "I4012:10704;20": {
+      "id": "I4012:10704;20",
+      "type": "INSTANCE",
+      "name": "Card Vertical",
+      "parent": "I4012:10704;2",
+      "children": ["I4012:10704;24", "I4012:10704;25", "I4012:10704;26"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "borderRadius": 4,
+      "componentId": "4012:10437"
+    },
+    "I4012:10704;24": {
+      "id": "I4012:10704;24",
+      "type": "INSTANCE",
+      "name": ".Card Background",
+      "parent": "I4012:10704;20",
+      "children": ["I4012:10704;27"],
+      "borderRadius": 4,
+      "boxShadow": "0px 1px 2px 0px rgba(0, 0, 0, 0.16078431904315948)",
+      "componentId": "4012:5931"
+    },
+    "I4012:10704;27": {
+      "id": "I4012:10704;27",
+      "type": "RECTANGLE",
+      "name": "Rectangle 15",
+      "parent": "I4012:10704;24",
+      "backgroundColor": "rgba(255, 255, 255, 1)"
+    },
+    "I4012:10704;25": {
+      "id": "I4012:10704;25",
+      "type": "FRAME",
+      "name": "Card Content",
+      "parent": "I4012:10704;20",
+      "children": ["I4012:10704;28", "I4012:10704;29", "I4012:10704;30"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
+    },
+    "I4012:10704;28": {
+      "id": "I4012:10704;28",
+      "type": "FRAME",
+      "name": "Header",
+      "parent": "I4012:10704;25",
+      "children": ["I4012:10704;31", "I4012:10704;32"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 16,
+      "padding": {
+        "top": 24,
+        "right": 24,
+        "bottom": 24,
+        "left": 24
+      },
+      "visible": false
+    },
+    "I4012:10704;31": {
+      "id": "I4012:10704;31",
+      "type": "INSTANCE",
+      "name": "headline-combo",
+      "parent": "I4012:10704;28",
+      "children": ["I4012:10704;33", "I4012:10704;34"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 12,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "componentId": "4012:6169"
+    },
+    "I4012:10704;33": {
+      "id": "I4012:10704;33",
+      "type": "TEXT",
+      "name": "oev-comp-card-header-title-font-style",
+      "parent": "I4012:10704;31",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 32,
+      "fontWeight": 400,
+      "lineHeight": 42,
+      "textAlign": "left",
+      "text": "Headline"
+    },
+    "I4012:10704;34": {
+      "id": "I4012:10704;34",
+      "type": "TEXT",
+      "name": "oev-comp-card-header-subtitle-font-style",
+      "parent": "I4012:10704;31",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 23,
+      "fontWeight": 700,
+      "lineHeight": 30,
+      "textAlign": "left",
+      "text": "Subtitle"
+    },
+    "I4012:10704;32": {
+      "id": "I4012:10704;32",
+      "type": "TEXT",
+      "name": "oev-comp-card-header-teaser-font-style",
+      "parent": "I4012:10704;28",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "Body. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore."
+    },
+    "I4012:10704;29": {
+      "id": "I4012:10704;29",
+      "type": "INSTANCE",
+      "name": "Image-Schutz",
+      "parent": "I4012:10704;25",
+      "children": ["I4012:10704;35"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "background": [
+        {
+          "type": "IMAGE",
+          "imageRef": "cc6b127e93c01763f9f5bc724d6c3d96d096e575",
+          "scaleMode": "FILL"
+        }
+      ],
+      "componentId": "4012:6637"
+    },
+    "I4012:10704;35": {
+      "id": "I4012:10704;35",
+      "type": "FRAME",
+      "name": "Aspect ratio keeper # Rotated Auto Layout",
+      "parent": "I4012:10704;29",
+      "children": [],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "border": "rgba(255, 255, 255, 1)",
+      "borderWidth": 1
+    },
+    "I4012:10704;30": {
+      "id": "I4012:10704;30",
+      "type": "FRAME",
+      "name": "Content",
+      "parent": "I4012:10704;25",
+      "children": ["I4012:10704;36", "I4012:10704;37"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 24,
+      "padding": {
+        "top": 24,
+        "right": 24,
+        "bottom": 24,
+        "left": 24
+      }
+    },
+    "I4012:10704;36": {
+      "id": "I4012:10704;36",
+      "type": "FRAME",
+      "name": "Text & List",
+      "parent": "I4012:10704;30",
+      "children": ["I4012:10704;38", "I4012:10704;39", "I4012:10704;40"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 16,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
+    },
+    "I4012:10704;38": {
+      "id": "I4012:10704;38",
+      "type": "TEXT",
+      "name": "oev-comp-card-content-top-section-secondary-title-font-style",
+      "parent": "I4012:10704;36",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 23,
+      "fontWeight": 700,
+      "lineHeight": 30,
+      "textAlign": "left",
+      "text": "Umfassender Schutz"
+    },
+    "I4012:10704;39": {
+      "id": "I4012:10704;39",
+      "type": "TEXT",
+      "name": "oev-comp-card-content-top-section-body-text-font-style",
+      "parent": "I4012:10704;36",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Lato",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "Vollständiger Schutz für Lebens-, Kranken-, Haus- und Autoversicherung"
+    },
+    "I4012:10704;40": {
+      "id": "I4012:10704;40",
+      "type": "INSTANCE",
+      "name": "List",
+      "parent": "I4012:10704;36",
+      "children": ["I4012:10704;41", "I4012:10704;42", "I4012:10704;43", "I4012:10704;44"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 16,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "visible": false,
+      "componentId": "4012:6592"
+    },
+    "I4012:10704;41": {
+      "id": "I4012:10704;41",
+      "type": "INSTANCE",
+      "name": "LIST Item",
+      "parent": "I4012:10704;40",
+      "children": ["I4012:10704;45", "I4012:10704;46"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 4,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6554"
+    },
+    "I4012:10704;45": {
+      "id": "I4012:10704;45",
+      "type": "INSTANCE",
+      "name": "Icon Atom",
+      "parent": "I4012:10704;41",
+      "children": ["I4012:10704;47"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:1571"
+    },
+    "I4012:10704;47": {
+      "id": "I4012:10704;47",
+      "type": "INSTANCE",
+      "name": "check_outlined",
+      "parent": "I4012:10704;45",
+      "children": ["I4012:10704;48"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6542"
+    },
+    "I4012:10704;48": {
+      "id": "I4012:10704;48",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;47",
+      "backgroundColor": "rgba(0, 132, 127, 1)"
+    },
+    "I4012:10704;46": {
+      "id": "I4012:10704;46",
+      "type": "TEXT",
+      "name": "List Item | Body",
+      "parent": "I4012:10704;41",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "Anfangshilfe"
+    },
+    "I4012:10704;42": {
+      "id": "I4012:10704;42",
+      "type": "INSTANCE",
+      "name": "LIST Item",
+      "parent": "I4012:10704;40",
+      "children": ["I4012:10704;49", "I4012:10704;50"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 4,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6554"
+    },
+    "I4012:10704;49": {
+      "id": "I4012:10704;49",
+      "type": "INSTANCE",
+      "name": "Icon Atom",
+      "parent": "I4012:10704;42",
+      "children": ["I4012:10704;51"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:1571"
+    },
+    "I4012:10704;51": {
+      "id": "I4012:10704;51",
+      "type": "INSTANCE",
+      "name": "check_outlined",
+      "parent": "I4012:10704;49",
+      "children": ["I4012:10704;52"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6542"
+    },
+    "I4012:10704;52": {
+      "id": "I4012:10704;52",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;51",
+      "backgroundColor": "rgba(0, 132, 127, 1)"
+    },
+    "I4012:10704;50": {
+      "id": "I4012:10704;50",
+      "type": "TEXT",
+      "name": "List Item | Body",
+      "parent": "I4012:10704;42",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "Leistung bei schweren Erkrankungen (Dread Disease)"
+    },
+    "I4012:10704;43": {
+      "id": "I4012:10704;43",
+      "type": "INSTANCE",
+      "name": "LIST Item",
+      "parent": "I4012:10704;40",
+      "children": ["I4012:10704;53", "I4012:10704;54"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 4,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6554"
+    },
+    "I4012:10704;53": {
+      "id": "I4012:10704;53",
+      "type": "INSTANCE",
+      "name": "Icon Atom",
+      "parent": "I4012:10704;43",
+      "children": ["I4012:10704;55"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:1571"
+    },
+    "I4012:10704;55": {
+      "id": "I4012:10704;55",
+      "type": "INSTANCE",
+      "name": "check_outlined",
+      "parent": "I4012:10704;53",
+      "children": ["I4012:10704;56"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6542"
+    },
+    "I4012:10704;56": {
+      "id": "I4012:10704;56",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;55",
+      "backgroundColor": "rgba(0, 132, 127, 1)"
+    },
+    "I4012:10704;54": {
+      "id": "I4012:10704;54",
+      "type": "TEXT",
+      "name": "List Item | Body",
+      "parent": "I4012:10704;43",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "Wiedereingliederungshilfe"
+    },
+    "I4012:10704;44": {
+      "id": "I4012:10704;44",
+      "type": "FRAME",
+      "name": "read more",
+      "parent": "I4012:10704;40",
+      "children": ["I4012:10704;57", "I4012:10704;58"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
+    },
+    "I4012:10704;57": {
+      "id": "I4012:10704;57",
+      "type": "INSTANCE",
+      "name": "divider",
+      "parent": "I4012:10704;44",
+      "children": ["I4012:10704;59"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 10,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 8,
+        "left": 0
+      },
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:1706"
+    },
+    "I4012:10704;59": {
+      "id": "I4012:10704;59",
+      "type": "VECTOR",
+      "name": "bar",
+      "parent": "I4012:10704;57",
+      "border": "rgba(152, 152, 152, 1)",
+      "borderWidth": 1
+    },
+    "I4012:10704;58": {
+      "id": "I4012:10704;58",
+      "type": "INSTANCE",
+      "name": "Link",
+      "parent": "I4012:10704;44",
+      "children": ["I4012:10704;60", "I4012:10704;61", "I4012:10704;62"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 4,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "componentId": "4012:524"
+    },
+    "I4012:10704;60": {
+      "id": "I4012:10704;60",
+      "type": "INSTANCE",
+      "name": "chevron_left_outlined",
+      "parent": "I4012:10704;58",
+      "children": ["I4012:10704;63"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:397"
+    },
+    "I4012:10704;63": {
+      "id": "I4012:10704;63",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;60",
+      "backgroundColor": "rgba(0, 89, 64, 1)"
+    },
+    "I4012:10704;61": {
+      "id": "I4012:10704;61",
+      "type": "TEXT",
+      "name": "Link",
+      "parent": "I4012:10704;58",
+      "backgroundColor": "rgba(0, 89, 64, 1)",
+      "color": "rgba(0, 89, 64, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 16,
+      "fontWeight": 700,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "Read more"
+    },
+    "I4012:10704;62": {
+      "id": "I4012:10704;62",
+      "type": "INSTANCE",
+      "name": "chevron_down",
+      "parent": "I4012:10704;58",
+      "children": ["I4012:10704;64"],
+      "componentId": "4012:743"
+    },
+    "I4012:10704;64": {
+      "id": "I4012:10704;64",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;62",
+      "backgroundColor": "rgba(0, 89, 64, 1)"
+    },
+    "I4012:10704;37": {
+      "id": "I4012:10704;37",
+      "type": "FRAME",
+      "name": "Footer",
+      "parent": "I4012:10704;30",
+      "children": ["I4012:10704;65", "I4012:10704;66"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-end",
+      "gap": 24,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "visible": false
+    },
+    "I4012:10704;65": {
+      "id": "I4012:10704;65",
+      "type": "INSTANCE",
+      "name": "cta-group",
+      "parent": "I4012:10704;37",
+      "children": ["I4012:10704;67", "I4012:10704;68", "I4012:10704;69"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 24,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "componentId": "4012:6447"
+    },
+    "I4012:10704;67": {
+      "id": "I4012:10704;67",
+      "type": "INSTANCE",
+      "name": "Button",
+      "parent": "I4012:10704;65",
+      "children": ["I4012:10704;70", "I4012:10704;71", "I4012:10704;72"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 4,
+      "padding": {
+        "top": 12,
+        "right": 32,
+        "bottom": 12,
+        "left": 32
+      },
+      "backgroundColor": "rgba(0, 89, 64, 1)",
+      "borderRadius": 4,
+      "componentId": "4012:6308"
+    },
+    "I4012:10704;70": {
+      "id": "I4012:10704;70",
+      "type": "INSTANCE",
+      "name": "chevron_left_outlined",
+      "parent": "I4012:10704;67",
+      "children": ["I4012:10704;73"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:397"
+    },
+    "I4012:10704;73": {
+      "id": "I4012:10704;73",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;70",
+      "backgroundColor": "rgba(255, 255, 255, 1)"
+    },
+    "I4012:10704;71": {
+      "id": "I4012:10704;71",
+      "type": "TEXT",
+      "name": "Buttonlabel",
+      "parent": "I4012:10704;67",
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "color": "rgba(255, 255, 255, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 16,
+      "fontWeight": 700,
+      "lineHeight": 24,
+      "textAlign": "center",
+      "text": "Buttonlabel"
+    },
+    "I4012:10704;72": {
+      "id": "I4012:10704;72",
+      "type": "INSTANCE",
+      "name": "chevron_right_filled",
+      "parent": "I4012:10704;67",
+      "children": ["I4012:10704;74"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:1701"
+    },
+    "I4012:10704;74": {
+      "id": "I4012:10704;74",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;72",
+      "backgroundColor": "rgba(255, 255, 255, 1)"
+    },
+    "I4012:10704;68": {
+      "id": "I4012:10704;68",
+      "type": "INSTANCE",
+      "name": "Button",
+      "parent": "I4012:10704;65",
+      "children": ["I4012:10704;75", "I4012:10704;76", "I4012:10704;77"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 4,
+      "padding": {
+        "top": 12,
+        "right": 32,
+        "bottom": 12,
+        "left": 32
+      },
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "border": "rgba(135, 135, 135, 1)",
+      "borderWidth": 2,
+      "borderRadius": 4,
+      "componentId": "4012:6320"
+    },
+    "I4012:10704;75": {
+      "id": "I4012:10704;75",
+      "type": "INSTANCE",
+      "name": "chevron_left_outlined",
+      "parent": "I4012:10704;68",
+      "children": ["I4012:10704;78"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:397"
+    },
+    "I4012:10704;78": {
+      "id": "I4012:10704;78",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;75",
+      "backgroundColor": "rgba(135, 135, 135, 1)"
+    },
+    "I4012:10704;76": {
+      "id": "I4012:10704;76",
+      "type": "TEXT",
+      "name": "Buttonlabel",
+      "parent": "I4012:10704;68",
+      "backgroundColor": "rgba(135, 135, 135, 1)",
+      "color": "rgba(135, 135, 135, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 16,
+      "fontWeight": 700,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "Buttonlabel"
+    },
+    "I4012:10704;77": {
+      "id": "I4012:10704;77",
+      "type": "INSTANCE",
+      "name": "chevron_right_filled",
+      "parent": "I4012:10704;68",
+      "children": ["I4012:10704;79"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:1701"
+    },
+    "I4012:10704;79": {
+      "id": "I4012:10704;79",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;77",
+      "backgroundColor": "rgba(135, 135, 135, 1)"
+    },
+    "I4012:10704;69": {
+      "id": "I4012:10704;69",
+      "type": "INSTANCE",
+      "name": "Link",
+      "parent": "I4012:10704;65",
+      "children": ["I4012:10704;80", "I4012:10704;81", "I4012:10704;82"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 4,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "componentId": "4012:524"
+    },
+    "I4012:10704;80": {
+      "id": "I4012:10704;80",
+      "type": "INSTANCE",
+      "name": "chevron_left_outlined",
+      "parent": "I4012:10704;69",
+      "children": ["I4012:10704;83"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:397"
+    },
+    "I4012:10704;83": {
+      "id": "I4012:10704;83",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;80",
+      "backgroundColor": "rgba(0, 89, 64, 1)"
+    },
+    "I4012:10704;81": {
+      "id": "I4012:10704;81",
+      "type": "TEXT",
+      "name": "Link",
+      "parent": "I4012:10704;69",
+      "backgroundColor": "rgba(0, 89, 64, 1)",
+      "color": "rgba(0, 89, 64, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 16,
+      "fontWeight": 700,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "Link"
+    },
+    "I4012:10704;82": {
+      "id": "I4012:10704;82",
+      "type": "INSTANCE",
+      "name": "chevron_right_outlined",
+      "parent": "I4012:10704;69",
+      "children": ["I4012:10704;84"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:395"
+    },
+    "I4012:10704;84": {
+      "id": "I4012:10704;84",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;82",
+      "backgroundColor": "rgba(0, 89, 64, 1)"
+    },
+    "I4012:10704;66": {
+      "id": "I4012:10704;66",
+      "type": "TEXT",
+      "name": "oev-comp-card-content-bottom-section-caption-font-style",
+      "parent": "I4012:10704;37",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 12,
+      "fontWeight": 400,
+      "lineHeight": 16,
+      "textAlign": "left",
+      "text": "Caption"
+    },
+    "I4012:10704;26": {
+      "id": "I4012:10704;26",
+      "type": "INSTANCE",
+      "name": "badge",
+      "parent": "I4012:10704;20",
+      "children": ["I4012:10704;85", "I4012:10704;86"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:10384"
+    },
+    "I4012:10704;85": {
+      "id": "I4012:10704;85",
+      "type": "ELLIPSE",
+      "name": "background",
+      "parent": "I4012:10704;26",
+      "backgroundColor": "rgba(0, 89, 64, 1)"
+    },
+    "I4012:10704;86": {
+      "id": "I4012:10704;86",
+      "type": "FRAME",
+      "name": "badge-icon-text",
+      "parent": "I4012:10704;26",
+      "children": ["I4012:10704;87", "I4012:10704;88", "I4012:10704;89"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 2,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
+    },
+    "I4012:10704;87": {
+      "id": "I4012:10704;87",
+      "type": "TEXT",
+      "name": "Text",
+      "parent": "I4012:10704;86",
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "color": "rgba(255, 255, 255, 1)",
+      "fontFamily": "Lato",
+      "fontSize": 14,
+      "fontWeight": 400,
+      "lineHeight": 16.8,
+      "textAlign": "left",
+      "text": "Text",
+      "visible": false
+    },
+    "I4012:10704;88": {
+      "id": "I4012:10704;88",
+      "type": "INSTANCE",
+      "name": "Icon Atom",
+      "parent": "I4012:10704;86",
+      "children": ["I4012:10704;90"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:1579"
+    },
+    "I4012:10704;90": {
+      "id": "I4012:10704;90",
+      "type": "INSTANCE",
+      "name": "notifications_outlined 1",
+      "parent": "I4012:10704;88",
+      "children": ["I4012:10704;91"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:10302"
+    },
+    "I4012:10704;91": {
+      "id": "I4012:10704;91",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;90",
+      "backgroundColor": "rgba(255, 255, 255, 1)"
+    },
+    "I4012:10704;89": {
+      "id": "I4012:10704;89",
+      "type": "TEXT",
+      "name": "Text",
+      "parent": "I4012:10704;86",
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "color": "rgba(255, 255, 255, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 14,
+      "fontWeight": 400,
+      "lineHeight": 18,
+      "textAlign": "left",
+      "text": "Text"
+    },
+    "I4012:10704;21": {
+      "id": "I4012:10704;21",
+      "type": "INSTANCE",
+      "name": "Card Vertical",
+      "parent": "I4012:10704;2",
+      "children": ["I4012:10704;92", "I4012:10704;93", "I4012:10704;94"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 10,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "borderRadius": 4,
+      "componentId": "4012:10437"
+    },
+    "I4012:10704;92": {
+      "id": "I4012:10704;92",
+      "type": "INSTANCE",
+      "name": ".Card Background",
+      "parent": "I4012:10704;21",
+      "children": ["I4012:10704;95"],
+      "borderRadius": 4,
+      "boxShadow": "0px 1px 2px 0px rgba(0, 0, 0, 0.16078431904315948)",
+      "componentId": "4012:5931"
+    },
+    "I4012:10704;95": {
+      "id": "I4012:10704;95",
+      "type": "RECTANGLE",
+      "name": "Rectangle 15",
+      "parent": "I4012:10704;92",
+      "backgroundColor": "rgba(255, 255, 255, 1)"
+    },
+    "I4012:10704;93": {
+      "id": "I4012:10704;93",
+      "type": "FRAME",
+      "name": "Card Content",
+      "parent": "I4012:10704;21",
+      "children": ["I4012:10704;96", "I4012:10704;97", "I4012:10704;98"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
+    },
+    "I4012:10704;96": {
+      "id": "I4012:10704;96",
+      "type": "FRAME",
+      "name": "Header",
+      "parent": "I4012:10704;93",
+      "children": ["I4012:10704;99", "I4012:10704;100"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 16,
+      "padding": {
+        "top": 24,
+        "right": 24,
+        "bottom": 24,
+        "left": 24
+      },
+      "visible": false
+    },
+    "I4012:10704;99": {
+      "id": "I4012:10704;99",
+      "type": "INSTANCE",
+      "name": "headline-combo",
+      "parent": "I4012:10704;96",
+      "children": ["I4012:10704;101", "I4012:10704;102"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 12,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "componentId": "4012:6169"
+    },
+    "I4012:10704;101": {
+      "id": "I4012:10704;101",
+      "type": "TEXT",
+      "name": "oev-comp-card-header-title-font-style",
+      "parent": "I4012:10704;99",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 32,
+      "fontWeight": 400,
+      "lineHeight": 42,
+      "textAlign": "left",
+      "text": "Headline"
+    },
+    "I4012:10704;102": {
+      "id": "I4012:10704;102",
+      "type": "TEXT",
+      "name": "oev-comp-card-header-subtitle-font-style",
+      "parent": "I4012:10704;99",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 23,
+      "fontWeight": 700,
+      "lineHeight": 30,
+      "textAlign": "left",
+      "text": "Subtitle"
+    },
+    "I4012:10704;100": {
+      "id": "I4012:10704;100",
+      "type": "TEXT",
+      "name": "oev-comp-card-header-teaser-font-style",
+      "parent": "I4012:10704;96",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "Body. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore."
+    },
+    "I4012:10704;97": {
+      "id": "I4012:10704;97",
+      "type": "INSTANCE",
+      "name": "Image-Arbeit-Schutz",
+      "parent": "I4012:10704;93",
+      "children": ["I4012:10704;103"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "background": [
+        {
+          "type": "IMAGE",
+          "imageRef": "d311a02bd29b354d3ae145e8b0cf5fb852fe042e",
+          "scaleMode": "FILL"
+        }
+      ],
+      "componentId": "4012:6637"
+    },
+    "I4012:10704;103": {
+      "id": "I4012:10704;103",
+      "type": "FRAME",
+      "name": "Aspect ratio keeper # Rotated Auto Layout",
+      "parent": "I4012:10704;97",
+      "children": [],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "border": "rgba(255, 255, 255, 1)",
+      "borderWidth": 1
+    },
+    "I4012:10704;98": {
+      "id": "I4012:10704;98",
+      "type": "FRAME",
+      "name": "Content",
+      "parent": "I4012:10704;93",
+      "children": ["I4012:10704;104", "I4012:10704;105"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 24,
+      "padding": {
+        "top": 24,
+        "right": 24,
+        "bottom": 24,
+        "left": 24
+      }
+    },
+    "I4012:10704;104": {
+      "id": "I4012:10704;104",
+      "type": "FRAME",
+      "name": "Text & List",
+      "parent": "I4012:10704;98",
+      "children": ["I4012:10704;106", "I4012:10704;107", "I4012:10704;108"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 16,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
+    },
+    "I4012:10704;106": {
+      "id": "I4012:10704;106",
+      "type": "TEXT",
+      "name": "oev-comp-card-content-top-section-secondary-title-font-style",
+      "parent": "I4012:10704;104",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 23,
+      "fontWeight": 700,
+      "lineHeight": 30,
+      "textAlign": "left",
+      "text": "Arbeitsunfähigkeitsschutz"
+    },
+    "I4012:10704;107": {
+      "id": "I4012:10704;107",
+      "type": "TEXT",
+      "name": "oev-comp-card-content-top-section-body-text-font-style",
+      "parent": "I4012:10704;104",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Lato",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "… wenn Sie seit sechs Monaten ununterbrochen krankgeschrieben sind oder es sein werden."
+    },
+    "I4012:10704;108": {
+      "id": "I4012:10704;108",
+      "type": "INSTANCE",
+      "name": "List",
+      "parent": "I4012:10704;104",
+      "children": ["I4012:10704;109", "I4012:10704;110", "I4012:10704;111"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 16,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "visible": false,
+      "componentId": "4012:6588"
+    },
+    "I4012:10704;109": {
+      "id": "I4012:10704;109",
+      "type": "INSTANCE",
+      "name": "LIST Item",
+      "parent": "I4012:10704;108",
+      "children": ["I4012:10704;112", "I4012:10704;113"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 4,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6554"
+    },
+    "I4012:10704;112": {
+      "id": "I4012:10704;112",
+      "type": "INSTANCE",
+      "name": "Icon Atom",
+      "parent": "I4012:10704;109",
+      "children": ["I4012:10704;114"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:1571"
+    },
+    "I4012:10704;114": {
+      "id": "I4012:10704;114",
+      "type": "INSTANCE",
+      "name": "check_outlined",
+      "parent": "I4012:10704;112",
+      "children": ["I4012:10704;115"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6542"
+    },
+    "I4012:10704;115": {
+      "id": "I4012:10704;115",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;114",
+      "backgroundColor": "rgba(0, 132, 127, 1)"
+    },
+    "I4012:10704;113": {
+      "id": "I4012:10704;113",
+      "type": "TEXT",
+      "name": "List Item | Body",
+      "parent": "I4012:10704;109",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "List Item | Body"
+    },
+    "I4012:10704;110": {
+      "id": "I4012:10704;110",
+      "type": "INSTANCE",
+      "name": "LIST Item",
+      "parent": "I4012:10704;108",
+      "children": ["I4012:10704;116", "I4012:10704;117"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 4,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6554"
+    },
+    "I4012:10704;116": {
+      "id": "I4012:10704;116",
+      "type": "INSTANCE",
+      "name": "Icon Atom",
+      "parent": "I4012:10704;110",
+      "children": ["I4012:10704;118"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:1571"
+    },
+    "I4012:10704;118": {
+      "id": "I4012:10704;118",
+      "type": "INSTANCE",
+      "name": "check_outlined",
+      "parent": "I4012:10704;116",
+      "children": ["I4012:10704;119"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6542"
+    },
+    "I4012:10704;119": {
+      "id": "I4012:10704;119",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;118",
+      "backgroundColor": "rgba(0, 132, 127, 1)"
+    },
+    "I4012:10704;117": {
+      "id": "I4012:10704;117",
+      "type": "TEXT",
+      "name": "List Item | Body",
+      "parent": "I4012:10704;110",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "List Item | Body"
+    },
+    "I4012:10704;111": {
+      "id": "I4012:10704;111",
+      "type": "INSTANCE",
+      "name": "LIST Item",
+      "parent": "I4012:10704;108",
+      "children": ["I4012:10704;120", "I4012:10704;121"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 4,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6554"
+    },
+    "I4012:10704;120": {
+      "id": "I4012:10704;120",
+      "type": "INSTANCE",
+      "name": "Icon Atom",
+      "parent": "I4012:10704;111",
+      "children": ["I4012:10704;122"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:1571"
+    },
+    "I4012:10704;122": {
+      "id": "I4012:10704;122",
+      "type": "INSTANCE",
+      "name": "check_outlined",
+      "parent": "I4012:10704;120",
+      "children": ["I4012:10704;123"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6542"
+    },
+    "I4012:10704;123": {
+      "id": "I4012:10704;123",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;122",
+      "backgroundColor": "rgba(0, 132, 127, 1)"
+    },
+    "I4012:10704;121": {
+      "id": "I4012:10704;121",
+      "type": "TEXT",
+      "name": "List Item | Body",
+      "parent": "I4012:10704;111",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "List Item | Body"
+    },
+    "I4012:10704;105": {
+      "id": "I4012:10704;105",
+      "type": "FRAME",
+      "name": "Footer",
+      "parent": "I4012:10704;98",
+      "children": ["I4012:10704;124", "I4012:10704;125"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-end",
+      "gap": 24,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "visible": false
+    },
+    "I4012:10704;124": {
+      "id": "I4012:10704;124",
+      "type": "INSTANCE",
+      "name": "cta-group",
+      "parent": "I4012:10704;105",
+      "children": ["I4012:10704;126", "I4012:10704;127", "I4012:10704;128"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 24,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "componentId": "4012:6447"
+    },
+    "I4012:10704;126": {
+      "id": "I4012:10704;126",
+      "type": "INSTANCE",
+      "name": "Button",
+      "parent": "I4012:10704;124",
+      "children": ["I4012:10704;129", "I4012:10704;130", "I4012:10704;131"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 4,
+      "padding": {
+        "top": 12,
+        "right": 32,
+        "bottom": 12,
+        "left": 32
+      },
+      "backgroundColor": "rgba(0, 89, 64, 1)",
+      "borderRadius": 4,
+      "componentId": "4012:6308"
+    },
+    "I4012:10704;129": {
+      "id": "I4012:10704;129",
+      "type": "INSTANCE",
+      "name": "chevron_left_outlined",
+      "parent": "I4012:10704;126",
+      "children": ["I4012:10704;132"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:397"
+    },
+    "I4012:10704;132": {
+      "id": "I4012:10704;132",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;129",
+      "backgroundColor": "rgba(255, 255, 255, 1)"
+    },
+    "I4012:10704;130": {
+      "id": "I4012:10704;130",
+      "type": "TEXT",
+      "name": "Buttonlabel",
+      "parent": "I4012:10704;126",
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "color": "rgba(255, 255, 255, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 16,
+      "fontWeight": 700,
+      "lineHeight": 24,
+      "textAlign": "center",
+      "text": "Buttonlabel"
+    },
+    "I4012:10704;131": {
+      "id": "I4012:10704;131",
+      "type": "INSTANCE",
+      "name": "chevron_right_filled",
+      "parent": "I4012:10704;126",
+      "children": ["I4012:10704;133"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:1701"
+    },
+    "I4012:10704;133": {
+      "id": "I4012:10704;133",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;131",
+      "backgroundColor": "rgba(255, 255, 255, 1)"
+    },
+    "I4012:10704;127": {
+      "id": "I4012:10704;127",
+      "type": "INSTANCE",
+      "name": "Button",
+      "parent": "I4012:10704;124",
+      "children": ["I4012:10704;134", "I4012:10704;135", "I4012:10704;136"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 4,
+      "padding": {
+        "top": 12,
+        "right": 32,
+        "bottom": 12,
+        "left": 32
+      },
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "border": "rgba(135, 135, 135, 1)",
+      "borderWidth": 2,
+      "borderRadius": 4,
+      "componentId": "4012:6320"
+    },
+    "I4012:10704;134": {
+      "id": "I4012:10704;134",
+      "type": "INSTANCE",
+      "name": "chevron_left_outlined",
+      "parent": "I4012:10704;127",
+      "children": ["I4012:10704;137"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:397"
+    },
+    "I4012:10704;137": {
+      "id": "I4012:10704;137",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;134",
+      "backgroundColor": "rgba(135, 135, 135, 1)"
+    },
+    "I4012:10704;135": {
+      "id": "I4012:10704;135",
+      "type": "TEXT",
+      "name": "Buttonlabel",
+      "parent": "I4012:10704;127",
+      "backgroundColor": "rgba(135, 135, 135, 1)",
+      "color": "rgba(135, 135, 135, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 16,
+      "fontWeight": 700,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "Buttonlabel"
+    },
+    "I4012:10704;136": {
+      "id": "I4012:10704;136",
+      "type": "INSTANCE",
+      "name": "chevron_right_filled",
+      "parent": "I4012:10704;127",
+      "children": ["I4012:10704;138"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:1701"
+    },
+    "I4012:10704;138": {
+      "id": "I4012:10704;138",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;136",
+      "backgroundColor": "rgba(135, 135, 135, 1)"
+    },
+    "I4012:10704;128": {
+      "id": "I4012:10704;128",
+      "type": "INSTANCE",
+      "name": "Link",
+      "parent": "I4012:10704;124",
+      "children": ["I4012:10704;139", "I4012:10704;140", "I4012:10704;141"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 4,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "componentId": "4012:524"
+    },
+    "I4012:10704;139": {
+      "id": "I4012:10704;139",
+      "type": "INSTANCE",
+      "name": "chevron_left_outlined",
+      "parent": "I4012:10704;128",
+      "children": ["I4012:10704;142"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:397"
+    },
+    "I4012:10704;142": {
+      "id": "I4012:10704;142",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;139",
+      "backgroundColor": "rgba(0, 89, 64, 1)"
+    },
+    "I4012:10704;140": {
+      "id": "I4012:10704;140",
+      "type": "TEXT",
+      "name": "Link",
+      "parent": "I4012:10704;128",
+      "backgroundColor": "rgba(0, 89, 64, 1)",
+      "color": "rgba(0, 89, 64, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 16,
+      "fontWeight": 700,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "Link"
+    },
+    "I4012:10704;141": {
+      "id": "I4012:10704;141",
+      "type": "INSTANCE",
+      "name": "chevron_right_outlined",
+      "parent": "I4012:10704;128",
+      "children": ["I4012:10704;143"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:395"
+    },
+    "I4012:10704;143": {
+      "id": "I4012:10704;143",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;141",
+      "backgroundColor": "rgba(0, 89, 64, 1)"
+    },
+    "I4012:10704;125": {
+      "id": "I4012:10704;125",
+      "type": "TEXT",
+      "name": "oev-comp-card-content-bottom-section-caption-font-style",
+      "parent": "I4012:10704;105",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 12,
+      "fontWeight": 400,
+      "lineHeight": 16,
+      "textAlign": "left",
+      "text": "Caption"
+    },
+    "I4012:10704;94": {
+      "id": "I4012:10704;94",
+      "type": "INSTANCE",
+      "name": "badge",
+      "parent": "I4012:10704;21",
+      "children": ["I4012:10704;144", "I4012:10704;145"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:10384"
+    },
+    "I4012:10704;144": {
+      "id": "I4012:10704;144",
+      "type": "ELLIPSE",
+      "name": "background",
+      "parent": "I4012:10704;94",
+      "backgroundColor": "rgba(0, 89, 64, 1)"
+    },
+    "I4012:10704;145": {
+      "id": "I4012:10704;145",
+      "type": "FRAME",
+      "name": "badge-icon-text",
+      "parent": "I4012:10704;94",
+      "children": ["I4012:10704;146", "I4012:10704;147", "I4012:10704;148"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 2,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
+    },
+    "I4012:10704;146": {
+      "id": "I4012:10704;146",
+      "type": "TEXT",
+      "name": "Text",
+      "parent": "I4012:10704;145",
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "color": "rgba(255, 255, 255, 1)",
+      "fontFamily": "Lato",
+      "fontSize": 14,
+      "fontWeight": 400,
+      "lineHeight": 16.8,
+      "textAlign": "left",
+      "text": "Text",
+      "visible": false
+    },
+    "I4012:10704;147": {
+      "id": "I4012:10704;147",
+      "type": "INSTANCE",
+      "name": "Icon Atom",
+      "parent": "I4012:10704;145",
+      "children": ["I4012:10704;149"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:1579"
+    },
+    "I4012:10704;149": {
+      "id": "I4012:10704;149",
+      "type": "INSTANCE",
+      "name": "notifications_outlined 1",
+      "parent": "I4012:10704;147",
+      "children": ["I4012:10704;150"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:10302"
+    },
+    "I4012:10704;150": {
+      "id": "I4012:10704;150",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;149",
+      "backgroundColor": "rgba(255, 255, 255, 1)"
+    },
+    "I4012:10704;148": {
+      "id": "I4012:10704;148",
+      "type": "TEXT",
+      "name": "Text",
+      "parent": "I4012:10704;145",
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "color": "rgba(255, 255, 255, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 14,
+      "fontWeight": 400,
+      "lineHeight": 18,
+      "textAlign": "left",
+      "text": "Text"
+    },
+    "I4012:10704;22": {
+      "id": "I4012:10704;22",
+      "type": "INSTANCE",
+      "name": "Card Vertical",
+      "parent": "I4012:10704;2",
+      "children": ["I4012:10704;151", "I4012:10704;152", "I4012:10704;153"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "borderRadius": 4,
+      "visible": false,
+      "componentId": "4012:10437"
+    },
+    "I4012:10704;151": {
+      "id": "I4012:10704;151",
+      "type": "INSTANCE",
+      "name": ".Card Background",
+      "parent": "I4012:10704;22",
+      "children": ["I4012:10704;154"],
+      "borderRadius": 4,
+      "boxShadow": "0px 1px 2px 0px rgba(0, 0, 0, 0.16078431904315948)",
+      "componentId": "4012:5931"
+    },
+    "I4012:10704;154": {
+      "id": "I4012:10704;154",
+      "type": "RECTANGLE",
+      "name": "Rectangle 15",
+      "parent": "I4012:10704;151",
+      "backgroundColor": "rgba(255, 255, 255, 1)"
+    },
+    "I4012:10704;152": {
+      "id": "I4012:10704;152",
+      "type": "FRAME",
+      "name": "Card Content",
+      "parent": "I4012:10704;22",
+      "children": ["I4012:10704;155", "I4012:10704;156", "I4012:10704;157"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
+    },
+    "I4012:10704;155": {
+      "id": "I4012:10704;155",
+      "type": "FRAME",
+      "name": "Header",
+      "parent": "I4012:10704;152",
+      "children": ["I4012:10704;158", "I4012:10704;159"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 16,
+      "padding": {
+        "top": 24,
+        "right": 24,
+        "bottom": 24,
+        "left": 24
+      }
+    },
+    "I4012:10704;158": {
+      "id": "I4012:10704;158",
+      "type": "INSTANCE",
+      "name": "headline-combo",
+      "parent": "I4012:10704;155",
+      "children": ["I4012:10704;160", "I4012:10704;161"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 12,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "componentId": "4012:6169"
+    },
+    "I4012:10704;160": {
+      "id": "I4012:10704;160",
+      "type": "TEXT",
+      "name": "oev-comp-card-header-title-font-style",
+      "parent": "I4012:10704;158",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 32,
+      "fontWeight": 400,
+      "lineHeight": 42,
+      "textAlign": "left",
+      "text": "Headline"
+    },
+    "I4012:10704;161": {
+      "id": "I4012:10704;161",
+      "type": "TEXT",
+      "name": "oev-comp-card-header-subtitle-font-style",
+      "parent": "I4012:10704;158",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 23,
+      "fontWeight": 700,
+      "lineHeight": 30,
+      "textAlign": "left",
+      "text": "Subtitle"
+    },
+    "I4012:10704;159": {
+      "id": "I4012:10704;159",
+      "type": "TEXT",
+      "name": "oev-comp-card-header-teaser-font-style",
+      "parent": "I4012:10704;155",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "Body. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore."
+    },
+    "I4012:10704;156": {
+      "id": "I4012:10704;156",
+      "type": "INSTANCE",
+      "name": "Image placeholder",
+      "parent": "I4012:10704;152",
+      "children": ["I4012:10704;162"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "background": [
+        {
+          "type": "IMAGE",
+          "imageRef": "a5b7befd68098c732672b98fdf23aba059375524",
+          "scaleMode": "FILL"
+        }
+      ],
+      "componentId": "4012:6637"
+    },
+    "I4012:10704;162": {
+      "id": "I4012:10704;162",
+      "type": "FRAME",
+      "name": "Aspect ratio keeper # Rotated Auto Layout",
+      "parent": "I4012:10704;156",
+      "children": [],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "border": "rgba(255, 255, 255, 1)",
+      "borderWidth": 1
+    },
+    "I4012:10704;157": {
+      "id": "I4012:10704;157",
+      "type": "FRAME",
+      "name": "Content",
+      "parent": "I4012:10704;152",
+      "children": ["I4012:10704;163", "I4012:10704;164"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 24,
+      "padding": {
+        "top": 24,
+        "right": 24,
+        "bottom": 24,
+        "left": 24
+      }
+    },
+    "I4012:10704;163": {
+      "id": "I4012:10704;163",
+      "type": "FRAME",
+      "name": "Text & List",
+      "parent": "I4012:10704;157",
+      "children": ["I4012:10704;165", "I4012:10704;166", "I4012:10704;167"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 16,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
+    },
+    "I4012:10704;165": {
+      "id": "I4012:10704;165",
+      "type": "TEXT",
+      "name": "oev-comp-card-content-top-section-secondary-title-font-style",
+      "parent": "I4012:10704;163",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 23,
+      "fontWeight": 700,
+      "lineHeight": 30,
+      "textAlign": "left",
+      "text": "Secondary Title"
+    },
+    "I4012:10704;166": {
+      "id": "I4012:10704;166",
+      "type": "TEXT",
+      "name": "oev-comp-card-content-top-section-body-text-font-style",
+      "parent": "I4012:10704;163",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "Body. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore."
+    },
+    "I4012:10704;167": {
+      "id": "I4012:10704;167",
+      "type": "INSTANCE",
+      "name": "List",
+      "parent": "I4012:10704;163",
+      "children": ["I4012:10704;168", "I4012:10704;169", "I4012:10704;170"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 16,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "componentId": "4012:6588"
+    },
+    "I4012:10704;168": {
+      "id": "I4012:10704;168",
+      "type": "INSTANCE",
+      "name": "LIST Item",
+      "parent": "I4012:10704;167",
+      "children": ["I4012:10704;171", "I4012:10704;172"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 4,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6554"
+    },
+    "I4012:10704;171": {
+      "id": "I4012:10704;171",
+      "type": "INSTANCE",
+      "name": "Icon Atom",
+      "parent": "I4012:10704;168",
+      "children": ["I4012:10704;173"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:1571"
+    },
+    "I4012:10704;173": {
+      "id": "I4012:10704;173",
+      "type": "INSTANCE",
+      "name": "check_outlined",
+      "parent": "I4012:10704;171",
+      "children": ["I4012:10704;174"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6542"
+    },
+    "I4012:10704;174": {
+      "id": "I4012:10704;174",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;173",
+      "backgroundColor": "rgba(0, 132, 127, 1)"
+    },
+    "I4012:10704;172": {
+      "id": "I4012:10704;172",
+      "type": "TEXT",
+      "name": "List Item | Body",
+      "parent": "I4012:10704;168",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "List Item | Body"
+    },
+    "I4012:10704;169": {
+      "id": "I4012:10704;169",
+      "type": "INSTANCE",
+      "name": "LIST Item",
+      "parent": "I4012:10704;167",
+      "children": ["I4012:10704;175", "I4012:10704;176"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 4,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6554"
+    },
+    "I4012:10704;175": {
+      "id": "I4012:10704;175",
+      "type": "INSTANCE",
+      "name": "Icon Atom",
+      "parent": "I4012:10704;169",
+      "children": ["I4012:10704;177"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:1571"
+    },
+    "I4012:10704;177": {
+      "id": "I4012:10704;177",
+      "type": "INSTANCE",
+      "name": "check_outlined",
+      "parent": "I4012:10704;175",
+      "children": ["I4012:10704;178"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6542"
+    },
+    "I4012:10704;178": {
+      "id": "I4012:10704;178",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;177",
+      "backgroundColor": "rgba(0, 132, 127, 1)"
+    },
+    "I4012:10704;176": {
+      "id": "I4012:10704;176",
+      "type": "TEXT",
+      "name": "List Item | Body",
+      "parent": "I4012:10704;169",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "List Item | Body"
+    },
+    "I4012:10704;170": {
+      "id": "I4012:10704;170",
+      "type": "INSTANCE",
+      "name": "LIST Item",
+      "parent": "I4012:10704;167",
+      "children": ["I4012:10704;179", "I4012:10704;180"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 4,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6554"
+    },
+    "I4012:10704;179": {
+      "id": "I4012:10704;179",
+      "type": "INSTANCE",
+      "name": "Icon Atom",
+      "parent": "I4012:10704;170",
+      "children": ["I4012:10704;181"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:1571"
+    },
+    "I4012:10704;181": {
+      "id": "I4012:10704;181",
+      "type": "INSTANCE",
+      "name": "check_outlined",
+      "parent": "I4012:10704;179",
+      "children": ["I4012:10704;182"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6542"
+    },
+    "I4012:10704;182": {
+      "id": "I4012:10704;182",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;181",
+      "backgroundColor": "rgba(0, 132, 127, 1)"
+    },
+    "I4012:10704;180": {
+      "id": "I4012:10704;180",
+      "type": "TEXT",
+      "name": "List Item | Body",
+      "parent": "I4012:10704;170",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "List Item | Body"
+    },
+    "I4012:10704;164": {
+      "id": "I4012:10704;164",
+      "type": "FRAME",
+      "name": "Footer",
+      "parent": "I4012:10704;157",
+      "children": ["I4012:10704;183", "I4012:10704;184"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-end",
+      "gap": 24,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
+    },
+    "I4012:10704;183": {
+      "id": "I4012:10704;183",
+      "type": "INSTANCE",
+      "name": "cta-group",
+      "parent": "I4012:10704;164",
+      "children": ["I4012:10704;185", "I4012:10704;186", "I4012:10704;187"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 24,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "componentId": "4012:6447"
+    },
+    "I4012:10704;185": {
+      "id": "I4012:10704;185",
+      "type": "INSTANCE",
+      "name": "Button",
+      "parent": "I4012:10704;183",
+      "children": ["I4012:10704;188", "I4012:10704;189", "I4012:10704;190"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 4,
+      "padding": {
+        "top": 12,
+        "right": 32,
+        "bottom": 12,
+        "left": 32
+      },
+      "backgroundColor": "rgba(0, 89, 64, 1)",
+      "borderRadius": 4,
+      "componentId": "4012:6308"
+    },
+    "I4012:10704;188": {
+      "id": "I4012:10704;188",
+      "type": "INSTANCE",
+      "name": "chevron_left_outlined",
+      "parent": "I4012:10704;185",
+      "children": ["I4012:10704;191"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:397"
+    },
+    "I4012:10704;191": {
+      "id": "I4012:10704;191",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;188",
+      "backgroundColor": "rgba(255, 255, 255, 1)"
+    },
+    "I4012:10704;189": {
+      "id": "I4012:10704;189",
+      "type": "TEXT",
+      "name": "Buttonlabel",
+      "parent": "I4012:10704;185",
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "color": "rgba(255, 255, 255, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 16,
+      "fontWeight": 700,
+      "lineHeight": 24,
+      "textAlign": "center",
+      "text": "Buttonlabel"
+    },
+    "I4012:10704;190": {
+      "id": "I4012:10704;190",
+      "type": "INSTANCE",
+      "name": "chevron_right_filled",
+      "parent": "I4012:10704;185",
+      "children": ["I4012:10704;192"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:1701"
+    },
+    "I4012:10704;192": {
+      "id": "I4012:10704;192",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;190",
+      "backgroundColor": "rgba(255, 255, 255, 1)"
+    },
+    "I4012:10704;186": {
+      "id": "I4012:10704;186",
+      "type": "INSTANCE",
+      "name": "Button",
+      "parent": "I4012:10704;183",
+      "children": ["I4012:10704;193", "I4012:10704;194", "I4012:10704;195"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 4,
+      "padding": {
+        "top": 12,
+        "right": 32,
+        "bottom": 12,
+        "left": 32
+      },
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "border": "rgba(135, 135, 135, 1)",
+      "borderWidth": 2,
+      "borderRadius": 4,
+      "componentId": "4012:6320"
+    },
+    "I4012:10704;193": {
+      "id": "I4012:10704;193",
+      "type": "INSTANCE",
+      "name": "chevron_left_outlined",
+      "parent": "I4012:10704;186",
+      "children": ["I4012:10704;196"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:397"
+    },
+    "I4012:10704;196": {
+      "id": "I4012:10704;196",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;193",
+      "backgroundColor": "rgba(135, 135, 135, 1)"
+    },
+    "I4012:10704;194": {
+      "id": "I4012:10704;194",
+      "type": "TEXT",
+      "name": "Buttonlabel",
+      "parent": "I4012:10704;186",
+      "backgroundColor": "rgba(135, 135, 135, 1)",
+      "color": "rgba(135, 135, 135, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 16,
+      "fontWeight": 700,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "Buttonlabel"
+    },
+    "I4012:10704;195": {
+      "id": "I4012:10704;195",
+      "type": "INSTANCE",
+      "name": "chevron_right_filled",
+      "parent": "I4012:10704;186",
+      "children": ["I4012:10704;197"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:1701"
+    },
+    "I4012:10704;197": {
+      "id": "I4012:10704;197",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;195",
+      "backgroundColor": "rgba(135, 135, 135, 1)"
+    },
+    "I4012:10704;187": {
+      "id": "I4012:10704;187",
+      "type": "INSTANCE",
+      "name": "Link",
+      "parent": "I4012:10704;183",
+      "children": ["I4012:10704;198", "I4012:10704;199", "I4012:10704;200"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 4,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "componentId": "4012:524"
+    },
+    "I4012:10704;198": {
+      "id": "I4012:10704;198",
+      "type": "INSTANCE",
+      "name": "chevron_left_outlined",
+      "parent": "I4012:10704;187",
+      "children": ["I4012:10704;201"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:397"
+    },
+    "I4012:10704;201": {
+      "id": "I4012:10704;201",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;198",
+      "backgroundColor": "rgba(0, 89, 64, 1)"
+    },
+    "I4012:10704;199": {
+      "id": "I4012:10704;199",
+      "type": "TEXT",
+      "name": "Link",
+      "parent": "I4012:10704;187",
+      "backgroundColor": "rgba(0, 89, 64, 1)",
+      "color": "rgba(0, 89, 64, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 16,
+      "fontWeight": 700,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "Link"
+    },
+    "I4012:10704;200": {
+      "id": "I4012:10704;200",
+      "type": "INSTANCE",
+      "name": "chevron_right_outlined",
+      "parent": "I4012:10704;187",
+      "children": ["I4012:10704;202"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:395"
+    },
+    "I4012:10704;202": {
+      "id": "I4012:10704;202",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;200",
+      "backgroundColor": "rgba(0, 89, 64, 1)"
+    },
+    "I4012:10704;184": {
+      "id": "I4012:10704;184",
+      "type": "TEXT",
+      "name": "oev-comp-card-content-bottom-section-caption-font-style",
+      "parent": "I4012:10704;164",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 12,
+      "fontWeight": 400,
+      "lineHeight": 16,
+      "textAlign": "left",
+      "text": "Caption"
+    },
+    "I4012:10704;153": {
+      "id": "I4012:10704;153",
+      "type": "INSTANCE",
+      "name": "badge",
+      "parent": "I4012:10704;22",
+      "children": ["I4012:10704;203", "I4012:10704;204"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:10384"
+    },
+    "I4012:10704;203": {
+      "id": "I4012:10704;203",
+      "type": "ELLIPSE",
+      "name": "background",
+      "parent": "I4012:10704;153",
+      "backgroundColor": "rgba(0, 89, 64, 1)"
+    },
+    "I4012:10704;204": {
+      "id": "I4012:10704;204",
+      "type": "FRAME",
+      "name": "badge-icon-text",
+      "parent": "I4012:10704;153",
+      "children": ["I4012:10704;205", "I4012:10704;206", "I4012:10704;207"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 2,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
+    },
+    "I4012:10704;205": {
+      "id": "I4012:10704;205",
+      "type": "TEXT",
+      "name": "Text",
+      "parent": "I4012:10704;204",
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "color": "rgba(255, 255, 255, 1)",
+      "fontFamily": "Lato",
+      "fontSize": 14,
+      "fontWeight": 400,
+      "lineHeight": 16.8,
+      "textAlign": "left",
+      "text": "Text",
+      "visible": false
+    },
+    "I4012:10704;206": {
+      "id": "I4012:10704;206",
+      "type": "INSTANCE",
+      "name": "Icon Atom",
+      "parent": "I4012:10704;204",
+      "children": ["I4012:10704;208"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:1579"
+    },
+    "I4012:10704;208": {
+      "id": "I4012:10704;208",
+      "type": "INSTANCE",
+      "name": "notifications_outlined 1",
+      "parent": "I4012:10704;206",
+      "children": ["I4012:10704;209"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:10302"
+    },
+    "I4012:10704;209": {
+      "id": "I4012:10704;209",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;208",
+      "backgroundColor": "rgba(255, 255, 255, 1)"
+    },
+    "I4012:10704;207": {
+      "id": "I4012:10704;207",
+      "type": "TEXT",
+      "name": "Text",
+      "parent": "I4012:10704;204",
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "color": "rgba(255, 255, 255, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 14,
+      "fontWeight": 400,
+      "lineHeight": 18,
+      "textAlign": "left",
+      "text": "Text"
+    },
+    "I4012:10704;23": {
+      "id": "I4012:10704;23",
+      "type": "INSTANCE",
+      "name": "Card Vertical",
+      "parent": "I4012:10704;2",
+      "children": ["I4012:10704;210", "I4012:10704;211", "I4012:10704;212"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 10,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "borderRadius": 4,
+      "visible": false,
+      "componentId": "4012:10437"
+    },
+    "I4012:10704;210": {
+      "id": "I4012:10704;210",
+      "type": "INSTANCE",
+      "name": ".Card Background",
+      "parent": "I4012:10704;23",
+      "children": ["I4012:10704;213"],
+      "borderRadius": 4,
+      "boxShadow": "0px 1px 2px 0px rgba(0, 0, 0, 0.16078431904315948)",
+      "componentId": "4012:5931"
+    },
+    "I4012:10704;213": {
+      "id": "I4012:10704;213",
+      "type": "RECTANGLE",
+      "name": "Rectangle 15",
+      "parent": "I4012:10704;210",
+      "backgroundColor": "rgba(255, 255, 255, 1)"
+    },
+    "I4012:10704;211": {
+      "id": "I4012:10704;211",
+      "type": "FRAME",
+      "name": "Card Content",
+      "parent": "I4012:10704;23",
+      "children": ["I4012:10704;214", "I4012:10704;215", "I4012:10704;216"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
+    },
+    "I4012:10704;214": {
+      "id": "I4012:10704;214",
+      "type": "FRAME",
+      "name": "Header",
+      "parent": "I4012:10704;211",
+      "children": ["I4012:10704;217", "I4012:10704;218"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 16,
+      "padding": {
+        "top": 24,
+        "right": 24,
+        "bottom": 24,
+        "left": 24
+      }
+    },
+    "I4012:10704;217": {
+      "id": "I4012:10704;217",
+      "type": "INSTANCE",
+      "name": "headline-combo",
+      "parent": "I4012:10704;214",
+      "children": ["I4012:10704;219", "I4012:10704;220"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 12,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "componentId": "4012:6169"
+    },
+    "I4012:10704;219": {
+      "id": "I4012:10704;219",
+      "type": "TEXT",
+      "name": "oev-comp-card-header-title-font-style",
+      "parent": "I4012:10704;217",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 32,
+      "fontWeight": 400,
+      "lineHeight": 42,
+      "textAlign": "left",
+      "text": "Headline"
+    },
+    "I4012:10704;220": {
+      "id": "I4012:10704;220",
+      "type": "TEXT",
+      "name": "oev-comp-card-header-subtitle-font-style",
+      "parent": "I4012:10704;217",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 23,
+      "fontWeight": 700,
+      "lineHeight": 30,
+      "textAlign": "left",
+      "text": "Subtitle"
+    },
+    "I4012:10704;218": {
+      "id": "I4012:10704;218",
+      "type": "TEXT",
+      "name": "oev-comp-card-header-teaser-font-style",
+      "parent": "I4012:10704;214",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "Body. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore."
+    },
+    "I4012:10704;215": {
+      "id": "I4012:10704;215",
+      "type": "INSTANCE",
+      "name": "Image placeholder",
+      "parent": "I4012:10704;211",
+      "children": ["I4012:10704;221"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "background": [
+        {
+          "type": "IMAGE",
+          "imageRef": "a5b7befd68098c732672b98fdf23aba059375524",
+          "scaleMode": "FILL"
+        }
+      ],
+      "componentId": "4012:6637"
+    },
+    "I4012:10704;221": {
+      "id": "I4012:10704;221",
+      "type": "FRAME",
+      "name": "Aspect ratio keeper # Rotated Auto Layout",
+      "parent": "I4012:10704;215",
+      "children": [],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "border": "rgba(255, 255, 255, 1)",
+      "borderWidth": 1
+    },
+    "I4012:10704;216": {
+      "id": "I4012:10704;216",
+      "type": "FRAME",
+      "name": "Content",
+      "parent": "I4012:10704;211",
+      "children": ["I4012:10704;222", "I4012:10704;223"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 24,
+      "padding": {
+        "top": 24,
+        "right": 24,
+        "bottom": 24,
+        "left": 24
+      }
+    },
+    "I4012:10704;222": {
+      "id": "I4012:10704;222",
+      "type": "FRAME",
+      "name": "Text & List",
+      "parent": "I4012:10704;216",
+      "children": ["I4012:10704;224", "I4012:10704;225", "I4012:10704;226"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 16,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
+    },
+    "I4012:10704;224": {
+      "id": "I4012:10704;224",
+      "type": "TEXT",
+      "name": "oev-comp-card-content-top-section-secondary-title-font-style",
+      "parent": "I4012:10704;222",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 23,
+      "fontWeight": 700,
+      "lineHeight": 30,
+      "textAlign": "left",
+      "text": "Secondary Title"
+    },
+    "I4012:10704;225": {
+      "id": "I4012:10704;225",
+      "type": "TEXT",
+      "name": "oev-comp-card-content-top-section-body-text-font-style",
+      "parent": "I4012:10704;222",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "Body. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore."
+    },
+    "I4012:10704;226": {
+      "id": "I4012:10704;226",
+      "type": "INSTANCE",
+      "name": "List",
+      "parent": "I4012:10704;222",
+      "children": ["I4012:10704;227", "I4012:10704;228", "I4012:10704;229"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 16,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "componentId": "4012:6588"
+    },
+    "I4012:10704;227": {
+      "id": "I4012:10704;227",
+      "type": "INSTANCE",
+      "name": "LIST Item",
+      "parent": "I4012:10704;226",
+      "children": ["I4012:10704;230", "I4012:10704;231"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 4,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6554"
+    },
+    "I4012:10704;230": {
+      "id": "I4012:10704;230",
+      "type": "INSTANCE",
+      "name": "Icon Atom",
+      "parent": "I4012:10704;227",
+      "children": ["I4012:10704;232"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:1571"
+    },
+    "I4012:10704;232": {
+      "id": "I4012:10704;232",
+      "type": "INSTANCE",
+      "name": "check_outlined",
+      "parent": "I4012:10704;230",
+      "children": ["I4012:10704;233"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6542"
+    },
+    "I4012:10704;233": {
+      "id": "I4012:10704;233",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;232",
+      "backgroundColor": "rgba(0, 132, 127, 1)"
+    },
+    "I4012:10704;231": {
+      "id": "I4012:10704;231",
+      "type": "TEXT",
+      "name": "List Item | Body",
+      "parent": "I4012:10704;227",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "List Item | Body"
+    },
+    "I4012:10704;228": {
+      "id": "I4012:10704;228",
+      "type": "INSTANCE",
+      "name": "LIST Item",
+      "parent": "I4012:10704;226",
+      "children": ["I4012:10704;234", "I4012:10704;235"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 4,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6554"
+    },
+    "I4012:10704;234": {
+      "id": "I4012:10704;234",
+      "type": "INSTANCE",
+      "name": "Icon Atom",
+      "parent": "I4012:10704;228",
+      "children": ["I4012:10704;236"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:1571"
+    },
+    "I4012:10704;236": {
+      "id": "I4012:10704;236",
+      "type": "INSTANCE",
+      "name": "check_outlined",
+      "parent": "I4012:10704;234",
+      "children": ["I4012:10704;237"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6542"
+    },
+    "I4012:10704;237": {
+      "id": "I4012:10704;237",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;236",
+      "backgroundColor": "rgba(0, 132, 127, 1)"
+    },
+    "I4012:10704;235": {
+      "id": "I4012:10704;235",
+      "type": "TEXT",
+      "name": "List Item | Body",
+      "parent": "I4012:10704;228",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "List Item | Body"
+    },
+    "I4012:10704;229": {
+      "id": "I4012:10704;229",
+      "type": "INSTANCE",
+      "name": "LIST Item",
+      "parent": "I4012:10704;226",
+      "children": ["I4012:10704;238", "I4012:10704;239"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 4,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6554"
+    },
+    "I4012:10704;238": {
+      "id": "I4012:10704;238",
+      "type": "INSTANCE",
+      "name": "Icon Atom",
+      "parent": "I4012:10704;229",
+      "children": ["I4012:10704;240"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:1571"
+    },
+    "I4012:10704;240": {
+      "id": "I4012:10704;240",
+      "type": "INSTANCE",
+      "name": "check_outlined",
+      "parent": "I4012:10704;238",
+      "children": ["I4012:10704;241"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:6542"
+    },
+    "I4012:10704;241": {
+      "id": "I4012:10704;241",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;240",
+      "backgroundColor": "rgba(0, 132, 127, 1)"
+    },
+    "I4012:10704;239": {
+      "id": "I4012:10704;239",
+      "type": "TEXT",
+      "name": "List Item | Body",
+      "parent": "I4012:10704;229",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "List Item | Body"
+    },
+    "I4012:10704;223": {
+      "id": "I4012:10704;223",
+      "type": "FRAME",
+      "name": "Footer",
+      "parent": "I4012:10704;216",
+      "children": ["I4012:10704;242", "I4012:10704;243"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-end",
+      "gap": 24,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
+    },
+    "I4012:10704;242": {
+      "id": "I4012:10704;242",
+      "type": "INSTANCE",
+      "name": "cta-group",
+      "parent": "I4012:10704;223",
+      "children": ["I4012:10704;244", "I4012:10704;245", "I4012:10704;246"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 24,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "componentId": "4012:6447"
+    },
+    "I4012:10704;244": {
+      "id": "I4012:10704;244",
+      "type": "INSTANCE",
+      "name": "Button",
+      "parent": "I4012:10704;242",
+      "children": ["I4012:10704;247", "I4012:10704;248", "I4012:10704;249"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 4,
+      "padding": {
+        "top": 12,
+        "right": 32,
+        "bottom": 12,
+        "left": 32
+      },
+      "backgroundColor": "rgba(0, 89, 64, 1)",
+      "borderRadius": 4,
+      "componentId": "4012:6308"
+    },
+    "I4012:10704;247": {
+      "id": "I4012:10704;247",
+      "type": "INSTANCE",
+      "name": "chevron_left_outlined",
+      "parent": "I4012:10704;244",
+      "children": ["I4012:10704;250"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:397"
+    },
+    "I4012:10704;250": {
+      "id": "I4012:10704;250",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;247",
+      "backgroundColor": "rgba(255, 255, 255, 1)"
+    },
+    "I4012:10704;248": {
+      "id": "I4012:10704;248",
+      "type": "TEXT",
+      "name": "Buttonlabel",
+      "parent": "I4012:10704;244",
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "color": "rgba(255, 255, 255, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 16,
+      "fontWeight": 700,
+      "lineHeight": 24,
+      "textAlign": "center",
+      "text": "Buttonlabel"
+    },
+    "I4012:10704;249": {
+      "id": "I4012:10704;249",
+      "type": "INSTANCE",
+      "name": "chevron_right_filled",
+      "parent": "I4012:10704;244",
+      "children": ["I4012:10704;251"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:1701"
+    },
+    "I4012:10704;251": {
+      "id": "I4012:10704;251",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;249",
+      "backgroundColor": "rgba(255, 255, 255, 1)"
+    },
+    "I4012:10704;245": {
+      "id": "I4012:10704;245",
+      "type": "INSTANCE",
+      "name": "Button",
+      "parent": "I4012:10704;242",
+      "children": ["I4012:10704;252", "I4012:10704;253", "I4012:10704;254"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 4,
+      "padding": {
+        "top": 12,
+        "right": 32,
+        "bottom": 12,
+        "left": 32
+      },
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "border": "rgba(135, 135, 135, 1)",
+      "borderWidth": 2,
+      "borderRadius": 4,
+      "componentId": "4012:6320"
+    },
+    "I4012:10704;252": {
+      "id": "I4012:10704;252",
+      "type": "INSTANCE",
+      "name": "chevron_left_outlined",
+      "parent": "I4012:10704;245",
+      "children": ["I4012:10704;255"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:397"
+    },
+    "I4012:10704;255": {
+      "id": "I4012:10704;255",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;252",
+      "backgroundColor": "rgba(135, 135, 135, 1)"
+    },
+    "I4012:10704;253": {
+      "id": "I4012:10704;253",
+      "type": "TEXT",
+      "name": "Buttonlabel",
+      "parent": "I4012:10704;245",
+      "backgroundColor": "rgba(135, 135, 135, 1)",
+      "color": "rgba(135, 135, 135, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 16,
+      "fontWeight": 700,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "Buttonlabel"
+    },
+    "I4012:10704;254": {
+      "id": "I4012:10704;254",
+      "type": "INSTANCE",
+      "name": "chevron_right_filled",
+      "parent": "I4012:10704;245",
+      "children": ["I4012:10704;256"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:1701"
+    },
+    "I4012:10704;256": {
+      "id": "I4012:10704;256",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;254",
+      "backgroundColor": "rgba(135, 135, 135, 1)"
+    },
+    "I4012:10704;246": {
+      "id": "I4012:10704;246",
+      "type": "INSTANCE",
+      "name": "Link",
+      "parent": "I4012:10704;242",
+      "children": ["I4012:10704;257", "I4012:10704;258", "I4012:10704;259"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 4,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "componentId": "4012:524"
+    },
+    "I4012:10704;257": {
+      "id": "I4012:10704;257",
+      "type": "INSTANCE",
+      "name": "chevron_left_outlined",
+      "parent": "I4012:10704;246",
+      "children": ["I4012:10704;260"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "visible": false,
+      "componentId": "4012:397"
+    },
+    "I4012:10704;260": {
+      "id": "I4012:10704;260",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;257",
+      "backgroundColor": "rgba(0, 89, 64, 1)"
+    },
+    "I4012:10704;258": {
+      "id": "I4012:10704;258",
+      "type": "TEXT",
+      "name": "Link",
+      "parent": "I4012:10704;246",
+      "backgroundColor": "rgba(0, 89, 64, 1)",
+      "color": "rgba(0, 89, 64, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 16,
+      "fontWeight": 700,
+      "lineHeight": 24,
+      "textAlign": "left",
+      "text": "Link"
+    },
+    "I4012:10704;259": {
+      "id": "I4012:10704;259",
+      "type": "INSTANCE",
+      "name": "chevron_right_outlined",
+      "parent": "I4012:10704;246",
+      "children": ["I4012:10704;261"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:395"
+    },
+    "I4012:10704;261": {
+      "id": "I4012:10704;261",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;259",
+      "backgroundColor": "rgba(0, 89, 64, 1)"
+    },
+    "I4012:10704;243": {
+      "id": "I4012:10704;243",
+      "type": "TEXT",
+      "name": "oev-comp-card-content-bottom-section-caption-font-style",
+      "parent": "I4012:10704;223",
+      "backgroundColor": "rgba(61, 61, 61, 1)",
+      "color": "rgba(61, 61, 61, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 12,
+      "fontWeight": 400,
+      "lineHeight": 16,
+      "textAlign": "left",
+      "text": "Caption"
+    },
+    "I4012:10704;212": {
+      "id": "I4012:10704;212",
+      "type": "INSTANCE",
+      "name": "badge",
+      "parent": "I4012:10704;23",
+      "children": ["I4012:10704;262", "I4012:10704;263"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:10384"
+    },
+    "I4012:10704;262": {
+      "id": "I4012:10704;262",
+      "type": "ELLIPSE",
+      "name": "background",
+      "parent": "I4012:10704;212",
+      "backgroundColor": "rgba(0, 89, 64, 1)"
+    },
+    "I4012:10704;263": {
+      "id": "I4012:10704;263",
+      "type": "FRAME",
+      "name": "badge-icon-text",
+      "parent": "I4012:10704;212",
+      "children": ["I4012:10704;264", "I4012:10704;265", "I4012:10704;266"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 2,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
+    },
+    "I4012:10704;264": {
+      "id": "I4012:10704;264",
+      "type": "TEXT",
+      "name": "Text",
+      "parent": "I4012:10704;263",
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "color": "rgba(255, 255, 255, 1)",
+      "fontFamily": "Lato",
+      "fontSize": 14,
+      "fontWeight": 400,
+      "lineHeight": 16.8,
+      "textAlign": "left",
+      "text": "Text",
+      "visible": false
+    },
+    "I4012:10704;265": {
+      "id": "I4012:10704;265",
+      "type": "INSTANCE",
+      "name": "Icon Atom",
+      "parent": "I4012:10704;263",
+      "children": ["I4012:10704;267"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:1579"
+    },
+    "I4012:10704;267": {
+      "id": "I4012:10704;267",
+      "type": "INSTANCE",
+      "name": "notifications_outlined 1",
+      "parent": "I4012:10704;265",
+      "children": ["I4012:10704;268"],
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "componentId": "4012:10302"
+    },
+    "I4012:10704;268": {
+      "id": "I4012:10704;268",
+      "type": "VECTOR",
+      "name": "Vector",
+      "parent": "I4012:10704;267",
+      "backgroundColor": "rgba(255, 255, 255, 1)"
+    },
+    "I4012:10704;266": {
+      "id": "I4012:10704;266",
+      "type": "TEXT",
+      "name": "Text",
+      "parent": "I4012:10704;263",
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "color": "rgba(255, 255, 255, 1)",
+      "fontFamily": "Sparkasse Rg",
+      "fontSize": 14,
+      "fontWeight": 400,
+      "lineHeight": 18,
+      "textAlign": "left",
+      "text": "Text"
+    },
+    "I4012:10704;3": {
+      "id": "I4012:10704;3",
+      "type": "INSTANCE",
+      "name": ".Grid_Row_3",
+      "parent": "4012:10704",
+      "children": ["I4012:10704;269", "I4012:10704;270", "I4012:10704;271", "I4012:10704;272"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 24,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "visible": false,
+      "componentId": "4012:10586"
+    },
+    "I4012:10704;269": {
+      "id": "I4012:10704;269",
+      "type": "INSTANCE",
+      "name": "_Component_Placeholder",
+      "parent": "I4012:10704;3",
+      "children": ["I4012:10704;273"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 10,
+      "padding": {
+        "top": 31,
+        "right": 0,
+        "bottom": 31,
+        "left": 0
+      },
+      "componentId": "4012:10517"
+    },
+    "I4012:10704;273": {
+      "id": "I4012:10704;273",
+      "type": "FRAME",
+      "name": "Placeholder",
+      "parent": "I4012:10704;269",
+      "children": ["I4012:10704;274"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 10,
+      "padding": {
+        "top": 57,
+        "right": 11,
+        "bottom": 57,
+        "left": 11
+      },
+      "backgroundColor": "rgba(204, 204, 204, 1)",
+      "borderRadius": 4
+    },
+    "I4012:10704;274": {
+      "id": "I4012:10704;274",
+      "type": "TEXT",
+      "name": "PLACEHOLDER",
+      "parent": "I4012:10704;273",
+      "backgroundColor": "rgba(244, 246, 249, 1)",
+      "color": "rgba(244, 246, 249, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "center",
+      "text": "PLACEHOLDER"
+    },
+    "I4012:10704;270": {
+      "id": "I4012:10704;270",
+      "type": "INSTANCE",
+      "name": "_Component_Placeholder",
+      "parent": "I4012:10704;3",
+      "children": ["I4012:10704;275"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 10,
+      "padding": {
+        "top": 31,
+        "right": 0,
+        "bottom": 31,
+        "left": 0
+      },
+      "visible": false,
+      "componentId": "4012:10517"
+    },
+    "I4012:10704;275": {
+      "id": "I4012:10704;275",
+      "type": "FRAME",
+      "name": "Placeholder",
+      "parent": "I4012:10704;270",
+      "children": ["I4012:10704;276"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 10,
+      "padding": {
+        "top": 57,
+        "right": 11,
+        "bottom": 57,
+        "left": 11
+      },
+      "backgroundColor": "rgba(204, 204, 204, 1)",
+      "borderRadius": 4
+    },
+    "I4012:10704;276": {
+      "id": "I4012:10704;276",
+      "type": "TEXT",
+      "name": "PLACEHOLDER",
+      "parent": "I4012:10704;275",
+      "backgroundColor": "rgba(244, 246, 249, 1)",
+      "color": "rgba(244, 246, 249, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "center",
+      "text": "PLACEHOLDER"
+    },
+    "I4012:10704;271": {
+      "id": "I4012:10704;271",
+      "type": "INSTANCE",
+      "name": "_Component_Placeholder",
+      "parent": "I4012:10704;3",
+      "children": ["I4012:10704;277"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 10,
+      "padding": {
+        "top": 31,
+        "right": 0,
+        "bottom": 31,
+        "left": 0
+      },
+      "visible": false,
+      "componentId": "4012:10517"
+    },
+    "I4012:10704;277": {
+      "id": "I4012:10704;277",
+      "type": "FRAME",
+      "name": "Placeholder",
+      "parent": "I4012:10704;271",
+      "children": ["I4012:10704;278"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 10,
+      "padding": {
+        "top": 57,
+        "right": 11,
+        "bottom": 57,
+        "left": 11
+      },
+      "backgroundColor": "rgba(204, 204, 204, 1)",
+      "borderRadius": 4
+    },
+    "I4012:10704;278": {
+      "id": "I4012:10704;278",
+      "type": "TEXT",
+      "name": "PLACEHOLDER",
+      "parent": "I4012:10704;277",
+      "backgroundColor": "rgba(244, 246, 249, 1)",
+      "color": "rgba(244, 246, 249, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "center",
+      "text": "PLACEHOLDER"
+    },
+    "I4012:10704;272": {
+      "id": "I4012:10704;272",
+      "type": "INSTANCE",
+      "name": "_Component_Placeholder",
+      "parent": "I4012:10704;3",
+      "children": ["I4012:10704;279"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 10,
+      "padding": {
+        "top": 31,
+        "right": 0,
+        "bottom": 31,
+        "left": 0
+      },
+      "visible": false,
+      "componentId": "4012:10517"
+    },
+    "I4012:10704;279": {
+      "id": "I4012:10704;279",
+      "type": "FRAME",
+      "name": "Placeholder",
+      "parent": "I4012:10704;272",
+      "children": ["I4012:10704;280"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 10,
+      "padding": {
+        "top": 57,
+        "right": 11,
+        "bottom": 57,
+        "left": 11
+      },
+      "backgroundColor": "rgba(204, 204, 204, 1)",
+      "borderRadius": 4
+    },
+    "I4012:10704;280": {
+      "id": "I4012:10704;280",
+      "type": "TEXT",
+      "name": "PLACEHOLDER",
+      "parent": "I4012:10704;279",
+      "backgroundColor": "rgba(244, 246, 249, 1)",
+      "color": "rgba(244, 246, 249, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "center",
+      "text": "PLACEHOLDER"
+    },
+    "I4012:10704;4": {
+      "id": "I4012:10704;4",
+      "type": "INSTANCE",
+      "name": ".Grid_Row_4",
+      "parent": "4012:10704",
+      "children": ["I4012:10704;281", "I4012:10704;282", "I4012:10704;283", "I4012:10704;284"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 24,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "visible": false,
+      "componentId": "4012:10586"
+    },
+    "I4012:10704;281": {
+      "id": "I4012:10704;281",
+      "type": "INSTANCE",
+      "name": "_Component_Placeholder",
+      "parent": "I4012:10704;4",
+      "children": ["I4012:10704;285"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 10,
+      "padding": {
+        "top": 31,
+        "right": 0,
+        "bottom": 31,
+        "left": 0
+      },
+      "componentId": "4012:10517"
+    },
+    "I4012:10704;285": {
+      "id": "I4012:10704;285",
+      "type": "FRAME",
+      "name": "Placeholder",
+      "parent": "I4012:10704;281",
+      "children": ["I4012:10704;286"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 10,
+      "padding": {
+        "top": 57,
+        "right": 11,
+        "bottom": 57,
+        "left": 11
+      },
+      "backgroundColor": "rgba(204, 204, 204, 1)",
+      "borderRadius": 4
+    },
+    "I4012:10704;286": {
+      "id": "I4012:10704;286",
+      "type": "TEXT",
+      "name": "PLACEHOLDER",
+      "parent": "I4012:10704;285",
+      "backgroundColor": "rgba(244, 246, 249, 1)",
+      "color": "rgba(244, 246, 249, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "center",
+      "text": "PLACEHOLDER"
+    },
+    "I4012:10704;282": {
+      "id": "I4012:10704;282",
+      "type": "INSTANCE",
+      "name": "_Component_Placeholder",
+      "parent": "I4012:10704;4",
+      "children": ["I4012:10704;287"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 10,
+      "padding": {
+        "top": 31,
+        "right": 0,
+        "bottom": 31,
+        "left": 0
+      },
+      "visible": false,
+      "componentId": "4012:10517"
+    },
+    "I4012:10704;287": {
+      "id": "I4012:10704;287",
+      "type": "FRAME",
+      "name": "Placeholder",
+      "parent": "I4012:10704;282",
+      "children": ["I4012:10704;288"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 10,
+      "padding": {
+        "top": 57,
+        "right": 11,
+        "bottom": 57,
+        "left": 11
+      },
+      "backgroundColor": "rgba(204, 204, 204, 1)",
+      "borderRadius": 4
+    },
+    "I4012:10704;288": {
+      "id": "I4012:10704;288",
+      "type": "TEXT",
+      "name": "PLACEHOLDER",
+      "parent": "I4012:10704;287",
+      "backgroundColor": "rgba(244, 246, 249, 1)",
+      "color": "rgba(244, 246, 249, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "center",
+      "text": "PLACEHOLDER"
+    },
+    "I4012:10704;283": {
+      "id": "I4012:10704;283",
+      "type": "INSTANCE",
+      "name": "_Component_Placeholder",
+      "parent": "I4012:10704;4",
+      "children": ["I4012:10704;289"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 10,
+      "padding": {
+        "top": 31,
+        "right": 0,
+        "bottom": 31,
+        "left": 0
+      },
+      "visible": false,
+      "componentId": "4012:10517"
+    },
+    "I4012:10704;289": {
+      "id": "I4012:10704;289",
+      "type": "FRAME",
+      "name": "Placeholder",
+      "parent": "I4012:10704;283",
+      "children": ["I4012:10704;290"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 10,
+      "padding": {
+        "top": 57,
+        "right": 11,
+        "bottom": 57,
+        "left": 11
+      },
+      "backgroundColor": "rgba(204, 204, 204, 1)",
+      "borderRadius": 4
+    },
+    "I4012:10704;290": {
+      "id": "I4012:10704;290",
+      "type": "TEXT",
+      "name": "PLACEHOLDER",
+      "parent": "I4012:10704;289",
+      "backgroundColor": "rgba(244, 246, 249, 1)",
+      "color": "rgba(244, 246, 249, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "center",
+      "text": "PLACEHOLDER"
+    },
+    "I4012:10704;284": {
+      "id": "I4012:10704;284",
+      "type": "INSTANCE",
+      "name": "_Component_Placeholder",
+      "parent": "I4012:10704;4",
+      "children": ["I4012:10704;291"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 10,
+      "padding": {
+        "top": 31,
+        "right": 0,
+        "bottom": 31,
+        "left": 0
+      },
+      "visible": false,
+      "componentId": "4012:10517"
+    },
+    "I4012:10704;291": {
+      "id": "I4012:10704;291",
+      "type": "FRAME",
+      "name": "Placeholder",
+      "parent": "I4012:10704;284",
+      "children": ["I4012:10704;292"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 10,
+      "padding": {
+        "top": 57,
+        "right": 11,
+        "bottom": 57,
+        "left": 11
+      },
+      "backgroundColor": "rgba(204, 204, 204, 1)",
+      "borderRadius": 4
+    },
+    "I4012:10704;292": {
+      "id": "I4012:10704;292",
+      "type": "TEXT",
+      "name": "PLACEHOLDER",
+      "parent": "I4012:10704;291",
+      "backgroundColor": "rgba(244, 246, 249, 1)",
+      "color": "rgba(244, 246, 249, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "center",
+      "text": "PLACEHOLDER"
+    },
+    "I4012:10704;5": {
+      "id": "I4012:10704;5",
+      "type": "INSTANCE",
+      "name": ".Grid_Row_5",
+      "parent": "4012:10704",
+      "children": ["I4012:10704;293", "I4012:10704;294", "I4012:10704;295", "I4012:10704;296"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 24,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "visible": false,
+      "componentId": "4012:10586"
+    },
+    "I4012:10704;293": {
+      "id": "I4012:10704;293",
+      "type": "INSTANCE",
+      "name": "_Component_Placeholder",
+      "parent": "I4012:10704;5",
+      "children": ["I4012:10704;297"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 10,
+      "padding": {
+        "top": 31,
+        "right": 0,
+        "bottom": 31,
+        "left": 0
+      },
+      "componentId": "4012:10517"
+    },
+    "I4012:10704;297": {
+      "id": "I4012:10704;297",
+      "type": "FRAME",
+      "name": "Placeholder",
+      "parent": "I4012:10704;293",
+      "children": ["I4012:10704;298"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 10,
+      "padding": {
+        "top": 57,
+        "right": 11,
+        "bottom": 57,
+        "left": 11
+      },
+      "backgroundColor": "rgba(204, 204, 204, 1)",
+      "borderRadius": 4
+    },
+    "I4012:10704;298": {
+      "id": "I4012:10704;298",
+      "type": "TEXT",
+      "name": "PLACEHOLDER",
+      "parent": "I4012:10704;297",
+      "backgroundColor": "rgba(244, 246, 249, 1)",
+      "color": "rgba(244, 246, 249, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "center",
+      "text": "PLACEHOLDER"
+    },
+    "I4012:10704;294": {
+      "id": "I4012:10704;294",
+      "type": "INSTANCE",
+      "name": "_Component_Placeholder",
+      "parent": "I4012:10704;5",
+      "children": ["I4012:10704;299"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 10,
+      "padding": {
+        "top": 31,
+        "right": 0,
+        "bottom": 31,
+        "left": 0
+      },
+      "visible": false,
+      "componentId": "4012:10517"
+    },
+    "I4012:10704;299": {
+      "id": "I4012:10704;299",
+      "type": "FRAME",
+      "name": "Placeholder",
+      "parent": "I4012:10704;294",
+      "children": ["I4012:10704;300"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 10,
+      "padding": {
+        "top": 57,
+        "right": 11,
+        "bottom": 57,
+        "left": 11
+      },
+      "backgroundColor": "rgba(204, 204, 204, 1)",
+      "borderRadius": 4
+    },
+    "I4012:10704;300": {
+      "id": "I4012:10704;300",
+      "type": "TEXT",
+      "name": "PLACEHOLDER",
+      "parent": "I4012:10704;299",
+      "backgroundColor": "rgba(244, 246, 249, 1)",
+      "color": "rgba(244, 246, 249, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "center",
+      "text": "PLACEHOLDER"
+    },
+    "I4012:10704;295": {
+      "id": "I4012:10704;295",
+      "type": "INSTANCE",
+      "name": "_Component_Placeholder",
+      "parent": "I4012:10704;5",
+      "children": ["I4012:10704;301"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 10,
+      "padding": {
+        "top": 31,
+        "right": 0,
+        "bottom": 31,
+        "left": 0
+      },
+      "visible": false,
+      "componentId": "4012:10517"
+    },
+    "I4012:10704;301": {
+      "id": "I4012:10704;301",
+      "type": "FRAME",
+      "name": "Placeholder",
+      "parent": "I4012:10704;295",
+      "children": ["I4012:10704;302"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 10,
+      "padding": {
+        "top": 57,
+        "right": 11,
+        "bottom": 57,
+        "left": 11
+      },
+      "backgroundColor": "rgba(204, 204, 204, 1)",
+      "borderRadius": 4
+    },
+    "I4012:10704;302": {
+      "id": "I4012:10704;302",
+      "type": "TEXT",
+      "name": "PLACEHOLDER",
+      "parent": "I4012:10704;301",
+      "backgroundColor": "rgba(244, 246, 249, 1)",
+      "color": "rgba(244, 246, 249, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "center",
+      "text": "PLACEHOLDER"
+    },
+    "I4012:10704;296": {
+      "id": "I4012:10704;296",
+      "type": "INSTANCE",
+      "name": "_Component_Placeholder",
+      "parent": "I4012:10704;5",
+      "children": ["I4012:10704;303"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 10,
+      "padding": {
+        "top": 31,
+        "right": 0,
+        "bottom": 31,
+        "left": 0
+      },
+      "visible": false,
+      "componentId": "4012:10517"
+    },
+    "I4012:10704;303": {
+      "id": "I4012:10704;303",
+      "type": "FRAME",
+      "name": "Placeholder",
+      "parent": "I4012:10704;296",
+      "children": ["I4012:10704;304"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 10,
+      "padding": {
+        "top": 57,
+        "right": 11,
+        "bottom": 57,
+        "left": 11
+      },
+      "backgroundColor": "rgba(204, 204, 204, 1)",
+      "borderRadius": 4
+    },
+    "I4012:10704;304": {
+      "id": "I4012:10704;304",
+      "type": "TEXT",
+      "name": "PLACEHOLDER",
+      "parent": "I4012:10704;303",
+      "backgroundColor": "rgba(244, 246, 249, 1)",
+      "color": "rgba(244, 246, 249, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "center",
+      "text": "PLACEHOLDER"
+    },
+    "I4012:10704;6": {
+      "id": "I4012:10704;6",
+      "type": "INSTANCE",
+      "name": ".Grid_Row_6",
+      "parent": "4012:10704",
+      "children": ["I4012:10704;305", "I4012:10704;306", "I4012:10704;307", "I4012:10704;308"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 24,
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "visible": false,
+      "componentId": "4012:10586"
+    },
+    "I4012:10704;305": {
+      "id": "I4012:10704;305",
+      "type": "INSTANCE",
+      "name": "_Component_Placeholder",
+      "parent": "I4012:10704;6",
+      "children": ["I4012:10704;309"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 10,
+      "padding": {
+        "top": 31,
+        "right": 0,
+        "bottom": 31,
+        "left": 0
+      },
+      "componentId": "4012:10517"
+    },
+    "I4012:10704;309": {
+      "id": "I4012:10704;309",
+      "type": "FRAME",
+      "name": "Placeholder",
+      "parent": "I4012:10704;305",
+      "children": ["I4012:10704;310"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 10,
+      "padding": {
+        "top": 57,
+        "right": 11,
+        "bottom": 57,
+        "left": 11
+      },
+      "backgroundColor": "rgba(204, 204, 204, 1)",
+      "borderRadius": 4
+    },
+    "I4012:10704;310": {
+      "id": "I4012:10704;310",
+      "type": "TEXT",
+      "name": "PLACEHOLDER",
+      "parent": "I4012:10704;309",
+      "backgroundColor": "rgba(244, 246, 249, 1)",
+      "color": "rgba(244, 246, 249, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "center",
+      "text": "PLACEHOLDER"
+    },
+    "I4012:10704;306": {
+      "id": "I4012:10704;306",
+      "type": "INSTANCE",
+      "name": "_Component_Placeholder",
+      "parent": "I4012:10704;6",
+      "children": ["I4012:10704;311"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 10,
+      "padding": {
+        "top": 31,
+        "right": 0,
+        "bottom": 31,
+        "left": 0
+      },
+      "visible": false,
+      "componentId": "4012:10517"
+    },
+    "I4012:10704;311": {
+      "id": "I4012:10704;311",
+      "type": "FRAME",
+      "name": "Placeholder",
+      "parent": "I4012:10704;306",
+      "children": ["I4012:10704;312"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 10,
+      "padding": {
+        "top": 57,
+        "right": 11,
+        "bottom": 57,
+        "left": 11
+      },
+      "backgroundColor": "rgba(204, 204, 204, 1)",
+      "borderRadius": 4
+    },
+    "I4012:10704;312": {
+      "id": "I4012:10704;312",
+      "type": "TEXT",
+      "name": "PLACEHOLDER",
+      "parent": "I4012:10704;311",
+      "backgroundColor": "rgba(244, 246, 249, 1)",
+      "color": "rgba(244, 246, 249, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "center",
+      "text": "PLACEHOLDER"
+    },
+    "I4012:10704;307": {
+      "id": "I4012:10704;307",
+      "type": "INSTANCE",
+      "name": "_Component_Placeholder",
+      "parent": "I4012:10704;6",
+      "children": ["I4012:10704;313"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "justifyContent": "flex-start",
+      "gap": 10,
+      "padding": {
+        "top": 31,
+        "right": 0,
+        "bottom": 31,
+        "left": 0
+      },
+      "visible": false,
+      "componentId": "4012:10517"
+    },
+    "I4012:10704;313": {
+      "id": "I4012:10704;313",
+      "type": "FRAME",
+      "name": "Placeholder",
+      "parent": "I4012:10704;307",
+      "children": ["I4012:10704;314"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 10,
+      "padding": {
+        "top": 57,
+        "right": 11,
+        "bottom": 57,
+        "left": 11
+      },
+      "backgroundColor": "rgba(204, 204, 204, 1)",
+      "borderRadius": 4
+    },
+    "I4012:10704;314": {
+      "id": "I4012:10704;314",
+      "type": "TEXT",
+      "name": "PLACEHOLDER",
+      "parent": "I4012:10704;313",
+      "backgroundColor": "rgba(244, 246, 249, 1)",
+      "color": "rgba(244, 246, 249, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "center",
+      "text": "PLACEHOLDER"
+    },
+    "I4012:10704;308": {
+      "id": "I4012:10704;308",
+      "type": "INSTANCE",
+      "name": "_Component_Placeholder",
+      "parent": "I4012:10704;6",
+      "children": ["I4012:10704;315"],
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "stretch",
+      "justifyContent": "flex-start",
+      "gap": 10,
+      "padding": {
+        "top": 31,
+        "right": 0,
+        "bottom": 31,
+        "left": 0
+      },
+      "visible": false,
+      "componentId": "4012:10517"
+    },
+    "I4012:10704;315": {
+      "id": "I4012:10704;315",
+      "type": "FRAME",
+      "name": "Placeholder",
+      "parent": "I4012:10704;308",
+      "children": ["I4012:10704;316"],
+      "display": "flex",
+      "flexDirection": "row",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "gap": 10,
+      "padding": {
+        "top": 57,
+        "right": 11,
+        "bottom": 57,
+        "left": 11
+      },
+      "backgroundColor": "rgba(204, 204, 204, 1)",
+      "borderRadius": 4
+    },
+    "I4012:10704;316": {
+      "id": "I4012:10704;316",
+      "type": "TEXT",
+      "name": "PLACEHOLDER",
+      "parent": "I4012:10704;315",
+      "backgroundColor": "rgba(244, 246, 249, 1)",
+      "color": "rgba(244, 246, 249, 1)",
+      "fontFamily": "Sparkasse Lt",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "lineHeight": 24,
+      "textAlign": "center",
+      "text": "PLACEHOLDER"
+    }
+  },
+  "variables": {
+    "VariableID:741a5acc7b47225d56d4964ee8f94af11aee9fe7/61395:226": {
+      "r": 0.961,
+      "g": 0.906,
+      "b": 0.91,
+      "a": 1
+    },
+    "VariableID:35a48c7b20b7c5758269fa4e2db7c71965732691/61395:1416": {
+      "r": 0.239,
+      "g": 0.239,
+      "b": 0.239,
+      "a": 1
+    },
+    "VariableID:d30c8c6c7532bc12f9468d1ffae9edfd99218235/61395:32": {
+      "r": 0,
+      "g": 0.518,
+      "b": 0.498,
+      "a": 1
+    },
+    "VariableID:c1ac3cef5eb8311882cc2964e644c94ee521d03c/61395:386": {
+      "r": 0.239,
+      "g": 0.239,
+      "b": 0.239,
+      "a": 1
+    },
+    "VariableID:49d46b8ad9a5ebd845f48f369228c10aa679baec/61395:308": {
+      "r": 0.6,
+      "g": 0.071,
+      "b": 0.11,
+      "a": 1
+    },
+    "VariableID:f70730e05dbd0223390e6aeeb6cf2f96b27146fc/61395:447": {
+      "r": 1,
+      "g": 1,
+      "b": 1,
+      "a": 1
+    }
+  },
+  "components": {
+    "4012:10688": {
+      "key": "4012:10688",
+      "name": "Grid_Container"
+    },
+    "4012:10259": {
+      "key": "4012:10259",
+      "name": "_Container_Background"
+    },
+    "4012:10581": {
+      "key": "4012:10581",
+      "name": ".Grid_Row_1"
+    },
+    "4012:6190": {
+      "key": "4012:6190",
+      "name": "headline-combo"
+    },
+    "4012:10437": {
+      "key": "4012:10437",
+      "name": "Card Vertical"
+    },
+    "4012:5931": {
+      "key": "4012:5931",
+      "name": ".Card Background"
+    },
+    "4012:6169": {
+      "key": "4012:6169",
+      "name": "headline-combo"
+    },
+    "4012:6637": {
+      "key": "4012:6637",
+      "name": "Image-Schutz"
+    },
+    "4012:6592": {
+      "key": "4012:6592",
+      "name": "List"
+    },
+    "4012:6554": {
+      "key": "4012:6554",
+      "name": "LIST Item"
+    },
+    "4012:1571": {
+      "key": "4012:1571",
+      "name": "Icon Atom"
+    },
+    "4012:6542": {
+      "key": "4012:6542",
+      "name": "check_outlined"
+    },
+    "4012:1706": {
+      "key": "4012:1706",
+      "name": "divider"
+    },
+    "4012:524": {
+      "key": "4012:524",
+      "name": "Link"
+    },
+    "4012:397": {
+      "key": "4012:397",
+      "name": "chevron_left_outlined"
+    },
+    "4012:743": {
+      "key": "4012:743",
+      "name": "chevron_down"
+    },
+    "4012:6447": {
+      "key": "4012:6447",
+      "name": "cta-group"
+    },
+    "4012:6308": {
+      "key": "4012:6308",
+      "name": "Button"
+    },
+    "4012:1701": {
+      "key": "4012:1701",
+      "name": "chevron_right_filled"
+    },
+    "4012:6320": {
+      "key": "4012:6320",
+      "name": "Button"
+    },
+    "4012:395": {
+      "key": "4012:395",
+      "name": "chevron_right_outlined"
+    },
+    "4012:10384": {
+      "key": "4012:10384",
+      "name": "badge"
+    },
+    "4012:1579": {
+      "key": "4012:1579",
+      "name": "Icon Atom"
+    },
+    "4012:10302": {
+      "key": "4012:10302",
+      "name": "notifications_outlined 1"
+    },
+    "4012:6588": {
+      "key": "4012:6588",
+      "name": "List"
+    },
+    "4012:10586": {
+      "key": "4012:10586",
+      "name": ".Grid_Row_3"
+    },
+    "4012:10517": {
+      "key": "4012:10517",
+      "name": "_Component_Placeholder"
+    }
+  }
+}

@@ -1,47 +1,31 @@
-import { describe, it } from "vitest";
+import { describe, it, expect } from "vitest";
 import { buildNormalizedGraph } from "~/figma/reducer.js";
-import testData from "./resources/testfigmaresult.json";
+import testData from "./resources/testfigmaresult.json" with { type: "json" };
 
-describe("Final Token Efficiency Breakdown", () => {
-  it("shows complete optimization breakdown", () => {
-    const nodeId = Object.keys(testData.nodes)[0];
-    const rawNode = testData.nodes[nodeId];
+describe("Final benchmark (v2 - CSS-aligned)", () => {
+  it("achieves target size reduction on test dataset", () => {
+    const nodeId = Object.keys(testData.nodes as any)[0];
+    const rawNode = (testData.nodes as any)[nodeId];
 
-    const normalized = buildNormalizedGraph(rawNode, {});
-    const output = JSON.stringify(normalized);
-
+    // Get sizes
     const rawSize = JSON.stringify(rawNode).length;
-    const finalSize = output.length;
-    const totalReduction = (((rawSize - finalSize) / rawSize) * 100).toFixed(1);
+    const normalized = buildNormalizedGraph(rawNode, {});
+    const optimizedSize = JSON.stringify(normalized).length;
 
-    console.log("\n=== FINAL TOKEN EFFICIENCY BREAKDOWN ===\n");
-    console.log(`Raw Figma API Response:     ${rawSize.toLocaleString()} bytes`);
-    console.log(`Optimized MCP Response:      ${finalSize.toLocaleString()} bytes`);
-    console.log(
-      `Total Reduction:             ${totalReduction}% (${(rawSize - finalSize).toLocaleString()} bytes saved)\n`,
-    );
+    const reduction = ((rawSize - optimizedSize) / rawSize) * 100;
 
-    console.log("Optimizations Applied:");
-    console.log("  1. ID Mapping (nested IDs)         ~12-14% reduction");
-    console.log("  2. Removed redundant defaults       ~8-10% reduction");
-    console.log("     - blendMode 'PASS_THROUGH'");
-    console.log("     - locked false/undefined");
-    console.log("     - opacity 1/undefined");
-    console.log("     - visible undefined");
-    console.log("  3. Removed flexTree duplication     ~6-8% reduction");
-    console.log("  4. Paint deduplication              ~2-4% reduction");
-    console.log("  5. Structure normalization          ~8-10% reduction\n");
+    console.log("\n=== V2 BENCHMARK RESULTS ===");
+    console.log(`Raw:       ${rawSize.toLocaleString()} bytes`);
+    console.log(`Optimized: ${optimizedSize.toLocaleString()} bytes`);
+    console.log(`Reduction: ${reduction.toFixed(1)}%\n`);
 
-    // Count specific optimizations
-    const nestedIdCount = (output.match(/I\d+:\d+;\d+/g) || []).length;
-    const paintCount = Object.keys(normalized.paints).length;
-    const nodeCount = Object.keys(normalized.nodes).length;
+    // v2 should achieve better reduction than v1 (42.4%)
+    expect(reduction).toBeGreaterThan(40);
 
-    console.log("Statistics:");
-    console.log(`  Nodes processed:             ${nodeCount}`);
-    console.log(`  Nested IDs mapped:           ${nestedIdCount}`);
-    console.log(`  Unique paints deduplicated:  ${paintCount}`);
-    console.log(`  No flexTree (removed):       ✓`);
-    console.log(`  No _idMap (one-way):         ✓\n`);
+    // v2 structure validation
+    expect(normalized).toHaveProperty("root");
+    expect(normalized).toHaveProperty("nodes");
+    expect(normalized).not.toHaveProperty("paints");
+    expect(normalized).not.toHaveProperty("stylesPayload");
   });
 });

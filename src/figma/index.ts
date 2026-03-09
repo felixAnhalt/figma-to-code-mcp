@@ -3,7 +3,9 @@ import { safeFetch } from "./rateLimit.js";
 import { getCache, setCache } from "./cache.js";
 import { buildNormalizedGraph } from "./reducer.js";
 import { resolveInstances } from "./instanceResolver.js";
+import { buildResolutionContext } from "./variableResolver.js";
 import type { MCPResponse } from "./types.js";
+import type { GetLocalVariablesResponse } from "@figma/rest-api-spec";
 
 export type MCPOptions = {
   fileKey: string;
@@ -12,6 +14,7 @@ export type MCPOptions = {
   componentMap?: Record<string, any>;
   styleMap?: Record<string, any>;
   cacheTTL?: number;
+  resolveVariables?: boolean; // New option to enable variable resolution
 };
 
 /**
@@ -26,6 +29,7 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
     componentMap = {},
     styleMap = {},
     cacheTTL = 5 * 60 * 1000,
+    resolveVariables = true, // Default to true for Q2 choice A
   } = opts;
 
   // Check cache
@@ -43,8 +47,31 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
   // Resolve component instances
   resolveInstances(rootNode, componentMap);
 
+  // Fetch and build variable resolution context if enabled
+  let variableContext = null;
+  if (resolveVariables) {
+    try {
+      const variablesResponse = await fetchVariables(fileKey, token);
+      if (
+        variablesResponse &&
+        variablesResponse.meta.variables &&
+        Object.keys(variablesResponse.meta.variables).length > 0
+      ) {
+        variableContext = buildResolutionContext(variablesResponse);
+        console.log(
+          `[Variable Resolution] Built context with ${variableContext.variableValues.size} resolved variables`,
+        );
+      } else {
+        console.log("[Variable Resolution] No variables found in response");
+      }
+    } catch (error) {
+      // Log warning but don't fail - continue without variable resolution
+      console.warn(`Failed to fetch variables for ${fileKey}:`, error);
+    }
+  }
+
   // Build normalized graph (layout + styles + Flex primitives)
-  const normalized = buildNormalizedGraph(rootNode, styleMap);
+  const normalized = buildNormalizedGraph(rootNode, styleMap, variableContext);
 
   // Cache result
   setCache(cacheKey, normalized, cacheTTL);
@@ -100,6 +127,28 @@ export async function fetchComponents(
   }
 
   return componentMap;
+}
+
+/**
+ * Fetches all local variables for a Figma file.
+ */
+export async function fetchVariables(
+  fileKey: string,
+  token: string,
+): Promise<GetLocalVariablesResponse | null> {
+  const url = `https://api.figma.com/v1/files/${fileKey}/variables/local`;
+  const res = await safeFetch(url, {
+    headers: { "X-Figma-Token": token },
+  });
+
+  if (!res.ok) {
+    // Variables endpoint might fail if the file has no variables or permissions issue
+    console.warn(`Failed to fetch variables: ${res.status} ${res.statusText}`);
+    return null;
+  }
+
+  const json = await res.json();
+  return json as GetLocalVariablesResponse;
 }
 
 // Re-export types

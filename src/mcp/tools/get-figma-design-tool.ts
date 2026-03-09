@@ -75,12 +75,12 @@ async function getFigmaDesign(
     writeLogs("figma-mcp-response.json", mcpResponse);
 
     Logger.log(
-      `Successfully extracted: ${Object.keys(mcpResponse.nodes).length} nodes, ${Object.keys(mcpResponse.paints).length} unique paints`,
+      `Successfully extracted: ${Object.keys(mcpResponse.nodes).length} nodes${mcpResponse.variables ? `, ${Object.keys(mcpResponse.variables).length} variables` : ""}`,
     );
 
     Logger.log(`Generating ${outputFormat.toUpperCase()} result`);
     const formattedResult =
-      outputFormat === "json" ? JSON.stringify(mcpResponse, null, 2) : yaml.dump(mcpResponse);
+      outputFormat === "json" ? JSON.stringify(mcpResponse) : yaml.dump(mcpResponse);
 
     Logger.log("Sending result to client");
     return {

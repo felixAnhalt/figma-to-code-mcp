@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { buildNormalizedGraph } from "~/figma/reducer.js";
-import testData from "./resources/testfigmaresult.json";
+import testData from "./resources/testfigmaresult.json" with { type: "json" };
 
 describe("ID Mapping Token Efficiency", () => {
   it("measures token savings from ID mapping", () => {
-    const nodeId = Object.keys(testData.nodes)[0];
-    const rawNode = testData.nodes[nodeId];
+    const nodeId = Object.keys(testData.nodes as any)[0];
+    const rawNode = (testData.nodes as any)[nodeId];
 
     const normalized = buildNormalizedGraph(rawNode, {});
     const output = JSON.stringify(normalized);
@@ -34,9 +34,10 @@ describe("ID Mapping Token Efficiency", () => {
     // Average original nested ID length was ~51 chars based on previous analysis
     // Now they're shortened to format like "I4014:2428;0" (~15 chars average)
     const avgOriginalIdLength = 51;
-    const avgMappedIdLength =
-      output.match(/I\d+:\d+;\d+/g)?.reduce((sum, id) => sum + id.length, 0) /
-        nestedIdMatches.length || 15;
+    const matches = output.match(/I\d+:\d+;\d+/g);
+    const avgMappedIdLength = matches
+      ? matches.reduce((sum, id) => sum + id.length, 0) / nestedIdMatches.length
+      : 15;
 
     const estimatedSavingsFromIds =
       nestedIdMatches.length * (avgOriginalIdLength - avgMappedIdLength);
@@ -56,8 +57,8 @@ describe("ID Mapping Token Efficiency", () => {
   });
 
   it("verifies no _idMap in output", () => {
-    const nodeId = Object.keys(testData.nodes)[0];
-    const rawNode = testData.nodes[nodeId];
+    const nodeId = Object.keys(testData.nodes as any)[0];
+    const rawNode = (testData.nodes as any)[nodeId];
 
     const normalized = buildNormalizedGraph(rawNode, {});
 

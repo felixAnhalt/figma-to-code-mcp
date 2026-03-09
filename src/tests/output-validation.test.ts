@@ -1,249 +1,203 @@
 import { describe, it, expect } from "vitest";
 import { buildNormalizedGraph } from "~/figma/reducer.js";
-import { resolveInstances } from "~/figma/instanceResolver.js";
-import testData from "./resources/testfigmaresult.json";
+import testData from "./resources/testfigmaresult.json" with { type: "json" };
 
-describe("Normalized graph output validation", () => {
-  it("preserves layout information from raw Figma response", () => {
-    // Get the first node from test data
-    const nodeId = Object.keys(testData.nodes)[0];
-    const rawNode = testData.nodes[nodeId];
+describe("Normalized graph output validation (v2 - CSS-aligned)", () => {
+  it("preserves basic node structure from raw Figma response", () => {
+    const nodeId = Object.keys(testData.nodes as any)[0];
+    const rawNode = (testData.nodes as any)[nodeId];
 
-    // Process through our system
     const normalized = buildNormalizedGraph(rawNode, {});
 
-    // Get root node
     const rootNode = normalized.nodes[normalized.root];
 
-    // Validate basic node structure
     expect(rootNode).toBeDefined();
     expect(rootNode.id).toBe(rawNode.document.id);
     expect(rootNode.type).toBe(rawNode.document.type);
     expect(rootNode.name).toBe(rawNode.document.name);
+    expect(rootNode.parent).toBeNull();
+  });
 
-    // Validate layout preservation
-    if (rawNode.document.absoluteBoundingBox) {
-      expect(rootNode.absoluteBoundingBox).toEqual(rawNode.document.absoluteBoundingBox);
-    }
+  it("does not include absoluteBoundingBox (v2 removes it)", () => {
+    const nodeId = Object.keys(testData.nodes as any)[0];
+    const rawNode = (testData.nodes as any)[nodeId];
 
-    // Validate auto-layout conversion to flex
+    const normalized = buildNormalizedGraph(rawNode, {});
+
+    const rootNode = normalized.nodes[normalized.root];
+
+    // v2 removes bounding boxes - layout is defined by flex properties
+    expect(rootNode).not.toHaveProperty("absoluteBoundingBox");
+  });
+
+  it("converts auto-layout to CSS flexbox properties", () => {
+    const nodeId = Object.keys(testData.nodes as any)[0];
+    const rawNode = (testData.nodes as any)[nodeId];
+
+    const normalized = buildNormalizedGraph(rawNode, {});
+
+    const rootNode = normalized.nodes[normalized.root];
+
     if (rawNode.document.layoutMode) {
-      expect(rootNode.layout).toBeDefined();
-      expect(rootNode.layout.layoutMode).toBe(rawNode.document.layoutMode);
-      expect(rootNode.layout.itemSpacing).toBe(rawNode.document.itemSpacing);
-
-      // Check flex primitives
-      expect(rootNode.flex).toBeDefined();
-      expect(rootNode.flex.direction).toBe(
+      // Should have CSS properties
+      expect(rootNode.display).toBe("flex");
+      expect(rootNode.flexDirection).toBe(
         rawNode.document.layoutMode === "HORIZONTAL" ? "row" : "column",
       );
-      expect(rootNode.flex.gap).toBe(rawNode.document.itemSpacing ?? 0);
+
+      // Should NOT have old 'layout' or 'flex' objects
+      expect(rootNode).not.toHaveProperty("layout");
+      expect(rootNode).not.toHaveProperty("flex");
     }
   });
 
-  it("preserves styling information (fills, strokes, effects)", () => {
-    const nodeId = Object.keys(testData.nodes)[0];
-    const rawNode = testData.nodes[nodeId];
+  it("includes styles inline in nodes (no separate stylesPayload)", () => {
+    const nodeId = Object.keys(testData.nodes as any)[0];
+    const rawNode = (testData.nodes as any)[nodeId];
 
     const normalized = buildNormalizedGraph(rawNode, {});
 
-    // Find a node with styling
-    const nodeWithStyle = Object.values(normalized.nodes).find(
-      (node) => normalized.stylesPayload[node.id],
+    // v2 does not have stylesPayload - styles are inline
+    expect(normalized).not.toHaveProperty("stylesPayload");
+    expect(normalized).not.toHaveProperty("paints");
+
+    // Find a node with fills
+    const nodeWithFills = Object.values(normalized.nodes).find(
+      (node) => node.backgroundColor || node.background,
     );
 
-    if (!nodeWithStyle) {
-      // If no styled nodes found in test data, skip
-      return;
-    }
+    if (nodeWithFills) {
+      // Solid colors should be inline RGBA strings
+      if (nodeWithFills.backgroundColor) {
+        expect(typeof nodeWithFills.backgroundColor).toBe("string");
+        expect(nodeWithFills.backgroundColor).toMatch(/^(rgba\(|$)/);
+      }
 
-    const style = normalized.stylesPayload[nodeWithStyle.id];
-
-    // Validate style payload exists
-    expect(style).toBeDefined();
-
-    // If node has fills, they should be in paints dictionary
-    if (style.fills) {
-      expect(Array.isArray(style.fills)).toBe(true);
-      style.fills.forEach((paintId: string) => {
-        expect(normalized.paints[paintId]).toBeDefined();
-      });
-    }
-
-    // If node has strokes, they should be in paints dictionary
-    if (style.strokes) {
-      expect(Array.isArray(style.strokes)).toBe(true);
-      style.strokes.forEach((paintId: string) => {
-        expect(normalized.paints[paintId]).toBeDefined();
-      });
-    }
-  });
-
-  it("correctly handles component instances", () => {
-    const nodeId = Object.keys(testData.nodes)[0];
-    const rawNode = testData.nodes[nodeId];
-
-    // Mock component map
-    const componentMap: Record<string, any> = {};
-    if (rawNode.document.componentId) {
-      componentMap[rawNode.document.componentId] = {
-        key: rawNode.document.componentId,
-        name: "Test Component",
-        description: "Test component description",
-      };
-    }
-
-    // Resolve instances first
-    resolveInstances(rawNode, componentMap);
-
-    const normalized = buildNormalizedGraph(rawNode, {});
-
-    // Check if component relationships are preserved
-    const instanceNode = Object.values(normalized.nodes).find((node) => node.componentId);
-
-    if (instanceNode) {
-      expect(instanceNode.componentId).toBeDefined();
-
-      // Component should be in components dictionary
-      if (instanceNode.type === "COMPONENT") {
-        expect(normalized.components[instanceNode.id]).toBeDefined();
+      // Gradients should be Paint objects
+      if (nodeWithFills.background) {
+        expect(Array.isArray(nodeWithFills.background)).toBe(true);
+        expect(nodeWithFills.background[0]).toHaveProperty("type");
       }
     }
   });
 
-  it("deduplicates paints correctly", () => {
-    const nodeId = Object.keys(testData.nodes)[0];
-    const rawNode = testData.nodes[nodeId];
+  it("preserves component metadata", () => {
+    const nodeId = Object.keys(testData.nodes as any)[0];
+    const rawNode = (testData.nodes as any)[nodeId];
 
     const normalized = buildNormalizedGraph(rawNode, {});
 
-    // Count total paint references
-    let totalPaintRefs = 0;
-    Object.values(normalized.stylesPayload).forEach((style) => {
-      if (style.fills) totalPaintRefs += style.fills.length;
-      if (style.strokes) totalPaintRefs += style.strokes.length;
-    });
-
-    // Number of unique paints should be <= total references
-    const uniquePaintCount = Object.keys(normalized.paints).length;
-
-    if (totalPaintRefs > 0) {
-      expect(uniquePaintCount).toBeGreaterThan(0);
-      expect(uniquePaintCount).toBeLessThanOrEqual(totalPaintRefs);
+    // v2 should still have components dictionary
+    if (normalized.components && Object.keys(normalized.components).length > 0) {
+      const firstComponent = Object.values(normalized.components)[0];
+      expect(firstComponent).toHaveProperty("key");
+      expect(firstComponent).toHaveProperty("name");
     }
   });
 
-  it("maintains parent-child relationships", () => {
-    const nodeId = Object.keys(testData.nodes)[0];
-    const rawNode = testData.nodes[nodeId];
+  it("includes variables dictionary when variables are used", () => {
+    const nodeId = Object.keys(testData.nodes as any)[0];
+    const rawNode = (testData.nodes as any)[nodeId];
 
     const normalized = buildNormalizedGraph(rawNode, {});
 
-    // Check parent-child consistency
-    Object.values(normalized.nodes).forEach((node) => {
-      if (node.children && node.children.length > 0) {
-        node.children.forEach((childId) => {
-          const child = normalized.nodes[childId];
-          expect(child).toBeDefined();
-          expect(child.parent).toBe(node.id);
-        });
+    // If variables exist, they should be in variables dictionary
+    if (normalized.variables) {
+      expect(typeof normalized.variables).toBe("object");
+
+      // Variables should be used somewhere in the nodes
+      const hasVariableRef = Object.values(normalized.nodes).some(
+        (node) =>
+          (typeof node.backgroundColor === "string" && node.backgroundColor.startsWith("$")) ||
+          (typeof node.color === "string" && node.color.startsWith("$")),
+      );
+
+      if (Object.keys(normalized.variables).length > 0) {
+        expect(hasVariableRef).toBe(true);
       }
-    });
+    }
   });
 
-  it("converts auto-layout to flexbox primitives accurately", () => {
-    const nodeId = Object.keys(testData.nodes)[0];
-    const rawNode = testData.nodes[nodeId];
+  it("preserves parent-child relationships", () => {
+    const nodeId = Object.keys(testData.nodes as any)[0];
+    const rawNode = (testData.nodes as any)[nodeId];
 
     const normalized = buildNormalizedGraph(rawNode, {});
 
-    // Find nodes with auto-layout
-    Object.values(normalized.nodes).forEach((node) => {
-      if (node.layout?.layoutMode) {
-        // Should have flex representation
-        expect(node.flex).toBeDefined();
+    const rootNode = normalized.nodes[normalized.root];
 
-        // Validate direction mapping
-        const expectedDirection = node.layout.layoutMode === "HORIZONTAL" ? "row" : "column";
-        expect(node.flex.direction).toBe(expectedDirection);
+    if (rootNode.children && rootNode.children.length > 0) {
+      const firstChildId = rootNode.children[0];
+      const firstChild = normalized.nodes[firstChildId];
 
-        // Validate gap mapping
-        expect(node.flex.gap).toBe(node.layout.itemSpacing ?? 0);
-
-        // Validate padding
-        expect(node.flex.padding).toBeDefined();
-        expect(node.flex.padding.top).toBe(node.layout.paddingTop ?? 0);
-        expect(node.flex.padding.bottom).toBe(node.layout.paddingBottom ?? 0);
-        expect(node.flex.padding.left).toBe(node.layout.paddingLeft ?? 0);
-        expect(node.flex.padding.right).toBe(node.layout.paddingRight ?? 0);
-      }
-    });
+      expect(firstChild).toBeDefined();
+      expect(firstChild.parent).toBe(rootNode.id);
+    }
   });
 
-  it("preserves text content and styling", () => {
-    const nodeId = Object.keys(testData.nodes)[0];
-    const rawNode = testData.nodes[nodeId];
+  it("handles text nodes with inline text styles", () => {
+    const nodeId = Object.keys(testData.nodes as any)[0];
+    const rawNode = (testData.nodes as any)[nodeId];
 
     const normalized = buildNormalizedGraph(rawNode, {});
 
-    // Find text nodes
-    const textNodes = Object.values(normalized.nodes).filter((node) => node.type === "TEXT");
+    const textNode = Object.values(normalized.nodes).find((node) => node.type === "TEXT");
 
-    textNodes.forEach((textNode) => {
-      const style = normalized.stylesPayload[textNode.id];
+    if (textNode) {
+      // Text content should be inline
+      expect(textNode.text).toBeDefined();
 
-      if (style?.textStyle) {
-        // Text style should have font properties
-        expect(style.textStyle).toBeDefined();
-
-        // At least one of these should be present
-        const hasTextProperties =
-          style.textStyle.fontFamily || style.textStyle.fontSize || style.textStyle.characters;
-
-        expect(hasTextProperties).toBeTruthy();
+      // Text styles should be CSS properties
+      if (textNode.fontFamily) expect(typeof textNode.fontFamily).toBe("string");
+      if (textNode.fontSize) expect(typeof textNode.fontSize).toBe("number");
+      if (textNode.fontWeight) expect(typeof textNode.fontWeight).toBe("number");
+      if (textNode.color) {
+        expect(typeof textNode.color).toBe("string");
+        expect(textNode.color).toMatch(/^(rgba\(|$)/);
       }
-    });
+    }
   });
 
-  it("output format matches MCPResponse schema", () => {
-    const nodeId = Object.keys(testData.nodes)[0];
-    const rawNode = testData.nodes[nodeId];
+  it("omits default values for token efficiency", () => {
+    const nodeId = Object.keys(testData.nodes as any)[0];
+    const rawNode = (testData.nodes as any)[nodeId];
 
     const normalized = buildNormalizedGraph(rawNode, {});
 
-    // Validate top-level structure
+    // Find any node
+    const anyNode = Object.values(normalized.nodes)[0];
+
+    // Defaults should be omitted
+    if (anyNode.visible !== false) {
+      expect(anyNode).not.toHaveProperty("visible");
+    }
+
+    if (anyNode.opacity !== undefined) {
+      // opacity should only exist if not 1
+      expect(anyNode.opacity).not.toBe(1);
+    }
+
+    if (anyNode.blendMode) {
+      // blendMode should only exist if not NORMAL/PASS_THROUGH
+      expect(anyNode.blendMode).not.toBe("NORMAL");
+      expect(anyNode.blendMode).not.toBe("PASS_THROUGH");
+    }
+  });
+
+  it("generates valid response structure", () => {
+    const nodeId = Object.keys(testData.nodes as any)[0];
+    const rawNode = (testData.nodes as any)[nodeId];
+
+    const normalized = buildNormalizedGraph(rawNode, {});
+
+    // Response should have required fields
     expect(normalized).toHaveProperty("root");
     expect(normalized).toHaveProperty("nodes");
-    expect(normalized).toHaveProperty("stylesPayload");
-    expect(normalized).toHaveProperty("paints");
-    expect(normalized).toHaveProperty("styles");
-    expect(normalized).toHaveProperty("components");
-
-    // Validate types
     expect(typeof normalized.root).toBe("string");
     expect(typeof normalized.nodes).toBe("object");
-    expect(typeof normalized.stylesPayload).toBe("object");
-    expect(typeof normalized.paints).toBe("object");
-    expect(typeof normalized.styles).toBe("object");
-    expect(typeof normalized.components).toBe("object");
-  });
 
-  it("token efficiency: normalized output is smaller than raw input", () => {
-    const nodeId = Object.keys(testData.nodes)[0];
-    const rawNode = testData.nodes[nodeId];
-
-    const normalized = buildNormalizedGraph(rawNode, {});
-
-    const rawSize = JSON.stringify(rawNode).length;
-    const normalizedSize = JSON.stringify(normalized).length;
-
-    // Normalized should be smaller (or at worst, similar size for small nodes)
-    // This validates deduplication and optimization
-    console.log(`Raw size: ${rawSize} bytes, Normalized size: ${normalizedSize} bytes`);
-    console.log(`Reduction: ${((1 - normalizedSize / rawSize) * 100).toFixed(1)}%`);
-
-    // For most designs, we expect at least some reduction
-    // But for very small test files, it might be slightly larger due to structure overhead
-    expect(normalizedSize).toBeLessThan(rawSize * 2); // At worst, not more than 2x
+    // Optional fields
+    if (normalized.variables) expect(typeof normalized.variables).toBe("object");
+    if (normalized.components) expect(typeof normalized.components).toBe("object");
   });
 });

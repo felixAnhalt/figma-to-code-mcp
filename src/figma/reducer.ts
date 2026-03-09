@@ -1,170 +1,331 @@
-import type { MCPResponse, LayoutNode, NodeStyle, Paint } from "./types.js";
-import { mapAutoLayoutToFlex } from "./layoutResolver.js";
+import type { MCPResponse, Node, Paint, VariableValue } from "./types.js";
 import { IdMapper } from "./idMapper.js";
+import type { VariableResolutionContext } from "./variableResolver.js";
+import { resolveVariable } from "./variableResolver.js";
+import type { VariableAlias } from "@figma/rest-api-spec";
 
 /**
- * Builds a normalized graph from a Figma node tree.
- * This separates structure (nodes), layout (flex), and styling (stylesPayload, paints).
+ * Builds a CSS-aligned graph optimized for LLM UI building.
  *
- * Optimizations:
- * - IDs are mapped for token efficiency (nested IDs shortened)
- * - Redundant defaults are omitted (blendMode "PASS_THROUGH", locked false, opacity 1, etc.)
- * - flexTree removed (redundant with nodes[].flex)
+ * Key differences from v1:
+ * - Inline styles directly in nodes (no separate stylesPayload/paints)
+ * - CSS property names (display, flexDirection, backgroundColor, etc.)
+ * - No flex.children duplication
+ * - No bounding boxes
+ * - Colors inline or as variable references
  */
-export function buildNormalizedGraph(rootNode: any, styleMap: Record<string, any>): MCPResponse {
-  const nodes: Record<string, LayoutNode> = {};
-  const stylesPayload: Record<string, NodeStyle> = {};
-  const paints: Record<string, Paint> = {};
-  const styles: Record<string, any> = styleMap;
+export function buildNormalizedGraph(
+  rootNode: any,
+  styleMap: Record<string, any>,
+  variableContext?: VariableResolutionContext | null,
+): MCPResponse {
+  const nodes: Record<string, Node> = {};
   const components: Record<string, any> = {};
+  const variables: Record<string, VariableValue> = {};
 
   const idMapper = new IdMapper();
-  let paintIdCounter = 0;
+  const usedVariables = new Set<string>();
 
-  function processPaint(paint: any): string {
-    // Create a stable key for deduplication
-    const key = JSON.stringify(paint);
-    const existingPaint = Object.entries(paints).find(([_, p]) => JSON.stringify(p) === key);
+  /**
+   * Converts RGBA object to CSS rgba() string or variable reference
+   */
+  function formatColor(color: any): string | undefined {
+    if (!color) return undefined;
 
-    if (existingPaint) {
-      return existingPaint[0];
+    // Check if it's a variable reference
+    if (typeof color === "string" && color.startsWith("$")) {
+      return color;
     }
 
-    const id = `paint_${paintIdCounter++}`;
-    paints[id] = paint;
-    return id;
+    // Inline RGBA color
+    if (typeof color === "object" && "r" in color) {
+      const r = Math.round(color.r * 255);
+      const g = Math.round(color.g * 255);
+      const b = Math.round(color.b * 255);
+      const a = color.a;
+      return `rgba(${r}, ${g}, ${b}, ${a})`;
+    }
+
+    return undefined;
   }
 
+  /**
+   * Processes variable references - replaces with "$variableId" reference
+   */
+  function processVariableRef(obj: any): any {
+    if (!obj || typeof obj !== "object") return obj;
+
+    // Handle arrays
+    if (Array.isArray(obj)) {
+      return obj.map(processVariableRef).filter((v) => v !== undefined);
+    }
+
+    // Handle VariableAlias
+    if (isVariableAlias(obj)) {
+      if (!variableContext) return undefined;
+
+      const resolved = resolveVariable(obj, variableContext);
+
+      if (!isVariableAlias(resolved)) {
+        // Track usage and return reference
+        usedVariables.add(obj.id);
+        return `$${obj.id}`;
+      }
+
+      // Can't resolve - remove it
+      return undefined;
+    }
+
+    // Handle objects
+    const result: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      const processed = processVariableRef(value);
+      if (processed !== undefined) {
+        result[key] = processed;
+      }
+    }
+
+    return Object.keys(result).length > 0 ? result : undefined;
+  }
+
+  /**
+   * Type guard for VariableAlias
+   */
+  function isVariableAlias(value: unknown): value is VariableAlias {
+    return (
+      typeof value === "object" &&
+      value !== null &&
+      "type" in value &&
+      value.type === "VARIABLE_ALIAS" &&
+      "id" in value &&
+      typeof value.id === "string"
+    );
+  }
+
+  /**
+   * Rounds a number to specified decimal places
+   */
+  function roundTo(num: number, decimals: number): number {
+    const factor = Math.pow(10, decimals);
+    return Math.round(num * factor) / factor;
+  }
+
+  /**
+   * Processes a paint and returns inline CSS value or Paint object for gradients
+   */
+  function processPaint(paint: any): string | Paint | undefined {
+    if (!paint) return undefined;
+
+    const processed = processVariableRef(paint);
+    if (!processed) return undefined;
+
+    // Solid color - return inline
+    if (processed.type === "SOLID" && processed.color) {
+      return formatColor(processed.color);
+    }
+
+    // Gradient or image - return Paint object
+    if (processed.type === "GRADIENT_LINEAR" || processed.type === "GRADIENT_RADIAL") {
+      return {
+        type: processed.type,
+        gradientStops: processed.gradientStops?.map((stop: any) => ({
+          position: roundTo(stop.position, 3),
+          color: {
+            r: roundTo(stop.color.r, 3),
+            g: roundTo(stop.color.g, 3),
+            b: roundTo(stop.color.b, 3),
+            a: roundTo(stop.color.a, 3),
+          },
+        })),
+      };
+    }
+
+    if (processed.type === "IMAGE") {
+      return {
+        type: "IMAGE",
+        imageRef: processed.imageRef,
+        scaleMode: processed.scaleMode,
+      };
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Processes a single node and its children recursively
+   */
   function processNode(node: any, parent: string | null = null): void {
     if (!node) return;
 
     const originalId = node.id;
     const nodeId = idMapper.map(originalId);
 
-    // Build layout node (omit redundant defaults)
-    const layoutNode: LayoutNode = {
+    // Build CSS-aligned node
+    const cssNode: Node = {
       id: nodeId,
       type: node.type,
       name: node.name,
       parent: parent ? idMapper.map(parent) : null,
       children: node.children?.map((c: any) => idMapper.map(c.id)),
-      absoluteBoundingBox: node.absoluteBoundingBox,
-      constraints: node.constraints,
     };
 
-    // Only include non-default values
-    // visible: omit if undefined (most common case is undefined)
-    if (node.visible !== undefined) {
-      layoutNode.visible = node.visible;
-    }
-
-    // locked: omit if undefined or false (defaults are undefined/false)
-    if (node.locked === true) {
-      layoutNode.locked = node.locked;
-    }
-
-    // opacity: omit if undefined or 1 (default is 1)
-    if (node.opacity !== undefined && node.opacity !== 1) {
-      layoutNode.opacity = node.opacity;
-    }
-
-    // blendMode: omit if "PASS_THROUGH" (100% of nodes have this)
-    if (node.blendMode && node.blendMode !== "PASS_THROUGH") {
-      layoutNode.blendMode = node.blendMode;
-    }
-
-    // Preserve component relationships
-    if (node.componentId) {
-      layoutNode.componentId = idMapper.map(node.componentId);
-    }
-    if (node.componentProperties) {
-      layoutNode.componentProperties = node.componentProperties;
-    }
-
-    // If this is a component, store it
-    if (node.type === "COMPONENT") {
-      components[nodeId] = {
-        key: nodeId,
-        name: node.name,
-        description: node.description,
-      };
-    }
-
-    // Map auto-layout to flex primitives
+    // CSS Layout (flexbox)
     if (node.layoutMode) {
-      layoutNode.layout = {
-        layoutMode: node.layoutMode,
-        primaryAxisSizingMode: node.primaryAxisSizingMode,
-        counterAxisSizingMode: node.counterAxisSizingMode,
-        primaryAxisAlignItems: node.primaryAxisAlignItems,
-        counterAxisAlignItems: node.counterAxisAlignItems,
-        itemSpacing: node.itemSpacing,
-        paddingLeft: node.paddingLeft,
-        paddingRight: node.paddingRight,
-        paddingTop: node.paddingTop,
-        paddingBottom: node.paddingBottom,
-        layoutWrap: node.layoutWrap,
-        layoutGrow: node.layoutGrow,
-      };
+      cssNode.display = "flex";
+      cssNode.flexDirection = node.layoutMode === "HORIZONTAL" ? "row" : "column";
 
-      const flex = mapAutoLayoutToFlex(node);
-      if (flex) {
-        layoutNode.flex = flex;
+      // Alignment
+      cssNode.alignItems = mapAlignItems(node.counterAxisAlignItems);
+      cssNode.justifyContent = mapJustifyContent(node.primaryAxisAlignItems);
+
+      // Gap
+      if (node.itemSpacing !== undefined && node.itemSpacing !== 0) {
+        cssNode.gap = node.itemSpacing;
+      }
+
+      // Padding
+      const hasNonZeroPadding =
+        node.paddingLeft !== 0 ||
+        node.paddingRight !== 0 ||
+        node.paddingTop !== 0 ||
+        node.paddingBottom !== 0;
+
+      if (hasNonZeroPadding) {
+        cssNode.padding = {
+          top: node.paddingTop || 0,
+          right: node.paddingRight || 0,
+          bottom: node.paddingBottom || 0,
+          left: node.paddingLeft || 0,
+        };
       }
     }
 
-    nodes[nodeId] = layoutNode;
-
-    // Process styling
-    const nodeStyle: NodeStyle = {};
-
+    // CSS Visual Styling
     if (node.fills && node.fills.length > 0) {
-      nodeStyle.fills = node.fills.map((fill: any) => {
-        const paintId = processPaint(fill);
-        return paintId;
-      });
+      const fill = node.fills[0]; // Primary fill
+      const processedFill = processPaint(fill);
+
+      if (typeof processedFill === "string") {
+        // Solid color - use backgroundColor
+        cssNode.backgroundColor = processedFill;
+      } else if (processedFill) {
+        // Gradient/image - use background array
+        cssNode.background = [processedFill];
+      }
     }
 
+    // Border (strokes)
     if (node.strokes && node.strokes.length > 0) {
-      nodeStyle.strokes = node.strokes.map((stroke: any) => {
-        const paintId = processPaint(stroke);
-        return paintId;
-      });
-      nodeStyle.strokeWeight = node.strokeWeight;
-      nodeStyle.strokeAlign = node.strokeAlign;
+      const stroke = node.strokes[0];
+      const processedStroke = processPaint(stroke);
+
+      if (typeof processedStroke === "string") {
+        cssNode.border = processedStroke;
+      }
+
+      if (node.strokeWeight !== undefined && node.strokeWeight !== 0) {
+        cssNode.borderWidth = node.strokeWeight;
+      }
     }
 
+    // Border radius
+    if (node.cornerRadius !== undefined && node.cornerRadius !== 0) {
+      cssNode.borderRadius = node.cornerRadius;
+    }
+
+    // Box shadow (effects)
     if (node.effects && node.effects.length > 0) {
-      nodeStyle.effects = node.effects;
+      const shadows = node.effects
+        .filter((e: any) => e.type === "DROP_SHADOW" || e.type === "INNER_SHADOW")
+        .map((e: any) => {
+          const color = formatColor(e.color);
+          const offsetX = e.offset?.x || 0;
+          const offsetY = e.offset?.y || 0;
+          const blur = e.radius || 0;
+          const spread = e.spread || 0;
+          return `${offsetX}px ${offsetY}px ${blur}px ${spread}px ${color}`;
+        });
+
+      if (shadows.length > 0) {
+        cssNode.boxShadow = shadows.join(", ");
+      }
     }
 
-    if (node.cornerRadius !== undefined) {
-      nodeStyle.cornerRadius = node.cornerRadius;
+    // Opacity (skip if 1)
+    if (node.opacity !== undefined && node.opacity !== 1) {
+      cssNode.opacity = roundTo(node.opacity, 3);
     }
 
-    // Text styling
+    // CSS Text Styling (for TEXT nodes)
     if (node.type === "TEXT") {
-      nodeStyle.textStyle = {
-        fontFamily: node.style?.fontFamily,
-        fontWeight: node.style?.fontWeight,
-        fontSize: node.style?.fontSize,
-        lineHeight: node.style?.lineHeightPx,
-        letterSpacing: node.style?.letterSpacing,
-        textAlignHorizontal: node.style?.textAlignHorizontal,
-        textAlignVertical: node.style?.textAlignVertical,
-        textAutoResize: node.textAutoResize,
-        textCase: node.style?.textCase,
-        textDecoration: node.style?.textDecoration,
-        characters: node.characters,
-      };
+      // Process text styles from boundVariables or direct properties
+      const style = node.style || {};
+
+      if (node.fills && node.fills.length > 0) {
+        const textFill = processPaint(node.fills[0]);
+        if (typeof textFill === "string") {
+          cssNode.color = textFill;
+        }
+      }
+
+      if (style.fontFamily || node.fontName?.family) {
+        cssNode.fontFamily = style.fontFamily || node.fontName?.family;
+      }
+
+      if (style.fontSize || node.fontSize) {
+        cssNode.fontSize = style.fontSize || node.fontSize;
+      }
+
+      if (style.fontWeight || node.fontWeight) {
+        cssNode.fontWeight = style.fontWeight || node.fontWeight;
+      }
+
+      if (style.lineHeightPx) {
+        cssNode.lineHeight = roundTo(style.lineHeightPx, 2);
+      } else if (style.lineHeightPercent) {
+        cssNode.lineHeight = `${roundTo(style.lineHeightPercent, 0)}%`;
+      }
+
+      if (style.letterSpacing) {
+        cssNode.letterSpacing = roundTo(style.letterSpacing, 2);
+      }
+
+      if (style.textAlignHorizontal) {
+        cssNode.textAlign = style.textAlignHorizontal.toLowerCase();
+      }
+
+      // Actual text content
+      if (node.characters) {
+        cssNode.text = node.characters;
+      }
     }
 
-    // Only add to stylesPayload if there's actual styling
-    if (Object.keys(nodeStyle).length > 0) {
-      stylesPayload[nodeId] = nodeStyle;
+    // Visibility (skip if true)
+    if (node.visible !== undefined && node.visible !== true) {
+      cssNode.visible = node.visible;
     }
 
-    // Recurse into children
+    // BlendMode (skip if NORMAL or PASS_THROUGH)
+    if (node.blendMode && node.blendMode !== "NORMAL" && node.blendMode !== "PASS_THROUGH") {
+      cssNode.blendMode = node.blendMode;
+    }
+
+    // Component reference
+    if (node.componentId) {
+      cssNode.componentId = node.componentId;
+
+      // Track component
+      if (!components[node.componentId]) {
+        components[node.componentId] = {
+          key: node.componentId,
+          name: node.name || "Unknown Component",
+        };
+      }
+    }
+
+    nodes[nodeId] = cssNode;
+
+    // Process children recursively
     if (node.children) {
       for (const child of node.children) {
         processNode(child, originalId);
@@ -172,15 +333,80 @@ export function buildNormalizedGraph(rootNode: any, styleMap: Record<string, any
     }
   }
 
+  /**
+   * Maps Figma counterAxisAlignItems to CSS align-items
+   */
+  function mapAlignItems(value: string | undefined): string {
+    switch (value) {
+      case "MIN":
+        return "flex-start";
+      case "MAX":
+        return "flex-end";
+      case "CENTER":
+        return "center";
+      case "BASELINE":
+        return "baseline";
+      case "STRETCH":
+        return "stretch";
+      default:
+        return "stretch";
+    }
+  }
+
+  /**
+   * Maps Figma primaryAxisAlignItems to CSS justify-content
+   */
+  function mapJustifyContent(value: string | undefined): string {
+    switch (value) {
+      case "MIN":
+        return "flex-start";
+      case "MAX":
+        return "flex-end";
+      case "CENTER":
+        return "center";
+      case "SPACE_BETWEEN":
+        return "space-between";
+      default:
+        return "flex-start";
+    }
+  }
+
   // Start processing from root
+  const rootId = idMapper.map(rootNode.document?.id ?? rootNode.id);
   processNode(rootNode.document ?? rootNode);
 
-  return {
-    root: idMapper.map(rootNode.document?.id ?? rootNode.id),
+  // Build variables dictionary with only used variables
+  if (variableContext && usedVariables.size > 0) {
+    for (const variableId of usedVariables) {
+      let value = variableContext.variableValues.get(variableId);
+      if (value !== undefined) {
+        // Round color values
+        if (typeof value === "object" && value !== null && "r" in value) {
+          value = {
+            r: roundTo(value.r, 3),
+            g: roundTo(value.g, 3),
+            b: roundTo(value.b, 3),
+            a: roundTo(value.a, 3),
+          };
+        }
+        variables[variableId] = value;
+      }
+    }
+  }
+
+  const response: MCPResponse = {
+    root: rootId,
     nodes,
-    stylesPayload,
-    paints,
-    styles,
-    components,
   };
+
+  // Only include optional fields if they have content
+  if (Object.keys(variables).length > 0) {
+    response.variables = variables;
+  }
+
+  if (Object.keys(components).length > 0) {
+    response.components = components;
+  }
+
+  return response;
 }
