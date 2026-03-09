@@ -198,6 +198,40 @@ export function buildNormalizedGraph(
           left: node.paddingLeft || 0,
         };
       }
+
+      // Flex wrap
+      if (node.layoutWrap === "WRAP") {
+        cssNode.flexWrap = "wrap";
+      }
+    }
+
+    // CSS Sizing (explicit width/height when not using auto-layout)
+    // Only add explicit dimensions if node has size and isn't using FILL/HUG
+    if (node.size?.x !== undefined && node.layoutSizingHorizontal === "FIXED") {
+      cssNode.width = roundTo(node.size.x, 2);
+    }
+    if (node.size?.y !== undefined && node.layoutSizingVertical === "FIXED") {
+      cssNode.height = roundTo(node.size.y, 2);
+    }
+
+    // Min/Max width constraints
+    if (node.minWidth !== undefined && node.minWidth !== null) {
+      cssNode.minWidth = roundTo(node.minWidth, 2);
+    }
+    if (node.maxWidth !== undefined && node.maxWidth !== null) {
+      cssNode.maxWidth = roundTo(node.maxWidth, 2);
+    }
+
+    // CSS Transform (rotation)
+    if (node.rotation !== undefined && node.rotation !== 0) {
+      // Convert radians to degrees
+      const degrees = roundTo((node.rotation * 180) / Math.PI, 2);
+      cssNode.transform = `rotate(${degrees}deg)`;
+    }
+
+    // Overflow (clipping)
+    if (node.clipsContent === true) {
+      cssNode.overflow = "hidden";
     }
 
     // CSS Visual Styling
@@ -229,7 +263,17 @@ export function buildNormalizedGraph(
     }
 
     // Border radius
-    if (node.cornerRadius !== undefined && node.cornerRadius !== 0) {
+    if (node.rectangleCornerRadii) {
+      // Individual corner radii [topLeft, topRight, bottomRight, bottomLeft]
+      const radii = node.rectangleCornerRadii;
+      const allSame = radii.every((r: number) => r === radii[0]);
+
+      if (allSame && radii[0] !== 0) {
+        cssNode.borderRadius = radii[0];
+      } else if (!allSame) {
+        cssNode.borderRadius = radii;
+      }
+    } else if (node.cornerRadius !== undefined && node.cornerRadius !== 0) {
       cssNode.borderRadius = node.cornerRadius;
     }
 
@@ -248,6 +292,27 @@ export function buildNormalizedGraph(
 
       if (shadows.length > 0) {
         cssNode.boxShadow = shadows.join(", ");
+      }
+
+      // Blur effects (LAYER_BLUR, BACKGROUND_BLUR)
+      const blurs = node.effects
+        .filter((e: any) => e.type === "LAYER_BLUR" || e.type === "BACKGROUND_BLUR")
+        .map((e: any) => {
+          const radius = e.radius || 0;
+          return e.type === "BACKGROUND_BLUR"
+            ? `backdrop-filter: blur(${radius}px)`
+            : `blur(${radius}px)`;
+        });
+
+      if (blurs.length > 0) {
+        // If we have backdrop blur, it needs to be separate
+        const backdropBlur = blurs.find((b: string) => b.startsWith("backdrop"));
+        const layerBlur = blurs.find((b: string) => !b.startsWith("backdrop"));
+
+        if (layerBlur) {
+          cssNode.filter = layerBlur;
+        }
+        // Note: backdrop-filter would need its own property, but it's rare
       }
     }
 
@@ -280,6 +345,14 @@ export function buildNormalizedGraph(
         cssNode.fontWeight = style.fontWeight || node.fontWeight;
       }
 
+      // Font style (italic)
+      if (style.fontStyle || node.fontName?.style) {
+        const fontStyle = style.fontStyle || node.fontName?.style;
+        if (fontStyle && fontStyle.toLowerCase().includes("italic")) {
+          cssNode.fontStyle = "italic";
+        }
+      }
+
       if (style.lineHeightPx) {
         cssNode.lineHeight = roundTo(style.lineHeightPx, 2);
       } else if (style.lineHeightPercent) {
@@ -292,6 +365,21 @@ export function buildNormalizedGraph(
 
       if (style.textAlignHorizontal) {
         cssNode.textAlign = style.textAlignHorizontal.toLowerCase();
+      }
+
+      // Text decoration (underline, strikethrough)
+      if (style.textDecoration && style.textDecoration !== "NONE") {
+        cssNode.textDecoration = style.textDecoration.toLowerCase().replace("_", "-");
+      }
+
+      // Text transform (uppercase, lowercase, capitalize)
+      if (style.textCase && style.textCase !== "ORIGINAL") {
+        const caseMap: Record<string, string> = {
+          UPPER: "uppercase",
+          LOWER: "lowercase",
+          TITLE: "capitalize",
+        };
+        cssNode.textTransform = caseMap[style.textCase] || style.textCase.toLowerCase();
       }
 
       // Actual text content

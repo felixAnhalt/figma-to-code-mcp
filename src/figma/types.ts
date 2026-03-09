@@ -52,24 +52,39 @@ export type Node = {
     bottom: number;
     left: number;
   };
+  overflow?: string; // "visible", "hidden", "scroll"
+  flexWrap?: string; // "wrap", "nowrap"
 
   // CSS Visual
   backgroundColor?: string; // Variable ref or inline RGBA
   background?: Paint[]; // For gradients/images
   border?: string; // Variable ref or inline
   borderWidth?: number;
-  borderRadius?: number;
+  borderRadius?: number | number[]; // Single value or [topLeft, topRight, bottomRight, bottomLeft]
   boxShadow?: string;
   opacity?: number;
+  filter?: string; // For blur effects
+
+  // CSS Transform
+  transform?: string; // For rotation, scale, etc.
+
+  // CSS Sizing
+  width?: number;
+  height?: number;
+  minWidth?: number;
+  maxWidth?: number;
 
   // CSS Text
   color?: string; // Variable ref or inline RGBA
   fontFamily?: string; // Variable ref or inline
   fontSize?: number;
   fontWeight?: number;
+  fontStyle?: string; // "italic", "normal"
   lineHeight?: number | string;
   letterSpacing?: number | string;
   textAlign?: string;
+  textDecoration?: string; // "underline", "line-through", etc.
+  textTransform?: string; // "uppercase", "lowercase", "capitalize"
   text?: string; // Actual text content for TEXT nodes
 
   // Meta
