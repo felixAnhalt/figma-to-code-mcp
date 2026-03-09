@@ -1,14 +1,18 @@
-import type { MCPResponse, LayoutNode, NodeStyle, Paint, FlexNode } from "./types.js";
+import type { MCPResponse, LayoutNode, NodeStyle, Paint } from "./types.js";
 import { mapAutoLayoutToFlex } from "./layoutResolver.js";
 import { IdMapper } from "./idMapper.js";
 
 /**
  * Builds a normalized graph from a Figma node tree.
  * This separates structure (nodes), layout (flex), and styling (stylesPayload, paints).
+ *
+ * Optimizations:
+ * - IDs are mapped for token efficiency (nested IDs shortened)
+ * - Redundant defaults are omitted (blendMode "PASS_THROUGH", locked false, opacity 1, etc.)
+ * - flexTree removed (redundant with nodes[].flex)
  */
 export function buildNormalizedGraph(rootNode: any, styleMap: Record<string, any>): MCPResponse {
   const nodes: Record<string, LayoutNode> = {};
-  const flexTree: Record<string, FlexNode> = {};
   const stylesPayload: Record<string, NodeStyle> = {};
   const paints: Record<string, Paint> = {};
   const styles: Record<string, any> = styleMap;
@@ -37,20 +41,37 @@ export function buildNormalizedGraph(rootNode: any, styleMap: Record<string, any
     const originalId = node.id;
     const nodeId = idMapper.map(originalId);
 
-    // Build layout node
+    // Build layout node (omit redundant defaults)
     const layoutNode: LayoutNode = {
       id: nodeId,
       type: node.type,
       name: node.name,
       parent: parent ? idMapper.map(parent) : null,
       children: node.children?.map((c: any) => idMapper.map(c.id)),
-      visible: node.visible,
-      locked: node.locked,
-      opacity: node.opacity,
-      blendMode: node.blendMode,
       absoluteBoundingBox: node.absoluteBoundingBox,
       constraints: node.constraints,
     };
+
+    // Only include non-default values
+    // visible: omit if undefined (most common case is undefined)
+    if (node.visible !== undefined) {
+      layoutNode.visible = node.visible;
+    }
+
+    // locked: omit if undefined or false (defaults are undefined/false)
+    if (node.locked === true) {
+      layoutNode.locked = node.locked;
+    }
+
+    // opacity: omit if undefined or 1 (default is 1)
+    if (node.opacity !== undefined && node.opacity !== 1) {
+      layoutNode.opacity = node.opacity;
+    }
+
+    // blendMode: omit if "PASS_THROUGH" (100% of nodes have this)
+    if (node.blendMode && node.blendMode !== "PASS_THROUGH") {
+      layoutNode.blendMode = node.blendMode;
+    }
 
     // Preserve component relationships
     if (node.componentId) {
@@ -89,7 +110,6 @@ export function buildNormalizedGraph(rootNode: any, styleMap: Record<string, any
       const flex = mapAutoLayoutToFlex(node);
       if (flex) {
         layoutNode.flex = flex;
-        flexTree[nodeId] = flex;
       }
     }
 
@@ -158,7 +178,6 @@ export function buildNormalizedGraph(rootNode: any, styleMap: Record<string, any
   return {
     root: idMapper.map(rootNode.document?.id ?? rootNode.id),
     nodes,
-    flexTree,
     stylesPayload,
     paints,
     styles,

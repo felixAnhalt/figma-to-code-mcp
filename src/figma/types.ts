@@ -7,11 +7,16 @@
  *   where N is a global integer counter
  * - No reverse mapping is provided (_idMap removed) - original IDs are not needed
  *   after initial fetch
+ *
+ * Redundant defaults are omitted:
+ * - blendMode "PASS_THROUGH" (default)
+ * - locked false/undefined (default)
+ * - opacity 1/undefined (default)
+ * - visible undefined (common case)
  */
 export type MCPResponse = {
   root: string;
   nodes: Record<string, LayoutNode>;
-  flexTree: Record<string, FlexNode>;
   stylesPayload: Record<string, NodeStyle>;
   paints: Record<string, Paint>;
   styles: Record<string, Style>;

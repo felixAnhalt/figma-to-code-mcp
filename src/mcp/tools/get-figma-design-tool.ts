@@ -75,7 +75,7 @@ async function getFigmaDesign(
     writeLogs("figma-mcp-response.json", mcpResponse);
 
     Logger.log(
-      `Successfully extracted: ${Object.keys(mcpResponse.nodes).length} nodes, ${Object.keys(mcpResponse.paints).length} unique paints, ${Object.keys(mcpResponse.flexTree).length} flex containers`,
+      `Successfully extracted: ${Object.keys(mcpResponse.nodes).length} nodes, ${Object.keys(mcpResponse.paints).length} unique paints`,
     );
 
     Logger.log(`Generating ${outputFormat.toUpperCase()} result`);

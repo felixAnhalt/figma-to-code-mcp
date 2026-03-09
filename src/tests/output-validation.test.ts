@@ -162,7 +162,6 @@ describe("Normalized graph output validation", () => {
       if (node.layout?.layoutMode) {
         // Should have flex representation
         expect(node.flex).toBeDefined();
-        expect(normalized.flexTree[node.id]).toBeDefined();
 
         // Validate direction mapping
         const expectedDirection = node.layout.layoutMode === "HORIZONTAL" ? "row" : "column";
@@ -215,7 +214,6 @@ describe("Normalized graph output validation", () => {
     // Validate top-level structure
     expect(normalized).toHaveProperty("root");
     expect(normalized).toHaveProperty("nodes");
-    expect(normalized).toHaveProperty("flexTree");
     expect(normalized).toHaveProperty("stylesPayload");
     expect(normalized).toHaveProperty("paints");
     expect(normalized).toHaveProperty("styles");
@@ -224,7 +222,6 @@ describe("Normalized graph output validation", () => {
     // Validate types
     expect(typeof normalized.root).toBe("string");
     expect(typeof normalized.nodes).toBe("object");
-    expect(typeof normalized.flexTree).toBe("object");
     expect(typeof normalized.stylesPayload).toBe("object");
     expect(typeof normalized.paints).toBe("object");
     expect(typeof normalized.styles).toBe("object");
