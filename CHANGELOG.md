@@ -1,5 +1,12 @@
 # figma-developer-mcp
 
+## [0.12.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.11.0...v0.12.0) (2026-03-10)
+
+
+### Features
+
+* **package:** [#1](https://github.com/felixAnhalt/Figma-Context-MCP/issues/1) - simplify description in package.json for clarity ([e92e045](https://github.com/felixAnhalt/Figma-Context-MCP/commit/e92e045caa32a75fcba793dd82e0bf0d5aa01b10))
+
 ## [0.11.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.10.0...v0.11.0) (2026-03-10)
 
 
