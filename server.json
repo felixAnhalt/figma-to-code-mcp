@@ -1,17 +1,17 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.felixAnhalt/Figma-Context-MCP",
-  "description": "LLM-optimized Figma MCP server. Provides UI-building data with 99.5% size reduction via CSS-aligned extraction.",
+  "description": "LLM-optimized Figma MCP server.",
   "repository": {
     "url": "https://github.com/felixAnhalt/Figma-Context-MCP",
     "source": "github"
   },
-  "version": "0.6.4",
+  "version": "0.12.0",
   "packages": [
     {
       "registryType": "npm",
-      "identifier": "figma-developer-mcp",
-      "version": "0.6.4",
+      "identifier": "@tmegit/figma-developer-mcp",
+      "version": "0.12.0",
       "transport": {
         "type": "stdio"
       },
