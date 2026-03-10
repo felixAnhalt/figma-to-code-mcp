@@ -4,8 +4,10 @@ import { Logger } from "../utils/logger.js";
 import {
   downloadFigmaImagesTool,
   getFigmaDesignTool,
+  getImageFillsTool,
   type DownloadImagesParams,
   type GetFigmaDesignParams,
+  type GetImageFillsParams,
 } from "./tools/index.js";
 
 const serverInfo = {
@@ -64,6 +66,17 @@ function registerTools(
         annotations: { openWorldHint: true },
       },
       (params: DownloadImagesParams) => downloadFigmaImagesTool.handler(params, figmaService),
+    );
+
+    server.registerTool(
+      getImageFillsTool.name,
+      {
+        title: "Get Image Fills",
+        description: getImageFillsTool.description,
+        inputSchema: getImageFillsTool.parametersSchema,
+        annotations: { readOnlyHint: true },
+      },
+      (params: GetImageFillsParams) => getImageFillsTool.handler(params, figmaService),
     );
   }
 }

@@ -108,6 +108,7 @@ export type GradientStop = {
 };
 
 export type Component = {
+  /** Published component key (hash) from Figma, distinct from the node_id used as the map index */
   key: string;
   name: string;
   description?: string;

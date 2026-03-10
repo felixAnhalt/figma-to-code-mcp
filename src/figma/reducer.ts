@@ -18,6 +18,7 @@ export function buildNormalizedGraph(
   rootNode: any,
   styleMap: Record<string, any>,
   variableContext?: VariableResolutionContext | null,
+  componentMap: Record<string, any> = {},
 ): MCPResponse {
   const nodes: Record<string, Node> = {};
   const components: Record<string, any> = {};
@@ -401,11 +402,12 @@ export function buildNormalizedGraph(
     if (node.componentId) {
       cssNode.componentId = node.componentId;
 
-      // Track component
       if (!components[node.componentId]) {
+        const meta = componentMap[node.componentId];
         components[node.componentId] = {
-          key: node.componentId,
-          name: node.name || "Unknown Component",
+          key: meta?.key ?? node.componentId,
+          name: meta?.name ?? node.name ?? "Unknown Component",
+          ...(meta?.description ? { description: meta.description } : {}),
         };
       }
     }

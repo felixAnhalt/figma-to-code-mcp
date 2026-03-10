@@ -2,7 +2,6 @@ import { fetchNodesBatch } from "./batchFetch.js";
 import { safeFetch } from "./rateLimit.js";
 import { getCache, setCache } from "./cache.js";
 import { buildNormalizedGraph } from "./reducer.js";
-import { resolveInstances } from "./instanceResolver.js";
 import { buildResolutionContext } from "./variableResolver.js";
 import type { MCPResponse } from "./types.js";
 import type { GetLocalVariablesResponse } from "@figma/rest-api-spec";
@@ -44,9 +43,6 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
     throw new Error(`Root node ${rootNodeId} not found`);
   }
 
-  // Resolve component instances
-  resolveInstances(rootNode, componentMap);
-
   // Fetch and build variable resolution context if enabled
   let variableContext = null;
   if (resolveVariables) {
@@ -71,7 +67,7 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
   }
 
   // Build normalized graph (layout + styles + Flex primitives)
-  const normalized = buildNormalizedGraph(rootNode, styleMap, variableContext);
+  const normalized = buildNormalizedGraph(rootNode, styleMap, variableContext, componentMap);
 
   // Cache result
   setCache(cacheKey, normalized, cacheTTL);
