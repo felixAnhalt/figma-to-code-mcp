@@ -1,5 +1,12 @@
 # figma-developer-mcp
 
+## [0.11.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.10.0...v0.11.0) (2026-03-10)
+
+
+### Features
+
+* **package:** [#1](https://github.com/felixAnhalt/Figma-Context-MCP/issues/1) - add registry to publishConfig for npm package publishing ([66d13eb](https://github.com/felixAnhalt/Figma-Context-MCP/commit/66d13eb8b3a5d052b4fd41d982e16672421f8252))
+
 ## [0.10.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.9.0...v0.10.0) (2026-03-10)
 
 
