@@ -1,5 +1,5 @@
 {
-  "name": "figma-developer-mcp",
+  "name": "@tmegit/figma-developer-mcp",
   "version": "0.6.6",
   "mcpName": "io.github.felixAnhalt/Figma-Context-MCP",
   "description": "LLM-optimized Figma MCP server. Provides UI-building data with 99.5% size reduction via CSS-aligned extraction. Fork of https://github.com/GLips/Figma-Context-MCP.",
@@ -12,6 +12,9 @@
     "dist",
     "README.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup --dts",
     "type-check": "tsc --noEmit",
