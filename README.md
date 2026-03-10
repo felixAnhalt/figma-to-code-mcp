@@ -35,8 +35,6 @@ This fork specializes in **extracting only the information LLMs need to build UI
 - **Original Framelink MCP**: Returns full Figma API response with all metadata
 - **This fork**: Returns CSS-aligned nodes with `display: "flex"`, `backgroundColor: "rgba(...)"`, etc.
 
-Perfect for AI agents building UIs in React, Vue, Svelte, or any web framework.
-
 ---
 
 Give [Cursor](https://cursor.sh/) and other AI-powered coding tools access to your Figma files with this [Model Context Protocol](https://modelcontextprotocol.io/introduction) server.
