@@ -1,5 +1,12 @@
 # figma-developer-mcp
 
+## [0.9.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.8.0...v0.9.0) (2026-03-10)
+
+
+### Features
+
+* **readme:** [#1](https://github.com/felixAnhalt/Figma-Context-MCP/issues/1) - remove redundant text to enhance clarity in documentation ([6b7a60e](https://github.com/felixAnhalt/Figma-Context-MCP/commit/6b7a60e91ea3c5c2b3196dfd52a6836cebf1aa45))
+
 ## [0.8.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.7.0...v0.8.0) (2026-03-10)
 
 
