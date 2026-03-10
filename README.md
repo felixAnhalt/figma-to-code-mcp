@@ -75,7 +75,7 @@ The `figma-developer-mcp` server can be configured by adding the following to yo
   "mcpServers": {
     "Figma Context MCP": {
       "command": "npx",
-      "args": ["-y", "figma-developer-mcp", "--figma-api-key=YOUR-KEY", "--stdio"]
+      "args": ["-y", "@tmegit/figma-developer-mcp", "--figma-api-key=YOUR-KEY", "--stdio"]
     }
   }
 }
@@ -88,7 +88,14 @@ The `figma-developer-mcp` server can be configured by adding the following to yo
   "mcpServers": {
     "Figma Context MCP": {
       "command": "cmd",
-      "args": ["/c", "npx", "-y", "figma-developer-mcp", "--figma-api-key=YOUR-KEY", "--stdio"]
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@tmegit/figma-developer-mcp",
+        "--figma-api-key=YOUR-KEY",
+        "--stdio"
+      ]
     }
   }
 }
