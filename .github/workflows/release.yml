@@ -50,6 +50,7 @@ jobs:
         run: pnpm publish
         env:
           NODE_ENV: production
+          NPM_CONFIG_PROVENANCE: "true"
         if: ${{ steps.release.outputs.release_created }}
 
       - name: Update server.json version
