@@ -1,5 +1,12 @@
 # figma-developer-mcp
 
+## [0.10.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.9.0...v0.10.0) (2026-03-10)
+
+
+### Features
+
+* **release:** [#1](https://github.com/felixAnhalt/Figma-Context-MCP/issues/1) - add NPM_CONFIG_PROVENANCE to release workflow for provenance tracking ([8a240c0](https://github.com/felixAnhalt/Figma-Context-MCP/commit/8a240c088d8987e39379a2289f76188920c5f1ff))
+
 ## [0.9.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.8.0...v0.9.0) (2026-03-10)
 
 
