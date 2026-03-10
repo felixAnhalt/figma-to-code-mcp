@@ -1,5 +1,12 @@
 # figma-developer-mcp
 
+## [0.8.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.7.0...v0.8.0) (2026-03-10)
+
+
+### Features
+
+* **readme:** [#1](https://github.com/felixAnhalt/Figma-Context-MCP/issues/1) - update package name and exclude test files ([9fb50f2](https://github.com/felixAnhalt/Figma-Context-MCP/commit/9fb50f263d8b5b89385582a5e675166f8762bd70))
+
 ## [0.7.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.6.6...v0.7.0) (2026-03-10)
 
 
