@@ -43,12 +43,6 @@ Give [Cursor](https://cursor.sh/) and other AI-powered coding tools access to yo
 
 This fork optimizes the Figma data specifically for **LLM UI building** by converting Figma's internal format to CSS-aligned properties while reducing response size by 99.5%.
 
-## Demo
-
-[Watch a demo of building a UI in Cursor with Figma design data](https://youtu.be/6G9yb-LrEqg) (from original Framelink MCP)
-
-[![Watch the video](https://img.youtube.com/vi/6G9yb-LrEqg/maxresdefault.jpg)](https://youtu.be/6G9yb-LrEqg)
-
 ## How it works
 
 1. Open your IDE's chat (e.g. agent mode in Cursor).
