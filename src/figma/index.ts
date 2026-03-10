@@ -3,15 +3,15 @@ import { safeFetch } from "./rateLimit.js";
 import { getCache, setCache } from "./cache.js";
 import { buildNormalizedGraph } from "./reducer.js";
 import { buildResolutionContext } from "./variableResolver.js";
-import type { MCPResponse } from "./types.js";
+import type { MCPResponse, Component } from "./types.js";
 import type { GetLocalVariablesResponse } from "@figma/rest-api-spec";
 
 export type MCPOptions = {
   fileKey: string;
   token: string;
   rootNodeId: string;
-  componentMap?: Record<string, any>;
-  styleMap?: Record<string, any>;
+  componentMap?: Record<string, unknown>;
+  styleMap?: Record<string, unknown>;
   cacheTTL?: number;
   resolveVariables?: boolean; // New option to enable variable resolution
 };
@@ -33,7 +33,7 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
 
   // Check cache
   const cacheKey = `MCP:${fileKey}:${rootNodeId}`;
-  const cached = getCache(cacheKey);
+  const cached = getCache<MCPResponse>(cacheKey);
   if (cached) return cached;
 
   // Fetch node data (batched)
@@ -78,7 +78,10 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
 /**
  * Fetches all styles for a Figma file.
  */
-export async function fetchStyles(fileKey: string, token: string): Promise<Record<string, any>> {
+export async function fetchStyles(
+  fileKey: string,
+  token: string,
+): Promise<Record<string, unknown>> {
   const url = `https://api.figma.com/v1/files/${fileKey}/styles`;
   const res = await safeFetch(url, {
     headers: { "X-Figma-Token": token },
@@ -88,10 +91,10 @@ export async function fetchStyles(fileKey: string, token: string): Promise<Recor
     throw new Error(`Figma API error: ${res.status} ${res.statusText}`);
   }
 
-  const json = await res.json();
-  const stylesMap: Record<string, any> = {};
+  const json = (await res.json()) as { meta?: { styles?: Array<{ key: string }> } };
+  const stylesMap: Record<string, unknown> = {};
 
-  for (const style of json.meta?.styles || []) {
+  for (const style of json.meta?.styles ?? []) {
     stylesMap[style.key] = style;
   }
 
@@ -104,7 +107,7 @@ export async function fetchStyles(fileKey: string, token: string): Promise<Recor
 export async function fetchComponents(
   fileKey: string,
   token: string,
-): Promise<Record<string, any>> {
+): Promise<Record<string, Component>> {
   const url = `https://api.figma.com/v1/files/${fileKey}/components`;
   const res = await safeFetch(url, {
     headers: { "X-Figma-Token": token },
@@ -114,12 +117,22 @@ export async function fetchComponents(
     throw new Error(`Figma API error: ${res.status} ${res.statusText}`);
   }
 
-  const json = await res.json();
-  const componentMap: Record<string, any> = {};
+  const json = (await res.json()) as {
+    meta?: {
+      components?: Record<
+        string,
+        { node_id: string; key: string; name: string; description?: string }
+      >;
+    };
+  };
+  const componentMap: Record<string, Component> = {};
 
-  for (const comp of Object.values(json.meta?.components || {})) {
-    const c = comp as any;
-    componentMap[c.node_id] = c;
+  for (const comp of Object.values(json.meta?.components ?? {})) {
+    componentMap[comp.node_id] = {
+      key: comp.key,
+      name: comp.name,
+      ...(comp.description ? { description: comp.description } : {}),
+    };
   }
 
   return componentMap;

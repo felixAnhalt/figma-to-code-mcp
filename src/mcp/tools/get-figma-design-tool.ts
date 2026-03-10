@@ -46,10 +46,8 @@ async function getFigmaDesign(
 
     Logger.log(`Fetching design data for node ${nodeId} from file ${fileKey}`);
 
-    // Get auth token from figmaService (access private field via type assertion)
-    const token = (figmaService as any).useOAuth
-      ? (figmaService as any).oauthToken
-      : (figmaService as any).apiKey;
+    // Get auth token from figmaService
+    const token = figmaService.getToken();
 
     // Fetch styles and components in parallel
     Logger.log("Fetching styles and components...");

@@ -26,6 +26,6 @@ describe("stdio transport", () => {
     const toolNames = tools.map((t) => t.name);
 
     expect(toolNames).toContain("get_figma_design");
-    expect(toolNames).toContain("download_figma_images");
+    expect(toolNames).toContain("get_image_fills");
   }, 30_000);
 });

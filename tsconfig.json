@@ -29,6 +29,5 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["src/figma/layoutResolver.ts"]
+  "include": ["src/**/*"]
 }

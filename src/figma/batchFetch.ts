@@ -1,3 +1,4 @@
+import type { GetFileNodesResponse, GetFileResponse } from "@figma/rest-api-spec";
 import { safeFetch } from "./rateLimit.js";
 
 /**
@@ -8,7 +9,7 @@ export async function fetchNodesBatch(
   fileKey: string,
   nodeIds: string[],
   token: string,
-): Promise<Record<string, any>> {
+): Promise<GetFileNodesResponse["nodes"]> {
   if (nodeIds.length === 0) return {};
 
   // Batch in chunks of 50 to respect API limits
@@ -17,7 +18,7 @@ export async function fetchNodesBatch(
     chunks.push(nodeIds.slice(i, i + 50));
   }
 
-  const results: Record<string, any> = {};
+  const results: GetFileNodesResponse["nodes"] = {};
 
   for (const chunk of chunks) {
     const ids = chunk.join(",");
@@ -31,7 +32,7 @@ export async function fetchNodesBatch(
       throw new Error(`Figma API error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as GetFileNodesResponse;
 
     // Merge results
     if (data.nodes) {
@@ -45,7 +46,7 @@ export async function fetchNodesBatch(
 /**
  * Fetches the entire file structure (used to get root node and discover all node IDs).
  */
-export async function fetchFile(fileKey: string, token: string): Promise<any> {
+export async function fetchFile(fileKey: string, token: string): Promise<GetFileResponse> {
   const url = `https://api.figma.com/v1/files/${fileKey}`;
 
   const response = await safeFetch(url, {
@@ -56,5 +57,5 @@ export async function fetchFile(fileKey: string, token: string): Promise<any> {
     throw new Error(`Figma API error: ${response.status} ${response.statusText}`);
   }
 
-  return response.json();
+  return response.json() as Promise<GetFileResponse>;
 }

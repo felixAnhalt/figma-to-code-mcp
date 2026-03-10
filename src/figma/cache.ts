@@ -1,12 +1,12 @@
-type CacheEntry = {
-  data: any;
+type CacheEntry<T> = {
+  data: T;
   timestamp: number;
   ttl: number;
 };
 
-const cache = new Map<string, CacheEntry>();
+const cache = new Map<string, CacheEntry<unknown>>();
 
-export function getCache(key: string): any | null {
+export function getCache<T>(key: string): T | null {
   const entry = cache.get(key);
   if (!entry) return null;
 
@@ -16,10 +16,10 @@ export function getCache(key: string): any | null {
     return null;
   }
 
-  return entry.data;
+  return entry.data as T;
 }
 
-export function setCache(key: string, data: any, ttl: number): void {
+export function setCache<T>(key: string, data: T, ttl: number): void {
   cache.set(key, {
     data,
     timestamp: Date.now(),

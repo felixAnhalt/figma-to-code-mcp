@@ -1,8 +1,32 @@
-import type { MCPResponse, Node, Paint, VariableValue } from "./types.js";
+import type { MCPResponse, Node, Paint, VariableValue, Component } from "./types.js";
 import { IdMapper } from "./idMapper.js";
 import type { VariableResolutionContext } from "./variableResolver.js";
 import { resolveVariable } from "./variableResolver.js";
 import type { VariableAlias } from "@figma/rest-api-spec";
+
+/** Minimal shape of a raw Figma node as returned by the API node tree */
+type FigmaRawNode = {
+  id: string;
+  type: string;
+  name?: string;
+  children?: FigmaRawNode[];
+  [key: string]: unknown;
+};
+
+/** Minimal shape of a raw Figma paint object */
+type FigmaRawPaint = {
+  type?: string;
+  color?: { r: number; g: number; b: number; a: number };
+  gradientStops?: Array<{
+    position: number;
+    color: { r: number; g: number; b: number; a: number };
+  }>;
+  gradientHandlePositions?: unknown[];
+  imageRef?: string;
+  scaleMode?: string;
+  opacity?: number;
+  boundVariables?: Record<string, unknown>;
+};
 
 /**
  * Builds a CSS-aligned graph optimized for LLM UI building.
@@ -15,13 +39,13 @@ import type { VariableAlias } from "@figma/rest-api-spec";
  * - Colors inline or as variable references
  */
 export function buildNormalizedGraph(
-  rootNode: any,
-  styleMap: Record<string, any>,
+  rootNode: Record<string, unknown>,
+  styleMap: Record<string, unknown>,
   variableContext?: VariableResolutionContext | null,
-  componentMap: Record<string, any> = {},
+  componentMap: Record<string, unknown> = {},
 ): MCPResponse {
   const nodes: Record<string, Node> = {};
-  const components: Record<string, any> = {};
+  const components: Record<string, Component> = {};
   const variables: Record<string, VariableValue> = {};
 
   const idMapper = new IdMapper();
@@ -30,7 +54,7 @@ export function buildNormalizedGraph(
   /**
    * Converts RGBA object to CSS rgba() string or variable reference
    */
-  function formatColor(color: any): string | undefined {
+  function formatColor(color: unknown): string | undefined {
     if (!color) return undefined;
 
     // Check if it's a variable reference
@@ -39,11 +63,12 @@ export function buildNormalizedGraph(
     }
 
     // Inline RGBA color
-    if (typeof color === "object" && "r" in color) {
-      const r = Math.round(color.r * 255);
-      const g = Math.round(color.g * 255);
-      const b = Math.round(color.b * 255);
-      const a = color.a;
+    if (typeof color === "object" && color !== null && "r" in color) {
+      const c = color as { r: number; g: number; b: number; a: number };
+      const r = Math.round(c.r * 255);
+      const g = Math.round(c.g * 255);
+      const b = Math.round(c.b * 255);
+      const a = c.a;
       return `rgba(${r}, ${g}, ${b}, ${a})`;
     }
 
@@ -53,7 +78,7 @@ export function buildNormalizedGraph(
   /**
    * Processes variable references - replaces with "$variableId" reference
    */
-  function processVariableRef(obj: any): any {
+  function processVariableRef(obj: unknown): unknown {
     if (!obj || typeof obj !== "object") return obj;
 
     // Handle arrays
@@ -78,7 +103,7 @@ export function buildNormalizedGraph(
     }
 
     // Handle objects
-    const result: any = {};
+    const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj)) {
       const processed = processVariableRef(value);
       if (processed !== undefined) {
@@ -114,10 +139,10 @@ export function buildNormalizedGraph(
   /**
    * Processes a paint and returns inline CSS value or Paint object for gradients
    */
-  function processPaint(paint: any): string | Paint | undefined {
+  function processPaint(paint: FigmaRawPaint): string | Paint | undefined {
     if (!paint) return undefined;
 
-    const processed = processVariableRef(paint);
+    const processed = processVariableRef(paint) as FigmaRawPaint | undefined;
     if (!processed) return undefined;
 
     // Solid color - return inline
@@ -129,7 +154,7 @@ export function buildNormalizedGraph(
     if (processed.type === "GRADIENT_LINEAR" || processed.type === "GRADIENT_RADIAL") {
       return {
         type: processed.type,
-        gradientStops: processed.gradientStops?.map((stop: any) => ({
+        gradientStops: processed.gradientStops?.map((stop) => ({
           position: roundTo(stop.position, 3),
           color: {
             r: roundTo(stop.color.r, 3),
@@ -155,7 +180,7 @@ export function buildNormalizedGraph(
   /**
    * Processes a single node and its children recursively
    */
-  function processNode(node: any, parent: string | null = null): void {
+  function processNode(node: FigmaRawNode, parent: string | null = null): void {
     if (!node) return;
 
     const originalId = node.id;
@@ -167,7 +192,7 @@ export function buildNormalizedGraph(
       type: node.type,
       name: node.name,
       parent: parent ? idMapper.map(parent) : null,
-      children: node.children?.map((c: any) => idMapper.map(c.id)),
+      children: node.children?.map((c) => idMapper.map(c.id)),
     };
 
     // CSS Layout (flexbox)
@@ -176,27 +201,32 @@ export function buildNormalizedGraph(
       cssNode.flexDirection = node.layoutMode === "HORIZONTAL" ? "row" : "column";
 
       // Alignment
-      cssNode.alignItems = mapAlignItems(node.counterAxisAlignItems);
-      cssNode.justifyContent = mapJustifyContent(node.primaryAxisAlignItems);
+      cssNode.alignItems = mapAlignItems(
+        typeof node.counterAxisAlignItems === "string" ? node.counterAxisAlignItems : undefined,
+      );
+      cssNode.justifyContent = mapJustifyContent(
+        typeof node.primaryAxisAlignItems === "string" ? node.primaryAxisAlignItems : undefined,
+      );
 
       // Gap
       if (node.itemSpacing !== undefined && node.itemSpacing !== 0) {
-        cssNode.gap = node.itemSpacing;
+        cssNode.gap = node.itemSpacing as number;
       }
 
       // Padding
+      const paddingLeft = (node.paddingLeft as number | undefined) ?? 0;
+      const paddingRight = (node.paddingRight as number | undefined) ?? 0;
+      const paddingTop = (node.paddingTop as number | undefined) ?? 0;
+      const paddingBottom = (node.paddingBottom as number | undefined) ?? 0;
       const hasNonZeroPadding =
-        node.paddingLeft !== 0 ||
-        node.paddingRight !== 0 ||
-        node.paddingTop !== 0 ||
-        node.paddingBottom !== 0;
+        paddingLeft !== 0 || paddingRight !== 0 || paddingTop !== 0 || paddingBottom !== 0;
 
       if (hasNonZeroPadding) {
         cssNode.padding = {
-          top: node.paddingTop || 0,
-          right: node.paddingRight || 0,
-          bottom: node.paddingBottom || 0,
-          left: node.paddingLeft || 0,
+          top: paddingTop,
+          right: paddingRight,
+          bottom: paddingBottom,
+          left: paddingLeft,
         };
       }
 
@@ -208,25 +238,26 @@ export function buildNormalizedGraph(
 
     // CSS Sizing (explicit width/height when not using auto-layout)
     // Only add explicit dimensions if node has size and isn't using FILL/HUG
-    if (node.size?.x !== undefined && node.layoutSizingHorizontal === "FIXED") {
-      cssNode.width = roundTo(node.size.x, 2);
+    const size = node.size as { x?: number; y?: number } | undefined;
+    if (size?.x !== undefined && node.layoutSizingHorizontal === "FIXED") {
+      cssNode.width = roundTo(size.x, 2);
     }
-    if (node.size?.y !== undefined && node.layoutSizingVertical === "FIXED") {
-      cssNode.height = roundTo(node.size.y, 2);
+    if (size?.y !== undefined && node.layoutSizingVertical === "FIXED") {
+      cssNode.height = roundTo(size.y, 2);
     }
 
     // Min/Max width constraints
     if (node.minWidth !== undefined && node.minWidth !== null) {
-      cssNode.minWidth = roundTo(node.minWidth, 2);
+      cssNode.minWidth = roundTo(node.minWidth as number, 2);
     }
     if (node.maxWidth !== undefined && node.maxWidth !== null) {
-      cssNode.maxWidth = roundTo(node.maxWidth, 2);
+      cssNode.maxWidth = roundTo(node.maxWidth as number, 2);
     }
 
     // CSS Transform (rotation)
     if (node.rotation !== undefined && node.rotation !== 0) {
       // Convert radians to degrees
-      const degrees = roundTo((node.rotation * 180) / Math.PI, 2);
+      const degrees = roundTo(((node.rotation as number) * 180) / Math.PI, 2);
       cssNode.transform = `rotate(${degrees}deg)`;
     }
 
@@ -236,8 +267,9 @@ export function buildNormalizedGraph(
     }
 
     // CSS Visual Styling
-    if (node.fills && node.fills.length > 0) {
-      const fill = node.fills[0]; // Primary fill
+    const fills = node.fills as FigmaRawPaint[] | undefined;
+    if (fills && fills.length > 0) {
+      const fill = fills[0];
       const processedFill = processPaint(fill);
 
       if (typeof processedFill === "string") {
@@ -250,8 +282,9 @@ export function buildNormalizedGraph(
     }
 
     // Border (strokes)
-    if (node.strokes && node.strokes.length > 0) {
-      const stroke = node.strokes[0];
+    const strokes = node.strokes as FigmaRawPaint[] | undefined;
+    if (strokes && strokes.length > 0) {
+      const stroke = strokes[0];
       const processedStroke = processPaint(stroke);
 
       if (typeof processedStroke === "string") {
@@ -259,35 +292,43 @@ export function buildNormalizedGraph(
       }
 
       if (node.strokeWeight !== undefined && node.strokeWeight !== 0) {
-        cssNode.borderWidth = node.strokeWeight;
+        cssNode.borderWidth = node.strokeWeight as number;
       }
     }
 
     // Border radius
-    if (node.rectangleCornerRadii) {
+    const rectangleCornerRadii = node.rectangleCornerRadii as number[] | undefined;
+    if (rectangleCornerRadii) {
       // Individual corner radii [topLeft, topRight, bottomRight, bottomLeft]
-      const radii = node.rectangleCornerRadii;
-      const allSame = radii.every((r: number) => r === radii[0]);
+      const allSame = rectangleCornerRadii.every((r) => r === rectangleCornerRadii[0]);
 
-      if (allSame && radii[0] !== 0) {
-        cssNode.borderRadius = radii[0];
+      if (allSame && rectangleCornerRadii[0] !== 0) {
+        cssNode.borderRadius = rectangleCornerRadii[0];
       } else if (!allSame) {
-        cssNode.borderRadius = radii;
+        cssNode.borderRadius = rectangleCornerRadii;
       }
     } else if (node.cornerRadius !== undefined && node.cornerRadius !== 0) {
-      cssNode.borderRadius = node.cornerRadius;
+      cssNode.borderRadius = node.cornerRadius as number;
     }
 
     // Box shadow (effects)
-    if (node.effects && node.effects.length > 0) {
-      const shadows = node.effects
-        .filter((e: any) => e.type === "DROP_SHADOW" || e.type === "INNER_SHADOW")
-        .map((e: any) => {
+    type FigmaEffect = {
+      type: string;
+      color?: unknown;
+      offset?: { x: number; y: number };
+      radius?: number;
+      spread?: number;
+    };
+    const effects = node.effects as FigmaEffect[] | undefined;
+    if (effects && effects.length > 0) {
+      const shadows = effects
+        .filter((e) => e.type === "DROP_SHADOW" || e.type === "INNER_SHADOW")
+        .map((e) => {
           const color = formatColor(e.color);
-          const offsetX = e.offset?.x || 0;
-          const offsetY = e.offset?.y || 0;
-          const blur = e.radius || 0;
-          const spread = e.spread || 0;
+          const offsetX = e.offset?.x ?? 0;
+          const offsetY = e.offset?.y ?? 0;
+          const blur = e.radius ?? 0;
+          const spread = e.spread ?? 0;
           return `${offsetX}px ${offsetY}px ${blur}px ${spread}px ${color}`;
         });
 
@@ -296,10 +337,10 @@ export function buildNormalizedGraph(
       }
 
       // Blur effects (LAYER_BLUR, BACKGROUND_BLUR)
-      const blurs = node.effects
-        .filter((e: any) => e.type === "LAYER_BLUR" || e.type === "BACKGROUND_BLUR")
-        .map((e: any) => {
-          const radius = e.radius || 0;
+      const blurs = effects
+        .filter((e) => e.type === "LAYER_BLUR" || e.type === "BACKGROUND_BLUR")
+        .map((e) => {
+          const radius = e.radius ?? 0;
           return e.type === "BACKGROUND_BLUR"
             ? `backdrop-filter: blur(${radius}px)`
             : `blur(${radius}px)`;
@@ -307,7 +348,7 @@ export function buildNormalizedGraph(
 
       if (blurs.length > 0) {
         // Find layer blur (backdrop blur not currently supported)
-        const layerBlur = blurs.find((b: string) => !b.startsWith("backdrop"));
+        const layerBlur = blurs.find((b) => !b.startsWith("backdrop"));
 
         if (layerBlur) {
           cssNode.filter = layerBlur;
@@ -318,58 +359,60 @@ export function buildNormalizedGraph(
 
     // Opacity (skip if 1)
     if (node.opacity !== undefined && node.opacity !== 1) {
-      cssNode.opacity = roundTo(node.opacity, 3);
+      cssNode.opacity = roundTo(node.opacity as number, 3);
     }
 
     // CSS Text Styling (for TEXT nodes)
     if (node.type === "TEXT") {
       // Process text styles from boundVariables or direct properties
-      const style = node.style || {};
+      const style = (node.style ?? {}) as Record<string, unknown>;
 
-      if (node.fills && node.fills.length > 0) {
-        const textFill = processPaint(node.fills[0]);
+      if (fills && fills.length > 0) {
+        const textFill = processPaint(fills[0]);
         if (typeof textFill === "string") {
           cssNode.color = textFill;
         }
       }
 
-      if (style.fontFamily || node.fontName?.family) {
-        cssNode.fontFamily = style.fontFamily || node.fontName?.family;
+      const fontName = node.fontName as { family?: string; style?: string } | undefined;
+
+      if (style.fontFamily || fontName?.family) {
+        cssNode.fontFamily = (style.fontFamily ?? fontName?.family) as string;
       }
 
       if (style.fontSize || node.fontSize) {
-        cssNode.fontSize = style.fontSize || node.fontSize;
+        cssNode.fontSize = (style.fontSize ?? node.fontSize) as number;
       }
 
       if (style.fontWeight || node.fontWeight) {
-        cssNode.fontWeight = style.fontWeight || node.fontWeight;
+        cssNode.fontWeight = (style.fontWeight ?? node.fontWeight) as number;
       }
 
       // Font style (italic)
-      if (style.fontStyle || node.fontName?.style) {
-        const fontStyle = style.fontStyle || node.fontName?.style;
+      if (style.fontStyle || fontName?.style) {
+        const fontStyle = (style.fontStyle ?? fontName?.style) as string | undefined;
         if (fontStyle && fontStyle.toLowerCase().includes("italic")) {
           cssNode.fontStyle = "italic";
         }
       }
 
       if (style.lineHeightPx) {
-        cssNode.lineHeight = roundTo(style.lineHeightPx, 2);
+        cssNode.lineHeight = roundTo(style.lineHeightPx as number, 2);
       } else if (style.lineHeightPercent) {
-        cssNode.lineHeight = `${roundTo(style.lineHeightPercent, 0)}%`;
+        cssNode.lineHeight = `${roundTo(style.lineHeightPercent as number, 0)}%`;
       }
 
       if (style.letterSpacing) {
-        cssNode.letterSpacing = roundTo(style.letterSpacing, 2);
+        cssNode.letterSpacing = roundTo(style.letterSpacing as number, 2);
       }
 
       if (style.textAlignHorizontal) {
-        cssNode.textAlign = style.textAlignHorizontal.toLowerCase();
+        cssNode.textAlign = (style.textAlignHorizontal as string).toLowerCase();
       }
 
       // Text decoration (underline, strikethrough)
       if (style.textDecoration && style.textDecoration !== "NONE") {
-        cssNode.textDecoration = style.textDecoration.toLowerCase().replace("_", "-");
+        cssNode.textDecoration = (style.textDecoration as string).toLowerCase().replace("_", "-");
       }
 
       // Text transform (uppercase, lowercase, capitalize)
@@ -379,33 +422,37 @@ export function buildNormalizedGraph(
           LOWER: "lowercase",
           TITLE: "capitalize",
         };
-        cssNode.textTransform = caseMap[style.textCase] || style.textCase.toLowerCase();
+        cssNode.textTransform =
+          caseMap[style.textCase as string] ?? (style.textCase as string).toLowerCase();
       }
 
       // Actual text content
       if (node.characters) {
-        cssNode.text = node.characters;
+        cssNode.text = node.characters as string;
       }
     }
 
     // Visibility (skip if true)
     if (node.visible !== undefined && node.visible !== true) {
-      cssNode.visible = node.visible;
+      cssNode.visible = node.visible as boolean;
     }
 
     // BlendMode (skip if NORMAL or PASS_THROUGH)
     if (node.blendMode && node.blendMode !== "NORMAL" && node.blendMode !== "PASS_THROUGH") {
-      cssNode.blendMode = node.blendMode;
+      cssNode.blendMode = node.blendMode as string;
     }
 
     // Component reference
     if (node.componentId) {
-      cssNode.componentId = node.componentId;
+      const componentId = node.componentId as string;
+      cssNode.componentId = componentId;
 
-      if (!components[node.componentId]) {
-        const meta = componentMap[node.componentId];
-        components[node.componentId] = {
-          key: meta?.key ?? node.componentId,
+      if (!components[componentId]) {
+        const meta = componentMap[componentId] as
+          | { key?: string; name?: string; description?: string }
+          | undefined;
+        components[componentId] = {
+          key: meta?.key ?? componentId,
           name: meta?.name ?? node.name ?? "Unknown Component",
           ...(meta?.description ? { description: meta.description } : {}),
         };
@@ -461,8 +508,11 @@ export function buildNormalizedGraph(
   }
 
   // Start processing from root
-  const rootId = idMapper.map(rootNode.document?.id ?? rootNode.id);
-  processNode(rootNode.document ?? rootNode);
+  // The API wraps the node tree under a `document` key; fall back to the root itself.
+  const rootDocument = rootNode.document as FigmaRawNode | undefined;
+  const rootSelf = rootNode as FigmaRawNode;
+  const rootId = idMapper.map(rootDocument?.id ?? rootSelf.id);
+  processNode(rootDocument ?? rootSelf);
 
   // Build variables dictionary with only used variables
   if (variableContext && usedVariables.size > 0) {
@@ -496,6 +546,10 @@ export function buildNormalizedGraph(
   if (Object.keys(components).length > 0) {
     response.components = components;
   }
+
+  // styleMap is accepted for API compatibility but not used in this reducer —
+  // styles are inlined directly from node properties.
+  void styleMap;
 
   return response;
 }

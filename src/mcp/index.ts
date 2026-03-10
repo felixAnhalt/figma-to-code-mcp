@@ -2,10 +2,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { FigmaService, type FigmaAuthOptions } from "../services/figma.js";
 import { Logger } from "../utils/logger.js";
 import {
-  downloadFigmaImagesTool,
   getFigmaDesignTool,
   getImageFillsTool,
-  type DownloadImagesParams,
   type GetFigmaDesignParams,
   type GetImageFillsParams,
 } from "./tools/index.js";
@@ -57,17 +55,6 @@ function registerTools(
   );
 
   if (!options.skipImageDownloads) {
-    server.registerTool(
-      downloadFigmaImagesTool.name,
-      {
-        title: "Download Figma Images",
-        description: downloadFigmaImagesTool.description,
-        inputSchema: downloadFigmaImagesTool.parametersSchema,
-        annotations: { openWorldHint: true },
-      },
-      (params: DownloadImagesParams) => downloadFigmaImagesTool.handler(params, figmaService),
-    );
-
     server.registerTool(
       getImageFillsTool.name,
       {

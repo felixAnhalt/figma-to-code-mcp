@@ -67,7 +67,7 @@ export function getServerConfig(isStdioMode: boolean): ServerConfig {
       },
       "skip-image-downloads": {
         type: "boolean",
-        description: "Do not register the download_figma_images tool (skip image downloads)",
+        description: "Do not register image-related tools (skip image fill fetching)",
         default: false,
       },
     })
