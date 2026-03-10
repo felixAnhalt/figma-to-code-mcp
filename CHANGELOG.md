@@ -1,5 +1,12 @@
 # figma-developer-mcp
 
+## [0.13.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.12.0...v0.13.0) (2026-03-10)
+
+
+### Features
+
+* **mcp:** Update server.json ([04d9efe](https://github.com/felixAnhalt/Figma-Context-MCP/commit/04d9efe8fda21c5dbd579425f2022528a1ed599e))
+
 ## [0.12.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.11.0...v0.12.0) (2026-03-10)
 
 
