@@ -41,7 +41,9 @@ export async function fetchWithRetry<T extends { status?: number }>(
     try {
       // Fallback to curl for  corporate networks that have proxies that sometimes block fetch
       Logger.log(`[fetchWithRetry] Executing curl with args: ${JSON.stringify(curlArgs)}`);
-      const { stdout, stderr } = await execFileAsync("curl", curlArgs);
+      const { stdout, stderr } = await execFileAsync("curl", curlArgs, {
+        timeout: 30000, // 30 second timeout for curl
+      });
 
       if (stderr) {
         // curl often outputs progress to stderr, so only treat as error if stdout is empty

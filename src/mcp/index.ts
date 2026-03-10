@@ -2,10 +2,10 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { FigmaService, type FigmaAuthOptions } from "../services/figma.js";
 import { Logger } from "../utils/logger.js";
 import {
-  downloadFigmaImagesTool,
-  getFigmaDataTool,
-  type DownloadImagesParams,
-  type GetFigmaDataParams,
+  getFigmaDesignTool,
+  getImageFillsTool,
+  type GetFigmaDesignParams,
+  type GetImageFillsParams,
 } from "./tools/index.js";
 
 const serverInfo = {
@@ -43,27 +43,27 @@ function registerTools(
   },
 ): void {
   server.registerTool(
-    getFigmaDataTool.name,
+    getFigmaDesignTool.name,
     {
-      title: "Get Figma Data",
-      description: getFigmaDataTool.description,
-      inputSchema: getFigmaDataTool.parametersSchema,
+      title: "Get Figma Design",
+      description: getFigmaDesignTool.description,
+      inputSchema: getFigmaDesignTool.parametersSchema,
       annotations: { readOnlyHint: true },
     },
-    (params: GetFigmaDataParams) =>
-      getFigmaDataTool.handler(params, figmaService, options.outputFormat),
+    (params: GetFigmaDesignParams) =>
+      getFigmaDesignTool.handler(params, figmaService, options.outputFormat),
   );
 
   if (!options.skipImageDownloads) {
     server.registerTool(
-      downloadFigmaImagesTool.name,
+      getImageFillsTool.name,
       {
-        title: "Download Figma Images",
-        description: downloadFigmaImagesTool.description,
-        inputSchema: downloadFigmaImagesTool.parametersSchema,
-        annotations: { openWorldHint: true },
+        title: "Get Image Fills",
+        description: getImageFillsTool.description,
+        inputSchema: getImageFillsTool.parametersSchema,
+        annotations: { readOnlyHint: true },
       },
-      (params: DownloadImagesParams) => downloadFigmaImagesTool.handler(params, figmaService),
+      (params: GetImageFillsParams) => getImageFillsTool.handler(params, figmaService),
     );
   }
 }

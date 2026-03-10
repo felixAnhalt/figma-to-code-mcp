@@ -40,3 +40,5 @@ Thumbs.db
 
 # mcp-publisher CLI tool files
 .mcpregistry*
+
+src/tests/resources
