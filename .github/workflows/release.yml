@@ -47,7 +47,7 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
 
       - name: Publish to npm
-        run: pnpm publish --no-git-checks
+        run: pnpm publish
         env:
           NODE_ENV: production
         if: ${{ steps.release.outputs.release_created }}
