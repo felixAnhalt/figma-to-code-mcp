@@ -36,10 +36,10 @@ If applicable, add screenshots to help explain your problem. Often a screenshot 
 Provide your MCP JSON configuration, if applicable. E.g.
 
 ```
-    "figma-developer-mcp": {
+    "tmegit-figma-developer-mcp": {
       "command": "npx",
       "args": [
-        "figma-developer-mcp",
+        "tmegit-figma-developer-mcp",
         "--figma-api-key=REDACTED",
         "--stdio"
       ]
@@ -50,7 +50,7 @@ Provide your MCP JSON configuration, if applicable. E.g.
 If you're running the MCP locally on the command line, include all the logs for those like so:
 
 ```
-> npx figma-developer-mcp --figma-api-key=REDACTED
+> npx tmegit-figma-developer-mcp --figma-api-key=REDACTED
 
 Configuration:
 - FIGMA_API_KEY: ****8pXg (source: cli)
@@ -69,7 +69,7 @@ If you're running the MCP in a code editor like Cursor, there are MCP-specific l
 ```
 2025-03-18 11:36:22.251 [info] pnpx: Handling CreateClient action
 2025-03-18 11:36:22.251 [info] pnpx: getOrCreateClient for stdio server.  process.platform: darwin isElectron: true
-2025-03-18 11:36:22.251 [info] pnpx: Starting new stdio process with command: pnpx figma-developer-mcp --figma-api-key=REDACTED --stdio
+2025-03-18 11:36:22.251 [info] pnpx: Starting new stdio process with command: pnpx tmegit-figma-developer-mcp --figma-api-key=REDACTED --stdio
 2025-03-18 11:36:23.987 [info] pnpx: Successfully connected to stdio server
 2025-03-18 11:36:23.987 [info] pnpx: Storing stdio client
 2025-03-18 11:36:23.988 [info]  MCP: Handling ListOfferings action

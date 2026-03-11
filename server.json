@@ -6,12 +6,12 @@
     "url": "https://github.com/felixAnhalt/Figma-Context-MCP",
     "source": "github"
   },
-  "version": "0.13.0",
+  "version": "0.14.0",
   "packages": [
     {
       "registryType": "npm",
-      "identifier": "@tmegit/figma-developer-mcp",
-      "version": "0.13.0",
+      "identifier": "@tmegit/tmegit-figma-developer-mcp",
+      "version": "0.14.0",
       "transport": {
         "type": "stdio"
       },

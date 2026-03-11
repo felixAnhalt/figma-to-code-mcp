@@ -6,7 +6,7 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "figma-developer-mcp": "dist/bin.js"
+    "tmegit-figma-developer-mcp": "dist/bin.js"
   },
   "files": [
     "dist",

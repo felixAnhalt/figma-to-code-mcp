@@ -8,8 +8,8 @@
 <div align="center">
   <h1>Figma Context MCP - LLM-Optimized Fork</h1>
   <h3>Give your AI coding agent access to Figma design data in a format optimized for UI building.<br/>99.5% size reduction while preserving all UI-critical information.</h3>
-  <a href="https://npmcharts.com/compare/figma-developer-mcp?interval=30">
-    <img alt="weekly downloads" src="https://img.shields.io/npm/dm/figma-developer-mcp.svg">
+  <a href="https://npmcharts.com/compare/tmegit-figma-developer-mcp?interval=30">
+    <img alt="weekly downloads" src="https://img.shields.io/npm/dm/tmegit-figma-developer-mcp.svg">
   </a>
   <a href="https://github.com/felixAnhalt/Figma-Context-MCP/blob/main/LICENSE">
     <img alt="MIT License" src="https://img.shields.io/github/license/felixAnhalt/Figma-Context-MCP" />
@@ -62,7 +62,7 @@ See [`V2_CSS_PROPERTY_MAPPING.md`](./V2_CSS_PROPERTY_MAPPING.md) for complete pr
 
 Many code editors and other AI clients use a configuration file to manage MCP servers.
 
-The `figma-developer-mcp` server can be configured by adding the following to your configuration file.
+The `tmegit-figma-developer-mcp` server can be configured by adding the following to your configuration file.
 
 > NOTE: You will need to create a Figma access token to use this server. Instructions on how to create a Figma API access token can be found [here](https://help.figma.com/hc/en-us/articles/8085703771159-Manage-personal-access-tokens).
 
