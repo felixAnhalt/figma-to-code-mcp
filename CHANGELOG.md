@@ -1,5 +1,12 @@
 # tmegit-figma-developer-mcp
 
+## [0.14.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.13.0...v0.14.0) (2026-03-11)
+
+
+### Features
+
+* **package:** [#1](https://github.com/felixAnhalt/Figma-Context-MCP/issues/1) - simplify description in package.json for clarity ([40d5517](https://github.com/felixAnhalt/Figma-Context-MCP/commit/40d551739e63dbc68e39c563ea840276e2716e68))
+
 ## [0.13.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.12.0...v0.13.0) (2026-03-10)
 
 ### Features
