@@ -4,6 +4,9 @@ type QueueItem = {
   reject: (error: unknown) => void;
 };
 
+const MAX_RETRIES = 3;
+const RETRY_BASE_DELAY_MS = 1000;
+
 class RateLimiter {
   private queue: QueueItem[] = [];
   private processing = false;
@@ -49,6 +52,32 @@ class RateLimiter {
 
 const limiter = new RateLimiter();
 
+/**
+ * Wraps fetch with rate limiting and 429 retry logic.
+ *
+ * Retries up to MAX_RETRIES times on 429 responses using exponential backoff,
+ * respecting the Retry-After header when present. All requests are serialized
+ * through the rate limiter to stay within Figma API tier limits.
+ */
 export async function safeFetch(url: string, options?: RequestInit): Promise<Response> {
-  return limiter.enqueue(() => fetch(url, options));
+  return limiter.enqueue(async () => {
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      const response = await fetch(url, options);
+
+      if (response.status !== 429 || attempt === MAX_RETRIES) {
+        return response;
+      }
+
+      // Respect Retry-After if provided, otherwise use exponential backoff
+      const retryAfter = response.headers.get("Retry-After");
+      const delayMs = retryAfter
+        ? parseFloat(retryAfter) * 1000
+        : RETRY_BASE_DELAY_MS * 2 ** attempt;
+
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+
+    // Unreachable — loop always returns, but satisfies TypeScript
+    throw new Error("safeFetch: exhausted retries");
+  });
 }

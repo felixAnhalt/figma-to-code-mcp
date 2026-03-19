@@ -77,10 +77,11 @@ async function buildRichComponentMap(
     componentSetMap[nodeId] = { name: set.name };
   }
 
-  // Try each entry's public key until one resolves. Some keys return 404 if they
-  // belong to libraries not published to the team or not accessible with this token.
+  // Try up to 3 entries to find one that resolves. Most will succeed on the first
+  // try; the cap prevents stalling on files where many components are from private
+  // libraries that return 404 for every key.
   let libFileKey: string | undefined;
-  for (const [, raw] of entries) {
+  for (const [, raw] of entries.slice(0, 3)) {
     const resolveUrl = `https://api.figma.com/v1/components/${raw.key}`;
     const resolveRes = await safeFetch(resolveUrl, { headers: { "X-Figma-Token": token } });
     if (!resolveRes.ok) continue;
@@ -96,7 +97,6 @@ async function buildRichComponentMap(
     // Return what we have — componentSetMap is already populated from rawComponentSets
     return { componentMap: {}, componentSetMap };
   }
-
   // Fetch all components from the library file (for file_key + node_id resolution)
   const libComponentsUrl = `https://api.figma.com/v1/files/${libFileKey}/components`;
   const libCompRes = await safeFetch(libComponentsUrl, { headers: { "X-Figma-Token": token } });
@@ -138,7 +138,6 @@ async function buildRichComponentMap(
       ...(lib.description ? { description: lib.description } : {}),
     };
   }
-
   return { componentMap, componentSetMap };
 }
 
