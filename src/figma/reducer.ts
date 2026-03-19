@@ -183,6 +183,11 @@ export function buildNormalizedGraph(
   function processNode(node: FigmaRawNode, parent: string | null = null): void {
     if (!node) return;
 
+    // Skip hidden nodes and their children entirely to reduce output size
+    if (node.visible === false) {
+      return;
+    }
+
     const originalId = node.id;
     const nodeId = idMapper.map(originalId);
 
@@ -430,11 +435,6 @@ export function buildNormalizedGraph(
       if (node.characters) {
         cssNode.text = node.characters as string;
       }
-    }
-
-    // Visibility (skip if true)
-    if (node.visible !== undefined && node.visible !== true) {
-      cssNode.visible = node.visible as boolean;
     }
 
     // BlendMode (skip if NORMAL or PASS_THROUGH)
