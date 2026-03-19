@@ -1,6 +1,6 @@
 {
   "name": "@tmegit/figma-developer-mcp",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "mcpName": "io.github.felixAnhalt/Figma-Context-MCP",
   "description": "LLM-optimized Figma MCP server.",
   "type": "module",
