@@ -1,5 +1,12 @@
 # tmegit-figma-developer-mcp
 
+## [0.15.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.14.0...v0.15.0) (2026-03-19)
+
+
+### Features
+
+* **reducer:** [#1](https://github.com/felixAnhalt/Figma-Context-MCP/issues/1) - skip hidden nodes to reduce output size in processing ([d65c34a](https://github.com/felixAnhalt/Figma-Context-MCP/commit/d65c34a5f92910862dc9ef50fc649979f5e81fb2))
+
 ## [0.14.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.13.0...v0.14.0) (2026-03-11)
 
 
