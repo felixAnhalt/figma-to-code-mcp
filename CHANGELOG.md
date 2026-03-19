@@ -1,5 +1,12 @@
 # tmegit-figma-developer-mcp
 
+## [0.16.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.15.1...v0.16.0) (2026-03-19)
+
+
+### Features
+
+* **rateLimit:** implement exponential backoff for safeFetch retries ([49652e9](https://github.com/felixAnhalt/Figma-Context-MCP/commit/49652e9c09c738fd8a8ad8df1da189fc09ecce3f))
+
 ## [0.15.1](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.15.0...v0.15.1) (2026-03-19)
 
 
