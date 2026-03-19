@@ -1,101 +1,139 @@
 /**
- * MCPResponse - CSS-aligned design data optimized for LLM UI building
+ * MCPResponse v3 — Nested tree optimized for LLM UI building
  *
- * Philosophy:
- * - CSS property names for LLM familiarity (display, flexDirection, etc.)
- * - Inline styles directly in nodes (no separate stylesPayload/paints)
- * - No duplication (children only in nodes, not in flex)
- * - No bounding boxes (layout defined by flex properties)
- * - Variables dictionary for shared design tokens
- *
- * IDs are mapped for token efficiency:
- * - Root IDs (e.g., "4014:2428") remain unchanged
- * - Nested IDs (e.g., "I4014:2428;27011") are mapped to "I4014:2428;N"
- *
- * Defaults omitted for efficiency:
- * - opacity: 1, visible: true, blendMode: "NORMAL"
- * - padding/gap when 0
+ * Design principles:
+ * - Nested tree (not flat map): LLMs read top-down; structure mirrors visual hierarchy
+ * - layout{} separates flex/sizing intent from visual decoration
+ * - style{} separates visual decoration from structure
+ * - No `parent` field: redundant with tree nesting
+ * - `id` only on INSTANCE nodes: IDs are only needed to identify component references
+ * - Variable values inlined as rgba()/numbers: no $ref strings, no variables dict
+ * - Transparent single-child wrapper nodes are collapsed
+ * - TEXT nodes only get style.color — never style.background
+ * - Defaults omitted: opacity:1, rotate(0deg), zero gap/padding, visible:true
+ * - `definitions` dict holds component metadata; INSTANCE nodes reference it via `component`
  */
 export type MCPResponse = {
-  root: string;
-  nodes: Record<string, Node>;
-  variables?: Record<string, VariableValue>;
-  components?: Record<string, Component>;
+  schema: "v3";
+  root: V3Node;
+  definitions?: Record<string, ComponentDefinition>;
 };
 
-/** Variable value types (boolean, number, string, or RGBA color) */
-export type VariableValue =
-  | boolean
-  | number
-  | string
-  | { r: number; g: number; b: number; a: number };
-
 /**
- * Node - Represents a UI element with CSS-aligned properties
+ * A node in the design tree.
+ *
+ * Properties are only present when they carry meaningful information —
+ * defaults and zero-values are omitted throughout.
  */
-export type Node = {
-  id: string;
+export type V3Node = {
+  /** Only present on INSTANCE nodes — used to reference definitions */
+  id?: string;
+
   type: string;
   name?: string;
-  parent: string | null;
-  children?: string[];
 
-  // CSS Layout (flexbox)
-  display?: "flex";
-  flexDirection?: "row" | "column";
-  alignItems?: string;
-  justifyContent?: string;
+  /**
+   * Reference to a component definition (INSTANCE nodes only).
+   * Key into MCPResponse.definitions.
+   */
+  component?: string;
+
+  /** Flexbox layout and sizing. Present only when any layout property is non-default. */
+  layout?: Layout;
+
+  /** Visual styles. Present only when any style property is non-default. */
+  style?: Style;
+
+  /** Raw text content (TEXT nodes only) */
+  text?: string;
+
+  /** Prototype interactions (ON_HOVER, ON_CLICK, etc.). Only present when non-empty. */
+  interactions?: Interaction[];
+
+  /** Inline child nodes */
+  children?: V3Node[];
+};
+
+/**
+ * Flexbox layout and sizing properties, grouped separately from visual style
+ * so an LLM can reason about structure and decoration independently.
+ */
+export type Layout = {
+  /** flex-direction equivalent */
+  direction?: "row" | "column";
+  /** align-items equivalent */
+  align?: string;
+  /** justify-content equivalent */
+  justify?: string;
   gap?: number;
-  padding?: {
-    top: number;
-    right: number;
-    bottom: number;
-    left: number;
-  };
-  overflow?: string; // "visible", "hidden", "scroll"
-  flexWrap?: string; // "wrap", "nowrap"
-
-  // CSS Visual
-  backgroundColor?: string; // Variable ref or inline RGBA
-  background?: Paint[]; // For gradients/images
-  border?: string; // Variable ref or inline
-  borderWidth?: number;
-  borderRadius?: number | number[]; // Single value or [topLeft, topRight, bottomRight, bottomLeft]
-  boxShadow?: string;
-  opacity?: number;
-  filter?: string; // For blur effects
-
-  // CSS Transform
-  transform?: string; // For rotation, scale, etc.
-
-  // CSS Sizing
+  /** CSS shorthand: single number if all equal, [vertical,horizontal] for two-axis, full object otherwise */
+  padding?:
+    | number
+    | [number, number]
+    | { top: number; right: number; bottom: number; left: number };
+  /** "hidden" when clipsContent */
+  overflow?: "hidden";
+  /** flex-wrap: wrap */
+  wrap?: boolean;
+  /** Explicit pixel width (only when FIXED sizing) */
   width?: number;
+  /** Explicit pixel height (only when FIXED sizing) */
   height?: number;
   minWidth?: number;
   maxWidth?: number;
+  minHeight?: number;
+  maxHeight?: number;
+  /**
+   * Horizontal sizing mode. "fill" = flex:1 / grow to fill parent. "hug" = fit-content.
+   * Omitted when FIXED — explicit width is emitted instead.
+   */
+  sizingH?: "fill" | "hug";
+  /**
+   * Vertical sizing mode. "fill" = flex:1 / grow to fill parent. "hug" = fit-content.
+   * Omitted when FIXED — explicit height is emitted instead.
+   */
+  sizingV?: "fill" | "hug";
+  /** flex-grow: 1 — node stretches to fill available space in parent's main axis */
+  grow?: boolean;
+};
 
-  // CSS Text
-  color?: string; // Variable ref or inline RGBA
-  fontFamily?: string; // Variable ref or inline
+/**
+ * Visual decoration properties, grouped separately from layout.
+ * All color values are inline rgba() strings — no variable references.
+ */
+export type Style = {
+  /** Solid fill as rgba() or gradient/image Paint object */
+  background?: string | Paint[];
+  /** Stroke color as rgba() */
+  border?: string;
+  borderWidth?: number;
+  /** Single radius or [topLeft, topRight, bottomRight, bottomLeft] */
+  radius?: number | number[];
+  /** CSS box-shadow string */
+  shadow?: string;
+  /** Layer blur: "blur(Npx)" */
+  blur?: string;
+  opacity?: number;
+  /** CSS transform string, e.g. "rotate(45deg)". Zero rotation is suppressed. */
+  transform?: string;
+  blend?: string;
+
+  // ── Text-only properties ─────────────────────────────────────────────────
+  /** Text fill color as rgba() (TEXT nodes only — never present on container nodes) */
+  color?: string;
+  font?: string;
   fontSize?: number;
   fontWeight?: number;
-  fontStyle?: string; // "italic", "normal"
+  fontStyle?: string;
   lineHeight?: number | string;
-  letterSpacing?: number | string;
+  letterSpacing?: number;
   textAlign?: string;
-  textDecoration?: string; // "underline", "line-through", etc.
-  textTransform?: string; // "uppercase", "lowercase", "capitalize"
-  text?: string; // Actual text content for TEXT nodes
-
-  // Meta
-  componentId?: string; // Reference to component definition
-  visible?: boolean;
-  blendMode?: string;
+  textDecoration?: string;
+  textTransform?: string;
 };
 
 export type Paint = {
   type: string;
-  color?: { r: number; g: number; b: number; a: number };
   gradientStops?: GradientStop[];
   imageRef?: string;
   scaleMode?: string;
@@ -104,12 +142,59 @@ export type Paint = {
 
 export type GradientStop = {
   position: number;
-  color: { r: number; g: number; b: number; a: number };
+  /** rgba() string */
+  color: string;
 };
 
-export type Component = {
-  /** Published component key (hash) from Figma, distinct from the node_id used as the map index */
-  key: string;
+/**
+ * A prototype interaction on a node (e.g. hover triggers a variant swap).
+ * Normalized from Figma's verbose interaction format to the fields useful for web building.
+ */
+export type Interaction = {
+  /** Normalized trigger: "hover", "click", "drag", "key", or raw Figma trigger type */
+  trigger: string;
+  /** Normalized action: "navigate", "swap", "overlay", "scroll", or raw type */
+  action: string;
+  /** Target node ID, if applicable */
+  destination?: string;
+};
+
+/**
+ * Metadata about a reusable Figma component.
+ * Keyed by component node ID in MCPResponse.definitions.
+ * The key itself is the ID — it is not repeated inside this object.
+ *
+ * When component node data is available (i.e. the component was fetched from
+ * its source file), layout/style/children hold the full visual definition so
+ * consumers can implement the component without a separate Figma lookup.
+ *
+ * variants holds sibling variants from the same component set, keyed by their
+ * node ID. Each entry carries the same visual fields but never nests further.
+ */
+export type ComponentDefinition = {
   name: string;
   description?: string;
+  /** The variant's own property string, e.g. "state=default, color=primary" */
+  variantName?: string;
+  /** Parent component set name, e.g. "Link" */
+  componentSetName?: string;
+  layout?: Layout;
+  style?: Style;
+  children?: V3Node[];
+  /** Other variants of the same component set present in this file's scope */
+  variants?: Record<string, ComponentVariant>;
+};
+
+/**
+ * A sibling variant within a component set.
+ * Same visual shape as ComponentDefinition but without nested variants
+ * to avoid infinite recursion in output.
+ */
+export type ComponentVariant = {
+  name: string;
+  description?: string;
+  variantName?: string;
+  layout?: Layout;
+  style?: Style;
+  children?: V3Node[];
 };

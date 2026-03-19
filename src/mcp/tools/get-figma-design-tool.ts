@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { FigmaService } from "~/services/figma.js";
-import { generateMCPResponse, fetchStyles, fetchComponents } from "~/figma/index.js";
+import { generateMCPResponse, fetchStyles } from "~/figma/index.js";
 import yaml from "js-yaml";
 import { Logger, writeLogs } from "~/utils/logger.js";
 
@@ -49,31 +49,25 @@ async function getFigmaDesign(
     // Get auth token from figmaService
     const token = figmaService.getToken();
 
-    // Fetch styles and components in parallel
-    Logger.log("Fetching styles and components...");
-    const [styleMap, componentMap] = await Promise.all([
-      fetchStyles(fileKey, token),
-      fetchComponents(fileKey, token),
-    ]);
+    // Fetch styles (component maps are built internally by generateMCPResponse)
+    Logger.log("Fetching styles...");
+    const styleMap = await fetchStyles(fileKey, token);
 
-    Logger.log(
-      `Found ${Object.keys(styleMap).length} styles and ${Object.keys(componentMap).length} components`,
-    );
+    Logger.log(`Found ${Object.keys(styleMap).length} styles`);
 
-    // Generate normalized MCP response
+    // Generate normalized MCP response — component map resolution happens internally
     Logger.log("Building normalized graph...");
     const mcpResponse = await generateMCPResponse({
       fileKey,
       token,
       rootNodeId: nodeId,
       styleMap,
-      componentMap,
     });
 
     writeLogs("figma-mcp-response.json", mcpResponse);
 
     Logger.log(
-      `Successfully extracted: ${Object.keys(mcpResponse.nodes).length} nodes${mcpResponse.variables ? `, ${Object.keys(mcpResponse.variables).length} variables` : ""}`,
+      `Successfully extracted design tree${mcpResponse.definitions ? `, ${Object.keys(mcpResponse.definitions).length} component definitions` : ""}`,
     );
 
     Logger.log(`Generating ${outputFormat.toUpperCase()} result`);

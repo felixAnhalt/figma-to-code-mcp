@@ -1,11 +1,12 @@
-// Re-export new MCP response types
+// Re-export v3 MCP response types
 export type {
   MCPResponse,
-  Node,
+  V3Node,
+  Layout,
+  Style,
   Paint,
   GradientStop,
-  Component,
-  VariableValue,
+  ComponentDefinition,
 } from "./figma/types.js";
 
 // Main API

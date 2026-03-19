@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { buildNormalizedGraph } from "~/figma/reducer.js";
 
-describe("Instance style inheritance (v2 - inline styles)", () => {
-  it("includes styles inline in component nodes", () => {
+describe("Instance and component style rendering (v3)", () => {
+  it("COMPONENT node styles appear in style sub-object", () => {
     const mockData = {
       id: "0:1",
       type: "CANVAS",
@@ -23,16 +23,27 @@ describe("Instance style inheritance (v2 - inline styles)", () => {
 
     const normalized = buildNormalizedGraph(mockData, {});
 
-    const componentNode = Object.values(normalized.nodes).find((n) => n.type === "COMPONENT");
+    function findNode(node: any, type: string): any | undefined {
+      if (node.type === type) return node;
+      for (const child of node.children ?? []) {
+        const found = findNode(child, type);
+        if (found) return found;
+      }
+      return undefined;
+    }
 
+    const componentNode = findNode(normalized.root, "COMPONENT");
     expect(componentNode).toBeDefined();
-    expect(componentNode!.backgroundColor).toBe("rgba(255, 0, 0, 1)"); // Red
-    expect(componentNode!.border).toBe("rgba(0, 0, 0, 1)"); // Black
-    expect(componentNode!.borderWidth).toBe(2);
-    expect(componentNode!.borderRadius).toBe(8);
+    expect(componentNode.style?.background).toBe("rgba(255, 0, 0, 1)");
+    expect(componentNode.style?.border).toBe("rgba(0, 0, 0, 1)");
+    expect(componentNode.style?.borderWidth).toBe(2);
+    expect(componentNode.style?.radius).toBe(8);
+    // Must NOT have old flat top-level properties
+    expect(componentNode).not.toHaveProperty("backgroundColor");
+    expect(componentNode).not.toHaveProperty("borderRadius");
   });
 
-  it("includes styles inline in instance nodes", () => {
+  it("INSTANCE node styles appear in style sub-object", () => {
     const mockData = {
       id: "0:1",
       type: "CANVAS",
@@ -52,15 +63,26 @@ describe("Instance style inheritance (v2 - inline styles)", () => {
 
     const normalized = buildNormalizedGraph(mockData, {});
 
-    const instanceNode = Object.values(normalized.nodes).find((n) => n.type === "INSTANCE");
+    function findNode(node: any, type: string): any | undefined {
+      if (node.type === type) return node;
+      for (const child of node.children ?? []) {
+        const found = findNode(child, type);
+        if (found) return found;
+      }
+      return undefined;
+    }
 
+    const instanceNode = findNode(normalized.root, "INSTANCE");
     expect(instanceNode).toBeDefined();
-    expect(instanceNode!.backgroundColor).toBe("rgba(0, 255, 0, 1)"); // Green (override)
-    expect(instanceNode!.borderRadius).toBe(4);
-    expect(instanceNode!.componentId).toBe("1:1");
+    expect(instanceNode.style?.background).toBe("rgba(0, 255, 0, 1)");
+    expect(instanceNode.style?.radius).toBe(4);
+    // v3: component field (not componentId)
+    expect(instanceNode.component).toBe("1:1");
+    expect(instanceNode).not.toHaveProperty("componentId");
+    expect(instanceNode).not.toHaveProperty("backgroundColor");
   });
 
-  it("handles text styles inline", () => {
+  it("TEXT node has text content and style.color (not style.background)", () => {
     const mockData = {
       id: "0:1",
       type: "CANVAS",
@@ -90,16 +112,28 @@ describe("Instance style inheritance (v2 - inline styles)", () => {
 
     const normalized = buildNormalizedGraph(mockData, {});
 
-    const textNode = Object.values(normalized.nodes).find((n) => n.type === "TEXT");
+    function findNode(node: any, type: string): any | undefined {
+      if (node.type === type) return node;
+      for (const child of node.children ?? []) {
+        const found = findNode(child, type);
+        if (found) return found;
+      }
+      return undefined;
+    }
 
+    const textNode = findNode(normalized.root, "TEXT");
     expect(textNode).toBeDefined();
-    expect(textNode!.text).toBe("Hello World");
-    expect(textNode!.color).toBe("rgba(0, 0, 0, 1)");
-    expect(textNode!.fontFamily).toBe("Inter");
-    expect(textNode!.fontSize).toBe(24);
-    expect(textNode!.fontWeight).toBe(700);
-    expect(textNode!.lineHeight).toBe(32);
-    expect(textNode!.letterSpacing).toBe(-0.5);
-    expect(textNode!.textAlign).toBe("center");
+    expect(textNode.text).toBe("Hello World");
+    expect(textNode.style?.color).toBe("rgba(0, 0, 0, 1)");
+    expect(textNode.style?.background).toBeUndefined();
+    expect(textNode.style?.font).toBe("Inter");
+    expect(textNode.style?.fontSize).toBe(24);
+    expect(textNode.style?.fontWeight).toBe(700);
+    expect(textNode.style?.lineHeight).toBe(32);
+    expect(textNode.style?.letterSpacing).toBe(-0.5);
+    expect(textNode.style?.textAlign).toBe("center");
+    // Must NOT have old flat top-level text properties
+    expect(textNode).not.toHaveProperty("fontFamily");
+    expect(textNode).not.toHaveProperty("color");
   });
 });
