@@ -1,5 +1,12 @@
 # tmegit-figma-developer-mcp
 
+## [0.15.1](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.15.0...v0.15.1) (2026-03-19)
+
+
+### Bug Fixes
+
+* **get-figma-design-tool:** add missing line break before return statement ([9011f9f](https://github.com/felixAnhalt/Figma-Context-MCP/commit/9011f9fbcbe57f25cd5eadea89c98f1944f6dab4))
+
 ## [0.15.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.14.0...v0.15.0) (2026-03-19)
 
 
