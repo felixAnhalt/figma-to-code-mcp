@@ -75,6 +75,7 @@ async function getFigmaDesign(
       outputFormat === "json" ? JSON.stringify(mcpResponse) : yaml.dump(mcpResponse);
 
     Logger.log("Sending result to client");
+
     return {
       content: [{ type: "text" as const, text: formattedResult }],
     };
