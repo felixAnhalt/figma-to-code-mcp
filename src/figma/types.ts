@@ -47,6 +47,9 @@ export type V3Node = {
   /** Raw text content (TEXT nodes only) */
   text?: string;
 
+  /** Prototype interactions (ON_HOVER, ON_CLICK, etc.). Only present when non-empty. */
+  interactions?: Interaction[];
+
   /** Inline child nodes */
   children?: V3Node[];
 };
@@ -78,6 +81,20 @@ export type Layout = {
   height?: number;
   minWidth?: number;
   maxWidth?: number;
+  minHeight?: number;
+  maxHeight?: number;
+  /**
+   * Horizontal sizing mode. "fill" = flex:1 / grow to fill parent. "hug" = fit-content.
+   * Omitted when FIXED — explicit width is emitted instead.
+   */
+  sizingH?: "fill" | "hug";
+  /**
+   * Vertical sizing mode. "fill" = flex:1 / grow to fill parent. "hug" = fit-content.
+   * Omitted when FIXED — explicit height is emitted instead.
+   */
+  sizingV?: "fill" | "hug";
+  /** flex-grow: 1 — node stretches to fill available space in parent's main axis */
+  grow?: boolean;
 };
 
 /**
@@ -127,6 +144,19 @@ export type GradientStop = {
   position: number;
   /** rgba() string */
   color: string;
+};
+
+/**
+ * A prototype interaction on a node (e.g. hover triggers a variant swap).
+ * Normalized from Figma's verbose interaction format to the fields useful for web building.
+ */
+export type Interaction = {
+  /** Normalized trigger: "hover", "click", "drag", "key", or raw Figma trigger type */
+  trigger: string;
+  /** Normalized action: "navigate", "swap", "overlay", "scroll", or raw type */
+  action: string;
+  /** Target node ID, if applicable */
+  destination?: string;
 };
 
 /**

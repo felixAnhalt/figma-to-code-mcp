@@ -1,4 +1,12 @@
-import type { MCPResponse, V3Node, Layout, Style, Paint, ComponentDefinition } from "./types.js";
+import type {
+  MCPResponse,
+  V3Node,
+  Layout,
+  Style,
+  Paint,
+  ComponentDefinition,
+  Interaction,
+} from "./types.js";
 import type { VariableResolutionContext } from "./variableResolver.js";
 import { resolveVariable } from "./variableResolver.js";
 import type { VariableAlias } from "@figma/rest-api-spec";
@@ -315,6 +323,22 @@ export function buildNormalizedGraph(
     if (node.maxWidth !== undefined && node.maxWidth !== null) {
       layout.maxWidth = roundTo(node.maxWidth as number, 2);
     }
+    if (node.minHeight !== undefined && node.minHeight !== null) {
+      layout.minHeight = roundTo(node.minHeight as number, 2);
+    }
+    if (node.maxHeight !== undefined && node.maxHeight !== null) {
+      layout.maxHeight = roundTo(node.maxHeight as number, 2);
+    }
+
+    // Sizing mode: emit FILL/HUG explicitly so LLMs can generate correct CSS
+    // (flex:1 for FILL, fit-content for HUG). FIXED is implicit from width/height.
+    if (node.layoutSizingHorizontal === "FILL") layout.sizingH = "fill";
+    else if (node.layoutSizingHorizontal === "HUG") layout.sizingH = "hug";
+    if (node.layoutSizingVertical === "FILL") layout.sizingV = "fill";
+    else if (node.layoutSizingVertical === "HUG") layout.sizingV = "hug";
+
+    // layoutGrow: 1 means the node stretches along the parent's main axis (flex-grow: 1)
+    if (node.layoutGrow === 1) layout.grow = true;
 
     if (Object.keys(layout).length > 0) v3.layout = layout;
 
@@ -439,6 +463,28 @@ export function buildNormalizedGraph(
 
     if (Object.keys(style).length > 0) v3.style = style;
 
+    // ── Interactions ───────────────────────────────────────────────────────
+    const rawInteractions = node.interactions as
+      | Array<{
+          trigger?: { type?: string };
+          actions?: Array<{ type?: string; destinationId?: string; navigation?: string }>;
+        }>
+      | undefined;
+    if (rawInteractions && rawInteractions.length > 0) {
+      const mapped: Interaction[] = rawInteractions.flatMap((interaction) => {
+        if (!interaction.actions) return [];
+        return interaction.actions.map((action) => {
+          const result: Interaction = {
+            trigger: mapInteractionTrigger(interaction.trigger?.type),
+            action: mapInteractionAction(action.type, action.navigation),
+          };
+          if (action.destinationId) result.destination = action.destinationId;
+          return result;
+        });
+      });
+      if (mapped.length > 0) v3.interactions = mapped;
+    }
+
     // ── Component reference (INSTANCE nodes) ───────────────────────────────
     if (node.type === "INSTANCE" && node.componentId) {
       const componentId = node.componentId as string;
@@ -513,6 +559,39 @@ export function buildNormalizedGraph(
       default:
         return "flex-start";
     }
+  }
+
+  function mapInteractionTrigger(type: string | undefined): string {
+    switch (type) {
+      case "ON_HOVER":
+        return "hover";
+      case "ON_CLICK":
+        return "click";
+      case "ON_DRAG":
+        return "drag";
+      case "ON_KEY_DOWN":
+        return "key";
+      default:
+        return type ?? "unknown";
+    }
+  }
+
+  function mapInteractionAction(type: string | undefined, navigation: string | undefined): string {
+    if (type === "NODE") {
+      switch (navigation) {
+        case "NAVIGATE":
+          return "navigate";
+        case "CHANGE_TO":
+          return "swap";
+        case "OVERLAY":
+          return "overlay";
+        case "SCROLL_TO":
+          return "scroll";
+        default:
+          return navigation ?? "navigate";
+      }
+    }
+    return type?.toLowerCase() ?? "unknown";
   }
 
   // ── Entry point ───────────────────────────────────────────────────────────
