@@ -3,47 +3,199 @@ import { safeFetch } from "./rateLimit.js";
 import { getCache, setCache } from "./cache.js";
 import { buildNormalizedGraph } from "./reducer.js";
 import { buildResolutionContext } from "./variableResolver.js";
-import type { MCPResponse, Component } from "./types.js";
+import type { MCPResponse, V3Node, ComponentVariant } from "./types.js";
 import type { GetLocalVariablesResponse } from "@figma/rest-api-spec";
+
+/**
+ * Rich component metadata with file_key and node_id resolved so callers can
+ * fetch the component's actual node tree from its source library file.
+ */
+export type RichComponentMeta = {
+  key: string;
+  file_key: string;
+  node_id: string;
+  componentSetId?: string;
+  name: string;
+  description?: string;
+};
 
 export type MCPOptions = {
   fileKey: string;
   token: string;
   rootNodeId: string;
-  componentMap?: Record<string, unknown>;
   styleMap?: Record<string, unknown>;
   cacheTTL?: number;
-  resolveVariables?: boolean; // New option to enable variable resolution
+  resolveVariables?: boolean;
+  /**
+   * Pre-built component map keyed by local node ID.
+   * When omitted, generateMCPResponse builds it automatically from the raw
+   * node entry's embedded components dict using buildRichComponentMap.
+   * Inject in tests to avoid mocking the internal resolution API calls.
+   */
+  componentMap?: Record<string, RichComponentMeta>;
+  /**
+   * Pre-built component set map keyed by set node ID.
+   * When omitted, generateMCPResponse builds it automatically.
+   * Inject in tests to avoid mocking the internal resolution API calls.
+   */
+  componentSetMap?: Record<string, { name: string }>;
 };
+
+/**
+ * Builds a RichComponentMeta map from the raw components dict embedded in a
+ * /nodes response entry (shape: Record<localNodeId, { key, name, componentSetId, remote }>).
+ *
+ * The raw dict has public keys but not file_key/node_id — those require API
+ * resolution. Strategy (2 API calls total, regardless of component count):
+ *   1. Resolve one representative public key → GET /v1/components/{key} → file_key
+ *   2. GET /v1/files/{libFileKey}/components → all 1908+ components with node_id
+ *   3. Cross-reference by public key to map localNodeId → { file_key, node_id, ... }
+ *
+ * Also fetches component sets from the same library file for componentSetMap.
+ * Returns empty maps if rawComponents is empty (nothing to resolve).
+ */
+async function buildRichComponentMap(
+  rawComponents: Record<
+    string,
+    { key: string; name: string; componentSetId?: string; remote?: boolean }
+  >,
+  rawComponentSets: Record<string, { name: string }>,
+  token: string,
+): Promise<{
+  componentMap: Record<string, RichComponentMeta>;
+  componentSetMap: Record<string, { name: string }>;
+}> {
+  const entries = Object.entries(rawComponents);
+  if (entries.length === 0) return { componentMap: {}, componentSetMap: {} };
+
+  // The consumer-file /nodes response already embeds componentSets keyed by the same
+  // local node IDs that components reference via componentSetId — use it directly.
+  // The library's own component_sets endpoint uses library-side node IDs which are a
+  // completely different key space and cannot be cross-referenced with componentSetId.
+  const componentSetMap: Record<string, { name: string }> = {};
+  for (const [nodeId, set] of Object.entries(rawComponentSets)) {
+    componentSetMap[nodeId] = { name: set.name };
+  }
+
+  // Try each entry's public key until one resolves. Some keys return 404 if they
+  // belong to libraries not published to the team or not accessible with this token.
+  let libFileKey: string | undefined;
+  for (const [, raw] of entries) {
+    const resolveUrl = `https://api.figma.com/v1/components/${raw.key}`;
+    const resolveRes = await safeFetch(resolveUrl, { headers: { "X-Figma-Token": token } });
+    if (!resolveRes.ok) continue;
+    const resolveJson = (await resolveRes.json()) as { meta?: { file_key?: string } };
+    if (resolveJson.meta?.file_key) {
+      libFileKey = resolveJson.meta.file_key;
+      break;
+    }
+  }
+
+  if (!libFileKey) {
+    console.warn(`[buildRichComponentMap] Could not resolve any component key to a library file`);
+    // Return what we have — componentSetMap is already populated from rawComponentSets
+    return { componentMap: {}, componentSetMap };
+  }
+
+  // Fetch all components from the library file (for file_key + node_id resolution)
+  const libComponentsUrl = `https://api.figma.com/v1/files/${libFileKey}/components`;
+  const libCompRes = await safeFetch(libComponentsUrl, { headers: { "X-Figma-Token": token } });
+
+  const libCompJson = libCompRes.ok
+    ? ((await libCompRes.json()) as {
+        meta?: {
+          components?: Array<{
+            key: string;
+            file_key: string;
+            node_id: string;
+            name: string;
+            description?: string;
+          }>;
+        };
+      })
+    : null;
+
+  // Build lookup: public key → library component metadata
+  const libByKey = new Map<
+    string,
+    { file_key: string; node_id: string; name: string; description?: string }
+  >();
+  for (const comp of libCompJson?.meta?.components ?? []) {
+    libByKey.set(comp.key, comp);
+  }
+
+  // Cross-reference rawComponents (keyed by local node ID) with library data (by public key)
+  const componentMap: Record<string, RichComponentMeta> = {};
+  for (const [localNodeId, raw] of entries) {
+    const lib = libByKey.get(raw.key);
+    if (!lib) continue;
+    componentMap[localNodeId] = {
+      key: raw.key,
+      file_key: lib.file_key,
+      node_id: lib.node_id,
+      name: raw.name,
+      ...(raw.componentSetId ? { componentSetId: raw.componentSetId } : {}),
+      ...(lib.description ? { description: lib.description } : {}),
+    };
+  }
+
+  return { componentMap, componentSetMap };
+}
 
 /**
  * Main entry point: fetches a Figma node tree and returns a normalized MCP response
  * with layout, styling, and Flexbox primitives.
+ *
+ * Two-pass enrichment:
+ *   Pass 1 — buildNormalizedGraph produces the filtered tree and a definitions dict
+ *             containing only the component IDs that survived visibility filtering.
+ *   Pass 2 — The surviving component IDs are fetched from their source library files
+ *             (batched by file_key, one request per library) and reduced into full
+ *             layout/style/children trees that are merged back into definitions.
  */
 export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse> {
   const {
     fileKey,
     token,
     rootNodeId,
-    componentMap = {},
     styleMap = {},
     cacheTTL = 5 * 60 * 1000,
-    resolveVariables = true, // Default to true for Q2 choice A
+    resolveVariables = true,
   } = opts;
 
-  // Check cache
   const cacheKey = `MCP:${fileKey}:${rootNodeId}`;
   const cached = getCache<MCPResponse>(cacheKey);
   if (cached) return cached;
 
-  // Fetch node data (batched)
   const rootNodeData = await fetchNodesBatch(fileKey, [rootNodeId], token);
   const rootNode = rootNodeData[rootNodeId];
   if (!rootNode) {
     throw new Error(`Root node ${rootNodeId} not found`);
   }
 
-  // Fetch and build variable resolution context if enabled
+  // Build component maps — use injected maps (test seam) or resolve from root node entry.
+  // The /nodes response embeds a components dict keyed by local node ID with public keys
+  // but without file_key/node_id; buildRichComponentMap resolves those via 2 API calls.
+  let componentMap: Record<string, RichComponentMeta>;
+  let componentSetMap: Record<string, { name: string }>;
+
+  if (opts.componentMap !== undefined) {
+    componentMap = opts.componentMap;
+    componentSetMap = opts.componentSetMap ?? {};
+  } else {
+    const rawComponents = (rootNode as Record<string, unknown>).components as
+      | Record<string, { key: string; name: string; componentSetId?: string; remote?: boolean }>
+      | undefined;
+    const rawComponentSets = (rootNode as Record<string, unknown>).componentSets as
+      | Record<string, { name: string }>
+      | undefined;
+    ({ componentMap, componentSetMap } = await buildRichComponentMap(
+      rawComponents ?? {},
+      rawComponentSets ?? {},
+      token,
+    ));
+  }
+
   let variableContext = null;
   if (resolveVariables) {
     try {
@@ -61,18 +213,194 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
         console.log("[Variable Resolution] No variables found in response");
       }
     } catch (error) {
-      // Log warning but don't fail - continue without variable resolution
       console.warn(`Failed to fetch variables for ${fileKey}:`, error);
     }
   }
 
-  // Build normalized graph (layout + styles + Flex primitives)
+  // Pass 1 — build the filtered normalized tree
   const normalized = buildNormalizedGraph(rootNode, styleMap, variableContext, componentMap);
 
-  // Cache result
+  // Enrich definitions if any INSTANCE nodes survived filtering
+  if (normalized.definitions && Object.keys(normalized.definitions).length > 0) {
+    await enrichDefinitions(normalized, componentMap, componentSetMap, token, variableContext);
+  }
+
   setCache(cacheKey, normalized, cacheTTL);
 
   return normalized;
+}
+
+/**
+ * Walks the reduced consumer-file tree and returns a map of componentId → first
+ * INSTANCE node that references it. Used to seed definitions with layout/style/children
+ * when the source library file is inaccessible (e.g. 403).
+ */
+function collectInstancesByComponentId(node: V3Node): Map<string, V3Node> {
+  const map = new Map<string, V3Node>();
+  function walk(n: V3Node): void {
+    if (n.component && !map.has(n.component)) map.set(n.component, n);
+    for (const child of n.children ?? []) walk(child);
+  }
+  walk(node);
+  return map;
+}
+
+/**
+ * Pass 2 — enriches the definitions dict in-place with:
+ *   - Phase 0: layout/style/children from the first matching INSTANCE in the consumer
+ *              tree (zero extra API calls; always available; used as fallback)
+ *   - Phase 1: variantName, componentSetName, and corrected name (no API calls)
+ *   - Phase 2: full layout/style/children from the component's authoritative source node
+ *              in the library file, plus sibling variants from the same component set.
+ *              Overrides Phase 0 data when accessible. Skipped gracefully on 403.
+ *
+ * Groups all required node IDs by their source file_key so each library only
+ * needs a single batched request regardless of how many components come from it.
+ */
+async function enrichDefinitions(
+  normalized: MCPResponse,
+  componentMap: Record<string, RichComponentMeta>,
+  componentSetMap: Record<string, { name: string }>,
+  token: string,
+  variableContext: ReturnType<typeof buildResolutionContext> | null,
+): Promise<void> {
+  const definitions = normalized.definitions!;
+
+  // Phase 0 — seed layout/style from the first consumer-file instance of each component.
+  // This is always available without API calls and ensures definitions carry structural
+  // information even when the source library file denies access in Phase 2.
+  // Children are intentionally excluded: they contain instance-specific overrides
+  // (e.g. actual link text), not canonical component defaults, so including them would
+  // mislead an LLM and duplicate large subtrees. Children are only written in Phase 2
+  // when fetched from the authoritative library source node.
+  const instancesByComponentId = collectInstancesByComponentId(normalized.root);
+  for (const [componentId, def] of Object.entries(definitions)) {
+    const instance = instancesByComponentId.get(componentId);
+    if (!instance) continue;
+    if (instance.layout) def.layout = instance.layout;
+    if (instance.style) def.style = instance.style;
+  }
+
+  // Phase 1 — set metadata from already-fetched maps (no API calls).
+  // Corrects def.name to the human-readable component set name (e.g. "Link") rather
+  // than the variant property string (e.g. "state=default, color=primary, version=v1").
+  for (const [componentId, def] of Object.entries(definitions)) {
+    const meta = componentMap[componentId];
+    if (!meta) continue;
+
+    def.variantName = meta.name;
+
+    if (meta.componentSetId) {
+      const setMeta = componentSetMap[meta.componentSetId];
+      if (setMeta) def.componentSetName = setMeta.name;
+    }
+
+    // Use the component set name as the primary name when available; it is more
+    // meaningful to an LLM than the raw variant property string.
+    def.name = def.componentSetName ?? def.variantName ?? def.name;
+  }
+
+  // Phase 2 — collect node IDs to fetch, grouped by source file_key.
+  // Include not just the directly-referenced variants but all sibling variants
+  // from the same component sets, so the variants dict can be fully populated.
+  const usedSetIds = new Set<string>();
+  for (const componentId of Object.keys(definitions)) {
+    const meta = componentMap[componentId];
+    if (meta?.componentSetId) usedSetIds.add(meta.componentSetId);
+  }
+
+  // toFetch: file_key → Set of node_ids to retrieve from that file
+  const toFetch = new Map<string, Set<string>>();
+  for (const meta of Object.values(componentMap)) {
+    if (!meta.file_key || !meta.node_id) continue;
+    // Include if directly in definitions OR a sibling of one that is
+    const isDirect = meta.node_id in definitions;
+    const isSibling = meta.componentSetId !== undefined && usedSetIds.has(meta.componentSetId);
+    if (!isDirect && !isSibling) continue;
+
+    if (!toFetch.has(meta.file_key)) toFetch.set(meta.file_key, new Set());
+    toFetch.get(meta.file_key)!.add(meta.node_id);
+  }
+
+  if (toFetch.size === 0) return;
+
+  // One batched request per source library file, all in parallel.
+  // Gracefully skip files that return 403 (no edit access) — Phase 0+1 data is
+  // already written; only authoritative source-node layout and sibling variants
+  // will be absent.
+  const fetchPromises = [...toFetch.entries()].map(([libFileKey, nodeIds]) =>
+    fetchNodesBatch(libFileKey, [...nodeIds], token)
+      .then((result) => ({ libFileKey, result }))
+      .catch((err) => {
+        console.warn(
+          `[enrichDefinitions] Skipping node tree fetch for ${libFileKey}: ${err instanceof Error ? err.message : err}`,
+        );
+        return null;
+      }),
+  );
+  const fetchResults = (await Promise.all(fetchPromises)).filter(
+    (r): r is { libFileKey: string; result: Awaited<ReturnType<typeof fetchNodesBatch>> } =>
+      r !== null,
+  );
+
+  // Flatten into node_id → raw node entry
+  const fetchedNodes = new Map<string, Record<string, unknown>>();
+  for (const { result } of fetchResults) {
+    for (const [nodeId, nodeEntry] of Object.entries(result)) {
+      fetchedNodes.set(nodeId, nodeEntry as Record<string, unknown>);
+    }
+  }
+
+  // Reduce each fetched node reusing the existing reducer.
+  // Pass the per-node components/componentSets maps through so nested instance
+  // names resolve correctly inside component definitions.
+  const reducedNodes = new Map<string, ReturnType<typeof buildNormalizedGraph>["root"]>();
+  for (const [nodeId, nodeEntry] of fetchedNodes.entries()) {
+    const nestedComponentMap = (nodeEntry.components ?? {}) as Record<string, RichComponentMeta>;
+    const reduced = buildNormalizedGraph(nodeEntry, {}, variableContext, nestedComponentMap);
+    reducedNodes.set(nodeId, reduced.root);
+  }
+
+  // Override Phase 0 data with authoritative source-node layout/style/children
+  for (const [componentId, def] of Object.entries(definitions)) {
+    const meta = componentMap[componentId];
+    if (!meta?.node_id) continue;
+
+    const node = reducedNodes.get(meta.node_id);
+    if (!node) continue;
+
+    if (node.layout) def.layout = node.layout;
+    if (node.style) def.style = node.style;
+    if (node.children) def.children = node.children;
+  }
+
+  // Populate variants for each definition that belongs to a component set
+  for (const [componentId, def] of Object.entries(definitions)) {
+    const meta = componentMap[componentId];
+    if (!meta?.componentSetId) continue;
+
+    const variants: Record<string, ComponentVariant> = {};
+
+    for (const [otherId, otherMeta] of Object.entries(componentMap)) {
+      if (otherId === componentId) continue;
+      if (otherMeta.componentSetId !== meta.componentSetId) continue;
+      if (!otherMeta.node_id) continue;
+
+      const otherNode = reducedNodes.get(otherMeta.node_id);
+      if (!otherNode) continue;
+
+      const variant: ComponentVariant = { name: otherMeta.name };
+      if (otherMeta.description) variant.description = otherMeta.description;
+      variant.variantName = otherMeta.name;
+      if (otherNode.layout) variant.layout = otherNode.layout;
+      if (otherNode.style) variant.style = otherNode.style;
+      if (otherNode.children) variant.children = otherNode.children;
+
+      variants[otherId] = variant;
+    }
+
+    if (Object.keys(variants).length > 0) def.variants = variants;
+  }
 }
 
 /**
@@ -102,12 +430,15 @@ export async function fetchStyles(
 }
 
 /**
- * Fetches all components for a Figma file.
+ * Fetches all published components for a Figma file.
+ *
+ * Preserves file_key, node_id, and componentSetId from the API response so
+ * callers can later fetch component node trees without extra resolution calls.
  */
 export async function fetchComponents(
   fileKey: string,
   token: string,
-): Promise<Record<string, Component>> {
+): Promise<Record<string, RichComponentMeta>> {
   const url = `https://api.figma.com/v1/files/${fileKey}/components`;
   const res = await safeFetch(url, {
     headers: { "X-Figma-Token": token },
@@ -119,23 +450,66 @@ export async function fetchComponents(
 
   const json = (await res.json()) as {
     meta?: {
-      components?: Record<
-        string,
-        { node_id: string; key: string; name: string; description?: string }
-      >;
+      components?: Array<{
+        node_id: string;
+        key: string;
+        file_key: string;
+        name: string;
+        description?: string;
+        component_set_id?: string;
+      }>;
     };
   };
-  const componentMap: Record<string, Component> = {};
 
-  for (const comp of Object.values(json.meta?.components ?? {})) {
+  const componentMap: Record<string, RichComponentMeta> = {};
+
+  for (const comp of json.meta?.components ?? []) {
     componentMap[comp.node_id] = {
       key: comp.key,
+      file_key: comp.file_key,
+      node_id: comp.node_id,
       name: comp.name,
       ...(comp.description ? { description: comp.description } : {}),
+      ...(comp.component_set_id ? { componentSetId: comp.component_set_id } : {}),
     };
   }
 
   return componentMap;
+}
+
+/**
+ * Fetches all published component sets for a Figma file.
+ *
+ * Returns a map keyed by the component set's node_id (which matches the
+ * componentSetId field on individual components) so callers can resolve
+ * component set names without additional lookups.
+ */
+export async function fetchComponentSets(
+  fileKey: string,
+  token: string,
+): Promise<Record<string, { name: string }>> {
+  const url = `https://api.figma.com/v1/files/${fileKey}/component_sets`;
+  const res = await safeFetch(url, {
+    headers: { "X-Figma-Token": token },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Figma API error: ${res.status} ${res.statusText}`);
+  }
+
+  const json = (await res.json()) as {
+    meta?: {
+      component_sets?: Array<{ node_id: string; name: string }>;
+    };
+  };
+
+  const setMap: Record<string, { name: string }> = {};
+
+  for (const set of json.meta?.component_sets ?? []) {
+    setMap[set.node_id] = { name: set.name };
+  }
+
+  return setMap;
 }
 
 /**
@@ -161,5 +535,13 @@ export async function fetchVariables(
 }
 
 // Re-export types
-export type { MCPResponse } from "./types.js";
-export { IdMapper } from "./idMapper.js";
+export type {
+  MCPResponse,
+  V3Node,
+  Layout,
+  Style,
+  Paint,
+  GradientStop,
+  ComponentDefinition,
+  ComponentVariant,
+} from "./types.js";

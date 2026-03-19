@@ -2,202 +2,161 @@ import { describe, it, expect } from "vitest";
 import { buildNormalizedGraph } from "~/figma/reducer.js";
 import testData from "./resources/testfigmaresult.json" with { type: "json" };
 
-describe("Normalized graph output validation (v2 - CSS-aligned)", () => {
-  it("preserves basic node structure from raw Figma response", () => {
+describe("Normalized graph output validation (v3)", () => {
+  function getRootNode() {
     const nodeId = Object.keys(testData.nodes as any)[0];
-    const rawNode = (testData.nodes as any)[nodeId];
+    return (testData.nodes as any)[nodeId];
+  }
 
-    const normalized = buildNormalizedGraph(rawNode, {});
+  it("produces v3 schema with a root node object", () => {
+    const normalized = buildNormalizedGraph(getRootNode(), {});
 
-    const rootNode = normalized.nodes[normalized.root];
-
-    expect(rootNode).toBeDefined();
-    expect(rootNode.id).toBe(rawNode.document.id);
-    expect(rootNode.type).toBe(rawNode.document.type);
-    expect(rootNode.name).toBe(rawNode.document.name);
-    expect(rootNode.parent).toBeNull();
+    expect(normalized.schema).toBe("v3");
+    expect(normalized.root).toBeDefined();
+    expect(typeof normalized.root).toBe("object");
+    // No flat nodes map
+    expect(normalized).not.toHaveProperty("nodes");
   });
 
-  it("does not include absoluteBoundingBox (v2 removes it)", () => {
-    const nodeId = Object.keys(testData.nodes as any)[0];
-    const rawNode = (testData.nodes as any)[nodeId];
-
+  it("root node has correct type and name from raw document", () => {
+    const rawNode = getRootNode();
     const normalized = buildNormalizedGraph(rawNode, {});
 
-    const rootNode = normalized.nodes[normalized.root];
-
-    // v2 removes bounding boxes - layout is defined by flex properties
-    expect(rootNode).not.toHaveProperty("absoluteBoundingBox");
+    expect(normalized.root.type).toBe(rawNode.document.type);
+    expect(normalized.root.name).toBe(rawNode.document.name);
+    // No parent field — redundant with tree nesting
+    expect(normalized.root).not.toHaveProperty("parent");
   });
 
-  it("converts auto-layout to CSS flexbox properties", () => {
-    const nodeId = Object.keys(testData.nodes as any)[0];
-    const rawNode = (testData.nodes as any)[nodeId];
+  it("does not include absoluteBoundingBox — layout is flex-based", () => {
+    const normalized = buildNormalizedGraph(getRootNode(), {});
+    const str = JSON.stringify(normalized);
+    expect(str).not.toContain("absoluteBoundingBox");
+  });
 
+  it("auto-layout nodes use layout.direction instead of top-level display/flexDirection", () => {
+    const rawNode = getRootNode();
     const normalized = buildNormalizedGraph(rawNode, {});
 
-    const rootNode = normalized.nodes[normalized.root];
-
-    if (rawNode.document.layoutMode) {
-      // Should have CSS properties
-      expect(rootNode.display).toBe("flex");
-      expect(rootNode.flexDirection).toBe(
-        rawNode.document.layoutMode === "HORIZONTAL" ? "row" : "column",
-      );
-
-      // Should NOT have old 'layout' or 'flex' objects
-      expect(rootNode).not.toHaveProperty("layout");
-      expect(rootNode).not.toHaveProperty("flex");
+    function checkNodes(node: any) {
+      // v3 must not have legacy flat CSS properties at top level
+      expect(node).not.toHaveProperty("display");
+      expect(node).not.toHaveProperty("flexDirection");
+      expect(node).not.toHaveProperty("parent");
+      if (node.children) node.children.forEach(checkNodes);
     }
+    checkNodes(normalized.root);
   });
 
-  it("includes styles inline in nodes (no separate stylesPayload)", () => {
-    const nodeId = Object.keys(testData.nodes as any)[0];
-    const rawNode = (testData.nodes as any)[nodeId];
-
-    const normalized = buildNormalizedGraph(rawNode, {});
-
-    // v2 does not have stylesPayload - styles are inline
+  it("does not include stylesPayload or paints dict", () => {
+    const normalized = buildNormalizedGraph(getRootNode(), {});
     expect(normalized).not.toHaveProperty("stylesPayload");
     expect(normalized).not.toHaveProperty("paints");
+    expect(normalized).not.toHaveProperty("variables");
+    expect(normalized).not.toHaveProperty("components");
+  });
 
-    // Find a node with fills
-    const nodeWithFills = Object.values(normalized.nodes).find(
-      (node) => node.backgroundColor || node.background,
-    );
+  it("solid fill on non-text nodes is style.background as rgba string", () => {
+    const normalized = buildNormalizedGraph(getRootNode(), {});
 
-    if (nodeWithFills) {
-      // Solid colors should be inline RGBA strings
-      if (nodeWithFills.backgroundColor) {
-        expect(typeof nodeWithFills.backgroundColor).toBe("string");
-        expect(nodeWithFills.backgroundColor).toMatch(/^(rgba\(|$)/);
+    function findNodeWithBackground(node: any): any | undefined {
+      if (node.style?.background && typeof node.style.background === "string") return node;
+      for (const child of node.children ?? []) {
+        const found = findNodeWithBackground(child);
+        if (found) return found;
       }
+      return undefined;
+    }
 
-      // Gradients should be Paint objects
-      if (nodeWithFills.background) {
-        expect(Array.isArray(nodeWithFills.background)).toBe(true);
-        expect(nodeWithFills.background[0]).toHaveProperty("type");
+    const nodeWithBg = findNodeWithBackground(normalized.root);
+    if (nodeWithBg) {
+      expect(typeof nodeWithBg.style.background).toBe("string");
+      expect(nodeWithBg.style.background).toMatch(/^rgba\(/);
+      // Should NOT be a flat backgroundColor
+      expect(nodeWithBg).not.toHaveProperty("backgroundColor");
+    }
+  });
+
+  it("TEXT nodes have style.color not style.background", () => {
+    const normalized = buildNormalizedGraph(getRootNode(), {});
+
+    function checkTextNodes(node: any) {
+      if (node.type === "TEXT") {
+        expect(node.style?.background).toBeUndefined();
+        expect(node).not.toHaveProperty("backgroundColor");
       }
+      if (node.children) node.children.forEach(checkTextNodes);
     }
+    checkTextNodes(normalized.root);
   });
 
-  it("preserves component metadata", () => {
-    const nodeId = Object.keys(testData.nodes as any)[0];
-    const rawNode = (testData.nodes as any)[nodeId];
+  it("TEXT nodes have text content at node.text", () => {
+    const normalized = buildNormalizedGraph(getRootNode(), {});
 
-    const normalized = buildNormalizedGraph(rawNode, {});
-
-    // v2 should still have components dictionary
-    if (normalized.components && Object.keys(normalized.components).length > 0) {
-      const firstComponent = Object.values(normalized.components)[0];
-      expect(firstComponent).toHaveProperty("key");
-      expect(firstComponent).toHaveProperty("name");
-    }
-  });
-
-  it("includes variables dictionary when variables are used", () => {
-    const nodeId = Object.keys(testData.nodes as any)[0];
-    const rawNode = (testData.nodes as any)[nodeId];
-
-    const normalized = buildNormalizedGraph(rawNode, {});
-
-    // If variables exist, they should be in variables dictionary
-    if (normalized.variables) {
-      expect(typeof normalized.variables).toBe("object");
-
-      // Variables should be used somewhere in the nodes
-      const hasVariableRef = Object.values(normalized.nodes).some(
-        (node) =>
-          (typeof node.backgroundColor === "string" && node.backgroundColor.startsWith("$")) ||
-          (typeof node.color === "string" && node.color.startsWith("$")),
-      );
-
-      if (Object.keys(normalized.variables).length > 0) {
-        expect(hasVariableRef).toBe(true);
+    function findTextNode(node: any): any | undefined {
+      if (node.type === "TEXT") return node;
+      for (const child of node.children ?? []) {
+        const found = findTextNode(child);
+        if (found) return found;
       }
+      return undefined;
     }
-  });
 
-  it("preserves parent-child relationships", () => {
-    const nodeId = Object.keys(testData.nodes as any)[0];
-    const rawNode = (testData.nodes as any)[nodeId];
-
-    const normalized = buildNormalizedGraph(rawNode, {});
-
-    const rootNode = normalized.nodes[normalized.root];
-
-    if (rootNode.children && rootNode.children.length > 0) {
-      const firstChildId = rootNode.children[0];
-      const firstChild = normalized.nodes[firstChildId];
-
-      expect(firstChild).toBeDefined();
-      expect(firstChild.parent).toBe(rootNode.id);
-    }
-  });
-
-  it("handles text nodes with inline text styles", () => {
-    const nodeId = Object.keys(testData.nodes as any)[0];
-    const rawNode = (testData.nodes as any)[nodeId];
-
-    const normalized = buildNormalizedGraph(rawNode, {});
-
-    const textNode = Object.values(normalized.nodes).find((node) => node.type === "TEXT");
-
+    const textNode = findTextNode(normalized.root);
     if (textNode) {
-      // Text content should be inline
       expect(textNode.text).toBeDefined();
+      expect(typeof textNode.text).toBe("string");
+    }
+  });
 
-      // Text styles should be CSS properties
-      if (textNode.fontFamily) expect(typeof textNode.fontFamily).toBe("string");
-      if (textNode.fontSize) expect(typeof textNode.fontSize).toBe("number");
-      if (textNode.fontWeight) expect(typeof textNode.fontWeight).toBe("number");
-      if (textNode.color) {
-        expect(typeof textNode.color).toBe("string");
-        expect(textNode.color).toMatch(/^(rgba\(|$)/);
+  it("opacity defaults are omitted (no opacity:1 in output)", () => {
+    const normalized = buildNormalizedGraph(getRootNode(), {});
+
+    function checkNodes(node: any) {
+      if (node.style?.opacity !== undefined) {
+        expect(node.style.opacity).not.toBe(1);
       }
+      if (node.children) node.children.forEach(checkNodes);
+    }
+    checkNodes(normalized.root);
+  });
+
+  it("blendMode defaults are omitted", () => {
+    const normalized = buildNormalizedGraph(getRootNode(), {});
+
+    function checkNodes(node: any) {
+      if (node.style?.blend !== undefined) {
+        expect(node.style.blend).not.toBe("NORMAL");
+        expect(node.style.blend).not.toBe("PASS_THROUGH");
+      }
+      if (node.children) node.children.forEach(checkNodes);
+    }
+    checkNodes(normalized.root);
+  });
+
+  it("INSTANCE nodes have id and component fields", () => {
+    const normalized = buildNormalizedGraph(getRootNode(), {});
+
+    function findInstance(node: any): any | undefined {
+      if (node.type === "INSTANCE") return node;
+      for (const child of node.children ?? []) {
+        const found = findInstance(child);
+        if (found) return found;
+      }
+      return undefined;
+    }
+
+    const inst = findInstance(normalized.root);
+    if (inst) {
+      expect(inst.id).toBeDefined();
+      expect(inst.component).toBeDefined();
+      expect(inst).not.toHaveProperty("componentId");
     }
   });
 
-  it("omits default values for token efficiency", () => {
-    const nodeId = Object.keys(testData.nodes as any)[0];
-    const rawNode = (testData.nodes as any)[nodeId];
-
-    const normalized = buildNormalizedGraph(rawNode, {});
-
-    // Find any node
-    const anyNode = Object.values(normalized.nodes)[0];
-
-    // Defaults should be omitted
-    if (anyNode.visible !== false) {
-      expect(anyNode).not.toHaveProperty("visible");
-    }
-
-    if (anyNode.opacity !== undefined) {
-      // opacity should only exist if not 1
-      expect(anyNode.opacity).not.toBe(1);
-    }
-
-    if (anyNode.blendMode) {
-      // blendMode should only exist if not NORMAL/PASS_THROUGH
-      expect(anyNode.blendMode).not.toBe("NORMAL");
-      expect(anyNode.blendMode).not.toBe("PASS_THROUGH");
-    }
-  });
-
-  it("generates valid response structure", () => {
-    const nodeId = Object.keys(testData.nodes as any)[0];
-    const rawNode = (testData.nodes as any)[nodeId];
-
-    const normalized = buildNormalizedGraph(rawNode, {});
-
-    // Response should have required fields
-    expect(normalized).toHaveProperty("root");
-    expect(normalized).toHaveProperty("nodes");
-    expect(typeof normalized.root).toBe("string");
-    expect(typeof normalized.nodes).toBe("object");
-
-    // Optional fields
-    if (normalized.variables) expect(typeof normalized.variables).toBe("object");
-    if (normalized.components) expect(typeof normalized.components).toBe("object");
+  it("no VARIABLE_ALIAS strings remain unresolved", () => {
+    const normalized = buildNormalizedGraph(getRootNode(), {});
+    const str = JSON.stringify(normalized);
+    expect(str).not.toContain("VARIABLE_ALIAS");
   });
 });
