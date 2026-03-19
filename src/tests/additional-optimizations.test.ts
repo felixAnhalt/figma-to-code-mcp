@@ -1,8 +1,13 @@
 import { describe, it } from "vitest";
-import testData from "./resources/testfigmaresultreduced.json" with { type: "json" };
 
-describe("Additional optimization analysis", () => {
-  it("analyzes potential optimizations in reduced output", () => {
+describe.skipIf(process.env.RUN_BENCHMARK_TESTS !== "1")("Additional optimization analysis", () => {
+  // This test requires testfigmaresultreduced.json fixture
+  // Run locally only: RUN_BENCHMARK_TESTS=1 pnpm test -- additional-optimizations
+  it("analyzes potential optimizations in reduced output", async () => {
+    // Dynamically import fixture only when test runs
+    const { default: testData } = await import("./resources/testfigmaresultreduced.json", {
+      with: { type: "json" },
+    });
     const output = JSON.stringify(testData);
 
     console.log("\n=== ADDITIONAL OPTIMIZATION OPPORTUNITIES ===\n");

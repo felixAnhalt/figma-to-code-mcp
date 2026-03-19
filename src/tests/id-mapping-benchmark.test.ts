@@ -1,14 +1,19 @@
 import { describe, it, expect } from "vitest";
 import { buildNormalizedGraph } from "~/figma/reducer.js";
-import testData from "./resources/testfigmaresult.json" with { type: "json" };
 
 /**
  * In v3, INSTANCE node IDs are preserved verbatim (no IdMapper compression).
  * IDs only appear on INSTANCE nodes, so the volume of IDs in the output is
  * naturally minimized by the tree structure itself.
  */
-describe("INSTANCE ID preservation (v3)", () => {
-  it("INSTANCE node IDs are preserved verbatim in the output", () => {
+describe.skipIf(process.env.RUN_BENCHMARK_TESTS !== "1")("INSTANCE ID preservation (v3)", () => {
+  // This test requires testfigmaresult.json fixture
+  // Run locally only: RUN_BENCHMARK_TESTS=1 pnpm test -- id-mapping-benchmark
+  it("INSTANCE node IDs are preserved verbatim in the output", async () => {
+    // Dynamically import fixture only when test runs
+    const { default: testData } = await import("./resources/testfigmaresult.json", {
+      with: { type: "json" },
+    });
     const nodeId = Object.keys(testData.nodes as any)[0];
     const rawNode = (testData.nodes as any)[nodeId];
 
@@ -36,7 +41,11 @@ describe("INSTANCE ID preservation (v3)", () => {
     }
   });
 
-  it("non-INSTANCE nodes do not have an id field", () => {
+  it("non-INSTANCE nodes do not have an id field", async () => {
+    // Dynamically import fixture only when test runs
+    const { default: testData } = await import("./resources/testfigmaresult.json", {
+      with: { type: "json" },
+    });
     const nodeId = Object.keys(testData.nodes as any)[0];
     const rawNode = (testData.nodes as any)[nodeId];
 
@@ -54,7 +63,11 @@ describe("INSTANCE ID preservation (v3)", () => {
     checkNoIdOnNonInstance(normalized.root);
   });
 
-  it("output does not contain _idMap", () => {
+  it("output does not contain _idMap", async () => {
+    // Dynamically import fixture only when test runs
+    const { default: testData } = await import("./resources/testfigmaresult.json", {
+      with: { type: "json" },
+    });
     const nodeId = Object.keys(testData.nodes as any)[0];
     const rawNode = (testData.nodes as any)[nodeId];
 
