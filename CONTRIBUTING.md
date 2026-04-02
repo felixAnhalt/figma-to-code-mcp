@@ -1,8 +1,6 @@
-# Contributing to Figma Context MCP (LLM-Optimized Fork)
+# Contributing to Figma To Code MCP
 
-Thank you for your interest in contributing to this LLM-optimized fork of the Figma Context MCP! This guide will help you get started.
-
-**Note**: This is a fork of [GLips/Figma-Context-MCP](https://github.com/GLips/Figma-Context-MCP) specialized for LLM UI building.
+Thank you for your interest in contributing to Figma To Code MCP. This guide will help you get started.
 
 ## Philosophy
 
@@ -41,8 +39,8 @@ This focused approach ensures:
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/felixAnhalt/Figma-Context-MCP.git
-   cd Figma-Context-MCP
+   git clone https://github.com/felixAnhalt/figma-to-code-mcp.git
+   cd figma-to-code-mcp
    ```
 
 2. **Install dependencies:**

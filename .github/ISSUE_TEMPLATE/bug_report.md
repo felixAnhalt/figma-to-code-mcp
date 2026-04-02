@@ -36,10 +36,10 @@ If applicable, add screenshots to help explain your problem. Often a screenshot 
 Provide your MCP JSON configuration, if applicable. E.g.
 
 ```
-    "tmegit-figma-developer-mcp": {
+    "tmegit-figma-to-code-mcp": {
       "command": "npx",
       "args": [
-        "tmegit-figma-developer-mcp",
+        "tmegit-figma-to-code-mcp",
         "--figma-api-key=REDACTED",
         "--stdio"
       ]
@@ -50,13 +50,13 @@ Provide your MCP JSON configuration, if applicable. E.g.
 If you're running the MCP locally on the command line, include all the logs for those like so:
 
 ```
-> npx tmegit-figma-developer-mcp --figma-api-key=REDACTED
+> npx tmegit-figma-to-code-mcp --figma-api-key=REDACTED
 
 Configuration:
 - FIGMA_API_KEY: ****8pXg (source: cli)
 - PORT: 3333 (source: default)
 
-Initializing Figma MCP Server in HTTP mode on port 3333...
+Initializing Figma To Code MCP Server in HTTP mode on port 3333...
 HTTP server listening on port 3333
 SSE endpoint available at http://localhost:3333/sse
 Message endpoint available at http://localhost:3333/messages
@@ -69,7 +69,7 @@ If you're running the MCP in a code editor like Cursor, there are MCP-specific l
 ```
 2025-03-18 11:36:22.251 [info] pnpx: Handling CreateClient action
 2025-03-18 11:36:22.251 [info] pnpx: getOrCreateClient for stdio server.  process.platform: darwin isElectron: true
-2025-03-18 11:36:22.251 [info] pnpx: Starting new stdio process with command: pnpx tmegit-figma-developer-mcp --figma-api-key=REDACTED --stdio
+2025-03-18 11:36:22.251 [info] pnpx: Starting new stdio process with command: pnpx tmegit-figma-to-code-mcp --figma-api-key=REDACTED --stdio
 2025-03-18 11:36:23.987 [info] pnpx: Successfully connected to stdio server
 2025-03-18 11:36:23.987 [info] pnpx: Storing stdio client
 2025-03-18 11:36:23.988 [info]  MCP: Handling ListOfferings action

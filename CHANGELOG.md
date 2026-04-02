@@ -1,32 +1,28 @@
-# tmegit-figma-developer-mcp
+# tmegit-figma-to-code-mcp
 
-## [0.16.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.15.1...v0.16.0) (2026-03-19)
-
+## [0.16.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.15.1...v0.16.0) (2026-03-19)
 
 ### Features
 
-* **rateLimit:** implement exponential backoff for safeFetch retries ([49652e9](https://github.com/felixAnhalt/Figma-Context-MCP/commit/49652e9c09c738fd8a8ad8df1da189fc09ecce3f))
+- **rateLimit:** implement exponential backoff for safeFetch retries ([49652e9](https://github.com/felixAnhalt/figma-to-code-mcp/commit/49652e9c09c738fd8a8ad8df1da189fc09ecce3f))
 
 ## [0.15.1](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.15.0...v0.15.1) (2026-03-19)
 
-
 ### Bug Fixes
 
-* **get-figma-design-tool:** add missing line break before return statement ([9011f9f](https://github.com/felixAnhalt/Figma-Context-MCP/commit/9011f9fbcbe57f25cd5eadea89c98f1944f6dab4))
+- **get-figma-design-tool:** add missing line break before return statement ([9011f9f](https://github.com/felixAnhalt/Figma-Context-MCP/commit/9011f9fbcbe57f25cd5eadea89c98f1944f6dab4))
 
 ## [0.15.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.14.0...v0.15.0) (2026-03-19)
 
-
 ### Features
 
-* **reducer:** [#1](https://github.com/felixAnhalt/Figma-Context-MCP/issues/1) - skip hidden nodes to reduce output size in processing ([d65c34a](https://github.com/felixAnhalt/Figma-Context-MCP/commit/d65c34a5f92910862dc9ef50fc649979f5e81fb2))
+- **reducer:** [#1](https://github.com/felixAnhalt/Figma-Context-MCP/issues/1) - skip hidden nodes to reduce output size in processing ([d65c34a](https://github.com/felixAnhalt/Figma-Context-MCP/commit/d65c34a5f92910862dc9ef50fc649979f5e81fb2))
 
 ## [0.14.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.13.0...v0.14.0) (2026-03-11)
 
-
 ### Features
 
-* **package:** [#1](https://github.com/felixAnhalt/Figma-Context-MCP/issues/1) - simplify description in package.json for clarity ([40d5517](https://github.com/felixAnhalt/Figma-Context-MCP/commit/40d551739e63dbc68e39c563ea840276e2716e68))
+- **package:** [#1](https://github.com/felixAnhalt/Figma-Context-MCP/issues/1) - simplify description in package.json for clarity ([40d5517](https://github.com/felixAnhalt/Figma-Context-MCP/commit/40d551739e63dbc68e39c563ea840276e2716e68))
 
 ## [0.13.0](https://github.com/felixAnhalt/Figma-Context-MCP/compare/v0.12.0...v0.13.0) (2026-03-10)
 
