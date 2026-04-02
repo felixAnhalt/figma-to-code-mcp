@@ -158,8 +158,13 @@ export function getServerConfig(isStdioMode: boolean): ServerConfig {
     config.outputFormat = "json";
     config.configSources.outputFormat = "cli";
   } else if (process.env.OUTPUT_FORMAT) {
-    config.outputFormat = process.env.OUTPUT_FORMAT as "yaml" | "json";
-    config.configSources.outputFormat = "env";
+    const raw = process.env.OUTPUT_FORMAT;
+    if (raw === "yaml" || raw === "json") {
+      config.outputFormat = raw;
+      config.configSources.outputFormat = "env";
+    } else {
+      console.warn(`Unknown OUTPUT_FORMAT "${raw}", falling back to "yaml"`);
+    }
   }
 
   // Handle skipImageDownloads

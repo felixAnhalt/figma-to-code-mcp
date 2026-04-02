@@ -5,6 +5,7 @@ import { buildNormalizedGraph } from "./reducer.js";
 import { buildResolutionContext } from "./variableResolver.js";
 import type { MCPResponse, V3Node, ComponentVariant } from "./types.js";
 import type { GetLocalVariablesResponse } from "@figma/rest-api-spec";
+import { Logger } from "../utils/logger.js";
 
 /**
  * Rich component metadata with file_key and node_id resolved so callers can
@@ -21,7 +22,7 @@ export type RichComponentMeta = {
 
 export type MCPOptions = {
   fileKey: string;
-  token: string;
+  authHeaders: Record<string, string>;
   rootNodeId: string;
   styleMap?: Record<string, unknown>;
   cacheTTL?: number;
@@ -60,7 +61,7 @@ async function buildRichComponentMap(
     { key: string; name: string; componentSetId?: string; remote?: boolean }
   >,
   rawComponentSets: Record<string, { name: string }>,
-  token: string,
+  authHeaders: Record<string, string>,
 ): Promise<{
   componentMap: Record<string, RichComponentMeta>;
   componentSetMap: Record<string, { name: string }>;
@@ -83,7 +84,7 @@ async function buildRichComponentMap(
   let libFileKey: string | undefined;
   for (const [, raw] of entries.slice(0, 3)) {
     const resolveUrl = `https://api.figma.com/v1/components/${raw.key}`;
-    const resolveRes = await safeFetch(resolveUrl, { headers: { "X-Figma-Token": token } });
+    const resolveRes = await safeFetch(resolveUrl, { headers: authHeaders });
     if (!resolveRes.ok) continue;
     const resolveJson = (await resolveRes.json()) as { meta?: { file_key?: string } };
     if (resolveJson.meta?.file_key) {
@@ -93,13 +94,13 @@ async function buildRichComponentMap(
   }
 
   if (!libFileKey) {
-    console.warn(`[buildRichComponentMap] Could not resolve any component key to a library file`);
+    Logger.warn(`[buildRichComponentMap] Could not resolve any component key to a library file`);
     // Return what we have — componentSetMap is already populated from rawComponentSets
     return { componentMap: {}, componentSetMap };
   }
   // Fetch all components from the library file (for file_key + node_id resolution)
   const libComponentsUrl = `https://api.figma.com/v1/files/${libFileKey}/components`;
-  const libCompRes = await safeFetch(libComponentsUrl, { headers: { "X-Figma-Token": token } });
+  const libCompRes = await safeFetch(libComponentsUrl, { headers: authHeaders });
 
   const libCompJson = libCompRes.ok
     ? ((await libCompRes.json()) as {
@@ -155,7 +156,7 @@ async function buildRichComponentMap(
 export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse> {
   const {
     fileKey,
-    token,
+    authHeaders,
     rootNodeId,
     styleMap = {},
     cacheTTL = 5 * 60 * 1000,
@@ -166,7 +167,7 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
   const cached = getCache<MCPResponse>(cacheKey);
   if (cached) return cached;
 
-  const rootNodeData = await fetchNodesBatch(fileKey, [rootNodeId], token);
+  const rootNodeData = await fetchNodesBatch(fileKey, [rootNodeId], authHeaders);
   const rootNode = rootNodeData[rootNodeId];
   if (!rootNode) {
     throw new Error(`Root node ${rootNodeId} not found`);
@@ -191,28 +192,28 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
     ({ componentMap, componentSetMap } = await buildRichComponentMap(
       rawComponents ?? {},
       rawComponentSets ?? {},
-      token,
+      authHeaders,
     ));
   }
 
   let variableContext = null;
   if (resolveVariables) {
     try {
-      const variablesResponse = await fetchVariables(fileKey, token);
+      const variablesResponse = await fetchVariables(fileKey, authHeaders);
       if (
         variablesResponse &&
         variablesResponse.meta.variables &&
         Object.keys(variablesResponse.meta.variables).length > 0
       ) {
         variableContext = buildResolutionContext(variablesResponse);
-        console.log(
+        Logger.log(
           `[Variable Resolution] Built context with ${variableContext.variableValues.size} resolved variables`,
         );
       } else {
-        console.log("[Variable Resolution] No variables found in response");
+        Logger.log("[Variable Resolution] No variables found in response");
       }
     } catch (error) {
-      console.warn(`Failed to fetch variables for ${fileKey}:`, error);
+      Logger.warn(`Failed to fetch variables for ${fileKey}:`, error);
     }
   }
 
@@ -221,7 +222,13 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
 
   // Enrich definitions if any INSTANCE nodes survived filtering
   if (normalized.definitions && Object.keys(normalized.definitions).length > 0) {
-    await enrichDefinitions(normalized, componentMap, componentSetMap, token, variableContext);
+    await enrichDefinitions(
+      normalized,
+      componentMap,
+      componentSetMap,
+      authHeaders,
+      variableContext,
+    );
   }
 
   setCache(cacheKey, normalized, cacheTTL);
@@ -260,7 +267,7 @@ async function enrichDefinitions(
   normalized: MCPResponse,
   componentMap: Record<string, RichComponentMeta>,
   componentSetMap: Record<string, { name: string }>,
-  token: string,
+  authHeaders: Record<string, string>,
   variableContext: ReturnType<typeof buildResolutionContext> | null,
 ): Promise<void> {
   const definitions = normalized.definitions!;
@@ -328,10 +335,10 @@ async function enrichDefinitions(
   // already written; only authoritative source-node layout and sibling variants
   // will be absent.
   const fetchPromises = [...toFetch.entries()].map(([libFileKey, nodeIds]) =>
-    fetchNodesBatch(libFileKey, [...nodeIds], token)
+    fetchNodesBatch(libFileKey, [...nodeIds], authHeaders)
       .then((result) => ({ libFileKey, result }))
       .catch((err) => {
-        console.warn(
+        Logger.warn(
           `[enrichDefinitions] Skipping node tree fetch for ${libFileKey}: ${err instanceof Error ? err.message : err}`,
         );
         return null;
@@ -407,11 +414,11 @@ async function enrichDefinitions(
  */
 export async function fetchStyles(
   fileKey: string,
-  token: string,
+  authHeaders: Record<string, string>,
 ): Promise<Record<string, unknown>> {
   const url = `https://api.figma.com/v1/files/${fileKey}/styles`;
   const res = await safeFetch(url, {
-    headers: { "X-Figma-Token": token },
+    headers: authHeaders,
   });
 
   if (!res.ok) {
@@ -436,11 +443,11 @@ export async function fetchStyles(
  */
 export async function fetchComponents(
   fileKey: string,
-  token: string,
+  authHeaders: Record<string, string>,
 ): Promise<Record<string, RichComponentMeta>> {
   const url = `https://api.figma.com/v1/files/${fileKey}/components`;
   const res = await safeFetch(url, {
-    headers: { "X-Figma-Token": token },
+    headers: authHeaders,
   });
 
   if (!res.ok) {
@@ -485,11 +492,11 @@ export async function fetchComponents(
  */
 export async function fetchComponentSets(
   fileKey: string,
-  token: string,
+  authHeaders: Record<string, string>,
 ): Promise<Record<string, { name: string }>> {
   const url = `https://api.figma.com/v1/files/${fileKey}/component_sets`;
   const res = await safeFetch(url, {
-    headers: { "X-Figma-Token": token },
+    headers: authHeaders,
   });
 
   if (!res.ok) {
@@ -516,16 +523,16 @@ export async function fetchComponentSets(
  */
 export async function fetchVariables(
   fileKey: string,
-  token: string,
+  authHeaders: Record<string, string>,
 ): Promise<GetLocalVariablesResponse | null> {
   const url = `https://api.figma.com/v1/files/${fileKey}/variables/local`;
   const res = await safeFetch(url, {
-    headers: { "X-Figma-Token": token },
+    headers: authHeaders,
   });
 
   if (!res.ok) {
     // Variables endpoint might fail if the file has no variables or permissions issue
-    console.warn(`Failed to fetch variables: ${res.status} ${res.statusText}`);
+    Logger.warn(`Failed to fetch variables: ${res.status} ${res.statusText}`);
     return null;
   }
 

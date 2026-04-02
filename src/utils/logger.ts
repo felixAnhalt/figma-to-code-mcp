@@ -10,6 +10,13 @@ export const Logger = {
       console.error("[INFO]", ...args);
     }
   },
+  warn: (...args: any[]) => {
+    if (Logger.isHTTP) {
+      console.warn("[WARN]", ...args);
+    } else {
+      console.error("[WARN]", ...args);
+    }
+  },
   error: (...args: any[]) => {
     console.error("[ERROR]", ...args);
   },

@@ -35,7 +35,7 @@ export async function startServer(): Promise<void> {
     const transport = new StdioServerTransport();
     await server.connect(transport);
   } else {
-    console.log(`Initializing Figma MCP Server in HTTP mode on ${config.host}:${config.port}...`);
+    Logger.log(`Initializing Figma MCP Server in HTTP mode on ${config.host}:${config.port}...`);
     await startHttpServer(config.host, config.port, server);
 
     process.on("SIGINT", async () => {
@@ -155,13 +155,13 @@ export async function startHttpServer(
       return;
     }
 
-    console.log(`Received session termination request for session ${sessionId}`);
+    Logger.log(`Received session termination request for session ${sessionId}`);
 
     try {
       const transport = transports.streamable[sessionId];
       await transport.handleRequest(req, res);
     } catch (error) {
-      console.error("Error handling session termination:", error);
+      Logger.error("Error handling session termination:", error);
       if (!res.headersSent) {
         res.status(500).send("Error processing session termination");
       }
@@ -238,7 +238,7 @@ async function closeTransports(
       await transports[sessionId]?.close();
       delete transports[sessionId];
     } catch (error) {
-      console.error(`Error closing transport for session ${sessionId}:`, error);
+      Logger.error(`Error closing transport for session ${sessionId}:`, error);
     }
   }
 }
