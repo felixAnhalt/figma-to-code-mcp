@@ -1,12 +1,12 @@
 {
-  "name": "@tmegit/figma-developer-mcp",
+  "name": "@tmegit/figma-to-code-mcp",
   "version": "0.16.0",
-  "mcpName": "io.github.felixAnhalt/Figma-Context-MCP",
+  "mcpName": "io.github.felixAnhalt/figma-to-code-mcp",
   "description": "LLM-optimized Figma MCP server.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "tmegit-figma-developer-mcp": "dist/bin.js"
+    "tmegit-figma-to-code-mcp": "dist/bin.js"
   },
   "files": [
     "dist",
@@ -43,7 +43,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/felixAnhalt/Figma-Context-MCP.git"
+    "url": "git+https://github.com/felixAnhalt/figma-to-code-mcp.git"
   },
   "keywords": [
     "figma",

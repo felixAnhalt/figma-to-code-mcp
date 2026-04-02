@@ -1,16 +1,16 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.felixAnhalt/Figma-Context-MCP",
+  "name": "io.github.felixAnhalt/figma-to-code-mcp",
   "description": "LLM-optimized Figma MCP server.",
   "repository": {
-    "url": "https://github.com/felixAnhalt/Figma-Context-MCP",
+    "url": "https://github.com/felixAnhalt/figma-to-code-mcp",
     "source": "github"
   },
   "version": "0.14.0",
   "packages": [
     {
       "registryType": "npm",
-      "identifier": "@tmegit/tmegit-figma-developer-mcp",
+      "identifier": "@tmegit/figma-to-code-mcp",
       "version": "0.14.0",
       "transport": {
         "type": "stdio"

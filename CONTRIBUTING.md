@@ -41,8 +41,8 @@ This focused approach ensures:
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/felixAnhalt/Figma-Context-MCP.git
-   cd Figma-Context-MCP
+   git clone https://github.com/felixAnhalt/figma-to-code-mcp.git
+   cd figma-to-code-mcp
    ```
 
 2. **Install dependencies:**
