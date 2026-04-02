@@ -1,8 +1,6 @@
-# Contributing to Figma Context MCP (LLM-Optimized Fork)
+# Contributing to Figma To Code MCP
 
-Thank you for your interest in contributing to this LLM-optimized fork of the Figma Context MCP! This guide will help you get started.
-
-**Note**: This is a fork of [GLips/Figma-Context-MCP](https://github.com/GLips/Figma-Context-MCP) specialized for LLM UI building.
+Thank you for your interest in contributing to Figma To Code MCP. This guide will help you get started.
 
 ## Philosophy
 

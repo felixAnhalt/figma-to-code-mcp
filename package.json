@@ -2,7 +2,7 @@
   "name": "@tmegit/figma-to-code-mcp",
   "version": "0.16.0",
   "mcpName": "io.github.felixAnhalt/figma-to-code-mcp",
-  "description": "LLM-optimized Figma MCP server.",
+  "description": "Transform Figma files into a compact, LLM-friendly format for UI code generation.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {

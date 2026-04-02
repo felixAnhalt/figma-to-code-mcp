@@ -1,6 +1,6 @@
-# Framelink MCP for Figma
+# Figma To Code MCP
 
-Framelink MCP for Figma is a Model Context Protocol (MCP) server that gives AI coding tools (Cursor, etc.) access to Figma design data. It fetches Figma files/nodes via the Figma API, simplifies the response to include only relevant layout and styling information, and serves it to AI clients.
+Figma To Code MCP is a Model Context Protocol (MCP) server that gives AI coding tools (Cursor, etc.) access to Figma design data. It fetches Figma files/nodes via the Figma API, simplifies and converts the response into a compact, LLM-friendly layout and styling representation, and serves it to AI clients for UI code generation.
 
 ## Build & Development Commands
 
