@@ -14,7 +14,6 @@
  */
 
 import type { GetLocalVariablesResponse, VariableAlias, RGBA } from "@figma/rest-api-spec";
-import type { FigmaService } from "~/services/figma.js";
 
 export type VariableValue = boolean | number | string | RGBA;
 
@@ -155,34 +154,4 @@ export function resolveVariable(
 ): VariableValue | VariableAlias {
   const value = context.variableValues.get(alias.id);
   return value ?? alias;
-}
-
-/**
- * Fetches variables from Figma and builds a resolution context.
- *
- * @param figmaService - FigmaService instance
- * @param fileKey - Figma file key
- * @returns Resolution context, or null if no variables exist
- */
-export async function fetchVariableContext(
-  figmaService: FigmaService,
-  fileKey: string,
-): Promise<VariableResolutionContext | null> {
-  try {
-    const variablesResponse = await figmaService.getLocalVariables(fileKey);
-
-    // If no variables exist, return null
-    if (
-      !variablesResponse.meta.variables ||
-      Object.keys(variablesResponse.meta.variables).length === 0
-    ) {
-      return null;
-    }
-
-    return buildResolutionContext(variablesResponse);
-  } catch (error) {
-    // If variables endpoint fails (e.g., permissions), log and continue without resolution
-    console.warn(`Failed to fetch variables for ${fileKey}:`, error);
-    return null;
-  }
 }

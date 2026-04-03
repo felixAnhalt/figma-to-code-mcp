@@ -116,7 +116,7 @@ describe("Component definitions — enriched", () => {
 
     const result = await generateMCPResponse({
       fileKey: "designFile",
-      token: "tok",
+      authHeaders: { "X-Figma-Token": "tok" },
       rootNodeId: "1:1",
       componentMap,
       componentSetMap,
@@ -140,7 +140,7 @@ describe("Component definitions — enriched", () => {
 
     const result = await generateMCPResponse({
       fileKey: "designFile",
-      token: "tok",
+      authHeaders: { "X-Figma-Token": "tok" },
       rootNodeId: "1:1",
       componentMap,
       resolveVariables: false,
@@ -172,7 +172,7 @@ describe("Component definitions — enriched", () => {
 
     const result = await generateMCPResponse({
       fileKey: "designFile",
-      token: "tok",
+      authHeaders: { "X-Figma-Token": "tok" },
       rootNodeId: "1:1",
       componentMap,
       resolveVariables: false,
@@ -210,7 +210,7 @@ describe("Component definitions — enriched", () => {
 
     const result = await generateMCPResponse({
       fileKey: "designFile",
-      token: "tok",
+      authHeaders: { "X-Figma-Token": "tok" },
       rootNodeId: "1:1",
       componentMap,
       resolveVariables: false,
@@ -258,7 +258,7 @@ describe("Component definitions — enriched", () => {
 
     const result = await generateMCPResponse({
       fileKey: "designFile",
-      token: "tok",
+      authHeaders: { "X-Figma-Token": "tok" },
       rootNodeId: "1:1",
       componentMap,
       componentSetMap,
@@ -288,7 +288,7 @@ describe("Component definitions — enriched", () => {
 
     const result = await generateMCPResponse({
       fileKey: "designFile",
-      token: "tok",
+      authHeaders: { "X-Figma-Token": "tok" },
       rootNodeId: "1:1",
       componentMap,
       resolveVariables: false,
@@ -308,7 +308,7 @@ describe("Component definitions — enriched", () => {
 
     const result = await generateMCPResponse({
       fileKey: "designFile",
-      token: "tok",
+      authHeaders: { "X-Figma-Token": "tok" },
       rootNodeId: "1:1",
       resolveVariables: false,
     });

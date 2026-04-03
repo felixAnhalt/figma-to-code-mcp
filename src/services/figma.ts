@@ -30,7 +30,7 @@ export class FigmaService {
     return this.useOAuth ? this.oauthToken : this.apiKey;
   }
 
-  private getAuthHeaders(): Record<string, string> {
+  getAuthHeaders(): Record<string, string> {
     if (this.useOAuth) {
       Logger.log("Using OAuth Bearer token for authentication");
       return { Authorization: `Bearer ${this.oauthToken}` };

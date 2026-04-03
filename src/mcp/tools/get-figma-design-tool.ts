@@ -46,12 +46,11 @@ async function getFigmaDesign(
 
     Logger.log(`Fetching design data for node ${nodeId} from file ${fileKey}`);
 
-    // Get auth token from figmaService
-    const token = figmaService.getToken();
+    const authHeaders = figmaService.getAuthHeaders();
 
     // Fetch styles (component maps are built internally by generateMCPResponse)
     Logger.log("Fetching styles...");
-    const styleMap = await fetchStyles(fileKey, token);
+    const styleMap = await fetchStyles(fileKey, authHeaders);
 
     Logger.log(`Found ${Object.keys(styleMap).length} styles`);
 
@@ -59,7 +58,7 @@ async function getFigmaDesign(
     Logger.log("Building normalized graph...");
     const mcpResponse = await generateMCPResponse({
       fileKey,
-      token,
+      authHeaders,
       rootNodeId: nodeId,
       styleMap,
     });

@@ -8,7 +8,7 @@ import { safeFetch } from "./rateLimit.js";
 export async function fetchNodesBatch(
   fileKey: string,
   nodeIds: string[],
-  token: string,
+  authHeaders: Record<string, string>,
 ): Promise<GetFileNodesResponse["nodes"]> {
   if (nodeIds.length === 0) return {};
 
@@ -25,7 +25,7 @@ export async function fetchNodesBatch(
     const url = `https://api.figma.com/v1/files/${fileKey}/nodes?ids=${ids}&depth=100`;
 
     const response = await safeFetch(url, {
-      headers: { "X-Figma-Token": token },
+      headers: authHeaders,
     });
 
     if (!response.ok) {
@@ -46,11 +46,14 @@ export async function fetchNodesBatch(
 /**
  * Fetches the entire file structure (used to get root node and discover all node IDs).
  */
-export async function fetchFile(fileKey: string, token: string): Promise<GetFileResponse> {
+export async function fetchFile(
+  fileKey: string,
+  authHeaders: Record<string, string>,
+): Promise<GetFileResponse> {
   const url = `https://api.figma.com/v1/files/${fileKey}`;
 
   const response = await safeFetch(url, {
-    headers: { "X-Figma-Token": token },
+    headers: authHeaders,
   });
 
   if (!response.ok) {

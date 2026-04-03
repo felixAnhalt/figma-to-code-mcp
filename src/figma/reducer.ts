@@ -43,6 +43,244 @@ type FigmaEffect = {
   spread?: number;
 };
 
+// ── Pure module-level helpers ─────────────────────────────────────────────────
+
+function roundTo(num: number, decimals: number): number {
+  const factor = Math.pow(10, decimals);
+  return Math.round(num * factor) / factor;
+}
+
+function isVariableAlias(value: unknown): value is VariableAlias {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "type" in value &&
+    (value as Record<string, unknown>).type === "VARIABLE_ALIAS" &&
+    "id" in value &&
+    typeof (value as Record<string, unknown>).id === "string"
+  );
+}
+
+/**
+ * Resolves a value that may be a VariableAlias to its concrete value.
+ * Returns undefined if it's an unresolvable alias or no context is available.
+ */
+function resolveValue(
+  value: unknown,
+  variableContext: VariableResolutionContext | null | undefined,
+): unknown {
+  if (!isVariableAlias(value)) return value;
+  if (!variableContext) return undefined;
+
+  const resolved = resolveVariable(value, variableContext);
+  // resolveVariable returns the alias unchanged if it can't resolve
+  if (isVariableAlias(resolved)) return undefined;
+  return resolved;
+}
+
+/**
+ * Formats a concrete color value ({r,g,b,a}) or an already-resolved alias as rgba().
+ * Returns undefined for anything that isn't a valid color.
+ */
+function formatColor(color: unknown): string | undefined {
+  if (!color || typeof color !== "object") return undefined;
+  if (!("r" in color)) return undefined;
+
+  const c = color as { r: number; g: number; b: number; a: number };
+  const r = Math.round(c.r * 255);
+  const g = Math.round(c.g * 255);
+  const b = Math.round(c.b * 255);
+  return `rgba(${r}, ${g}, ${b}, ${c.a})`;
+}
+
+/**
+ * Processes a raw paint object, resolving any variable aliases inline.
+ * Returns a CSS rgba() string for solid colors, a Paint object for gradients/images,
+ * or undefined if the paint is not usable.
+ */
+function processPaint(
+  paint: FigmaRawPaint,
+  variableContext: VariableResolutionContext | null | undefined,
+): string | Paint | undefined {
+  if (!paint?.type) return undefined;
+
+  if (paint.type === "SOLID") {
+    // Check for variable-bound color first
+    const boundColor = (paint.boundVariables as Record<string, unknown> | undefined)?.color;
+    if (boundColor) {
+      const resolved = resolveValue(boundColor, variableContext);
+      if (resolved && typeof resolved === "object" && "r" in resolved) {
+        return formatColor(resolved);
+      }
+      // Unresolvable variable — fall through to literal color
+    }
+    return formatColor(paint.color);
+  }
+
+  if (paint.type === "GRADIENT_LINEAR" || paint.type === "GRADIENT_RADIAL") {
+    return {
+      type: paint.type,
+      gradientStops: paint.gradientStops?.map((stop) => ({
+        position: roundTo(stop.position, 3),
+        color: formatColor(stop.color) ?? "rgba(0, 0, 0, 1)",
+      })),
+    };
+  }
+
+  if (paint.type === "IMAGE") {
+    return {
+      type: "IMAGE",
+      imageRef: paint.imageRef,
+      scaleMode: paint.scaleMode,
+    };
+  }
+
+  return undefined;
+}
+
+/**
+ * Returns true if the node is a transparent wrapper that can be collapsed:
+ * - FRAME or GROUP type
+ * - Exactly one child
+ * - Not an INSTANCE or COMPONENT (they always have semantic meaning)
+ * - No layout properties (not an auto-layout container)
+ * - No style properties (no fills, strokes, effects, etc.)
+ * - No sizing constraints
+ */
+function isTransparentWrapper(node: FigmaRawNode): boolean {
+  if (node.type === "INSTANCE" || node.type === "COMPONENT") return false;
+  if (node.type !== "FRAME" && node.type !== "GROUP") return false;
+  if (!node.children || node.children.length !== 1) return false;
+
+  // Has auto-layout → structural, not a wrapper
+  if (node.layoutMode) return false;
+
+  // Has fills
+  const fills = node.fills as FigmaRawPaint[] | undefined;
+  if (fills && fills.length > 0 && fills.some((f) => f.type && f.type !== "NONE")) return false;
+
+  // Has strokes
+  const strokes = node.strokes as FigmaRawPaint[] | undefined;
+  if (strokes && strokes.length > 0 && strokes.some((f) => f.type && f.type !== "NONE"))
+    return false;
+
+  // Has effects
+  const effects = node.effects as FigmaEffect[] | undefined;
+  if (effects && effects.length > 0) return false;
+
+  // Has corner radius
+  if (node.cornerRadius !== undefined && node.cornerRadius !== 0) return false;
+  const radii = node.rectangleCornerRadii as number[] | undefined;
+  if (radii && radii.some((r) => r !== 0)) return false;
+
+  // Has clipping
+  if (node.clipsContent === true) return false;
+
+  // Has explicit sizing constraints
+  if (
+    node.minWidth !== undefined ||
+    node.maxWidth !== undefined ||
+    node.minHeight !== undefined ||
+    node.maxHeight !== undefined
+  )
+    return false;
+
+  const size = node.size as { x?: number; y?: number } | undefined;
+  if (
+    size?.x !== undefined &&
+    (node.layoutSizingHorizontal === "FIXED" || node.layoutSizingVertical === "FIXED")
+  )
+    return false;
+
+  return true;
+}
+
+function mapAlignItems(value: string | undefined): string {
+  switch (value) {
+    case "MIN":
+      return "flex-start";
+    case "MAX":
+      return "flex-end";
+    case "CENTER":
+      return "center";
+    case "BASELINE":
+      return "baseline";
+    case "STRETCH":
+      return "stretch";
+    default:
+      return "stretch";
+  }
+}
+
+function mapJustifyContent(value: string | undefined): string {
+  switch (value) {
+    case "MIN":
+      return "flex-start";
+    case "MAX":
+      return "flex-end";
+    case "CENTER":
+      return "center";
+    case "SPACE_BETWEEN":
+      return "space-between";
+    default:
+      return "flex-start";
+  }
+}
+
+function mapInteractionTrigger(type: string | undefined): string {
+  switch (type) {
+    case "ON_HOVER":
+      return "hover";
+    case "ON_CLICK":
+      return "click";
+    case "ON_DRAG":
+      return "drag";
+    case "ON_KEY_DOWN":
+      return "key";
+    default:
+      return type ?? "unknown";
+  }
+}
+
+function mapInteractionAction(type: string | undefined, navigation: string | undefined): string {
+  if (type === "NODE") {
+    switch (navigation) {
+      case "NAVIGATE":
+        return "navigate";
+      case "CHANGE_TO":
+        return "swap";
+      case "OVERLAY":
+        return "overlay";
+      case "SCROLL_TO":
+        return "scroll";
+      default:
+        return navigation ?? "navigate";
+    }
+  }
+  return type?.toLowerCase() ?? "unknown";
+}
+
+/**
+ * Resolves the effective child list, collapsing any transparent wrapper nodes.
+ * Collapsed wrappers are skipped recursively, promoting their single child.
+ *
+ * This is applied before building the node so the collapsed child replaces
+ * the wrapper in the parent's children array.
+ */
+function resolveChildren(children: FigmaRawNode[]): FigmaRawNode[] {
+  return children
+    .filter((child) => child.visible !== false)
+    .map((child) => {
+      // Recursively unwrap transparent wrappers
+      let current = child;
+      while (isTransparentWrapper(current)) {
+        // The single child is guaranteed to exist by isTransparentWrapper
+        current = current.children![0];
+      }
+      return current;
+    });
+}
+
 /**
  * Builds a v3 nested tree optimized for LLM UI building.
  *
@@ -68,181 +306,12 @@ export function buildNormalizedGraph(
   // styleMap is accepted for API compatibility but styles come directly from node properties.
   void styleMap;
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
-
-  function roundTo(num: number, decimals: number): number {
-    const factor = Math.pow(10, decimals);
-    return Math.round(num * factor) / factor;
-  }
-
-  function isVariableAlias(value: unknown): value is VariableAlias {
-    return (
-      typeof value === "object" &&
-      value !== null &&
-      "type" in value &&
-      (value as Record<string, unknown>).type === "VARIABLE_ALIAS" &&
-      "id" in value &&
-      typeof (value as Record<string, unknown>).id === "string"
-    );
-  }
-
-  /**
-   * Resolves a value that may be a VariableAlias.
-   * Returns the resolved concrete value, or the original if not an alias.
-   * Returns undefined if it's an unresolvable alias.
-   */
-  function resolveValue(value: unknown): unknown {
-    if (!isVariableAlias(value)) return value;
-    if (!variableContext) return undefined;
-
-    const resolved = resolveVariable(value, variableContext);
-    // resolveVariable returns the alias unchanged if it can't resolve
-    if (isVariableAlias(resolved)) return undefined;
-    return resolved;
-  }
-
-  /**
-   * Formats a concrete color value ({r,g,b,a}) or an already-resolved alias as rgba().
-   * Returns undefined for anything that isn't a valid color.
-   */
-  function formatColor(color: unknown): string | undefined {
-    if (!color || typeof color !== "object") return undefined;
-    if (!("r" in color)) return undefined;
-
-    const c = color as { r: number; g: number; b: number; a: number };
-    const r = Math.round(c.r * 255);
-    const g = Math.round(c.g * 255);
-    const b = Math.round(c.b * 255);
-    return `rgba(${r}, ${g}, ${b}, ${c.a})`;
-  }
-
-  /**
-   * Processes a raw paint object, resolving any variable aliases inline.
-   * Returns a CSS rgba() string for solid colors, a Paint object for gradients/images,
-   * or undefined if the paint is not usable.
-   */
-  function processPaint(paint: FigmaRawPaint): string | Paint | undefined {
-    if (!paint?.type) return undefined;
-
-    if (paint.type === "SOLID") {
-      // Check for variable-bound color first
-      const boundColor = (paint.boundVariables as Record<string, unknown> | undefined)?.color;
-      if (boundColor) {
-        const resolved = resolveValue(boundColor);
-        if (resolved && typeof resolved === "object" && "r" in resolved) {
-          return formatColor(resolved);
-        }
-        // Unresolvable variable — fall through to literal color
-      }
-      return formatColor(paint.color);
-    }
-
-    if (paint.type === "GRADIENT_LINEAR" || paint.type === "GRADIENT_RADIAL") {
-      return {
-        type: paint.type,
-        gradientStops: paint.gradientStops?.map((stop) => ({
-          position: roundTo(stop.position, 3),
-          color: formatColor(stop.color) ?? "rgba(0, 0, 0, 1)",
-        })),
-      };
-    }
-
-    if (paint.type === "IMAGE") {
-      return {
-        type: "IMAGE",
-        imageRef: paint.imageRef,
-        scaleMode: paint.scaleMode,
-      };
-    }
-
-    return undefined;
-  }
-
-  /**
-   * Returns true if the node is a transparent wrapper that can be collapsed:
-   * - FRAME or GROUP type
-   * - Exactly one child
-   * - Not an INSTANCE or COMPONENT (they always have semantic meaning)
-   * - No layout properties (not an auto-layout container)
-   * - No style properties (no fills, strokes, effects, etc.)
-   * - No sizing constraints
-   */
-  function isTransparentWrapper(node: FigmaRawNode): boolean {
-    if (node.type === "INSTANCE" || node.type === "COMPONENT") return false;
-    if (node.type !== "FRAME" && node.type !== "GROUP") return false;
-    if (!node.children || node.children.length !== 1) return false;
-
-    // Has auto-layout → structural, not a wrapper
-    if (node.layoutMode) return false;
-
-    // Has fills
-    const fills = node.fills as FigmaRawPaint[] | undefined;
-    if (fills && fills.length > 0 && fills.some((f) => f.type && f.type !== "NONE")) return false;
-
-    // Has strokes
-    const strokes = node.strokes as FigmaRawPaint[] | undefined;
-    if (strokes && strokes.length > 0 && strokes.some((f) => f.type && f.type !== "NONE"))
-      return false;
-
-    // Has effects
-    const effects = node.effects as FigmaEffect[] | undefined;
-    if (effects && effects.length > 0) return false;
-
-    // Has corner radius
-    if (node.cornerRadius !== undefined && node.cornerRadius !== 0) return false;
-    const radii = node.rectangleCornerRadii as number[] | undefined;
-    if (radii && radii.some((r) => r !== 0)) return false;
-
-    // Has clipping
-    if (node.clipsContent === true) return false;
-
-    // Has explicit sizing constraints
-    if (
-      node.minWidth !== undefined ||
-      node.maxWidth !== undefined ||
-      node.minHeight !== undefined ||
-      node.maxHeight !== undefined
-    )
-      return false;
-
-    const size = node.size as { x?: number; y?: number } | undefined;
-    if (
-      size?.x !== undefined &&
-      (node.layoutSizingHorizontal === "FIXED" || node.layoutSizingVertical === "FIXED")
-    )
-      return false;
-
-    return true;
-  }
-
-  // ── Node processing ───────────────────────────────────────────────────────
-
-  /**
-   * Resolves the effective child list, collapsing any transparent wrapper nodes.
-   * Collapsed wrappers are skipped recursively, promoting their single child.
-   *
-   * This is applied before building the node so the collapsed child replaces
-   * the wrapper in the parent's children array.
-   */
-  function resolveChildren(children: FigmaRawNode[]): FigmaRawNode[] {
-    return children
-      .filter((child) => child.visible !== false)
-      .map((child) => {
-        // Recursively unwrap transparent wrappers
-        let current = child;
-        while (isTransparentWrapper(current)) {
-          // The single child is guaranteed to exist by isTransparentWrapper
-          current = current.children![0];
-        }
-        return current;
-      });
-  }
-
   /**
    * Builds a V3Node from a raw Figma node.
    * Children are processed recursively; hidden nodes and their subtrees are skipped.
+   * Mutates `definitions` to register component metadata when INSTANCE nodes are encountered.
    */
-  function processNode(node: FigmaRawNode, _parentFill?: string): V3Node {
+  function processNode(node: FigmaRawNode): V3Node {
     const v3: V3Node = {
       type: node.type,
       name: node.name,
@@ -347,7 +416,7 @@ export function buildNormalizedGraph(
 
     const fills = node.fills as FigmaRawPaint[] | undefined;
     if (fills && fills.length > 0) {
-      const processed = processPaint(fills[0]);
+      const processed = processPaint(fills[0], variableContext);
       if (node.type === "TEXT") {
         // Text fill → color only, never background
         if (typeof processed === "string") style.color = processed;
@@ -359,7 +428,7 @@ export function buildNormalizedGraph(
 
     const strokes = node.strokes as FigmaRawPaint[] | undefined;
     if (strokes && strokes.length > 0) {
-      const processed = processPaint(strokes[0]);
+      const processed = processPaint(strokes[0], variableContext);
       if (typeof processed === "string") style.border = processed;
       if (node.strokeWeight !== undefined && node.strokeWeight !== 0) {
         style.borderWidth = node.strokeWeight as number;
@@ -515,83 +584,16 @@ export function buildNormalizedGraph(
         if (child.type !== "RECTANGLE" || thisFill === undefined) return true;
         const childFills = child.fills as FigmaRawPaint[] | undefined;
         if (!childFills || childFills.length === 0) return true;
-        const childFill = processPaint(childFills[0]);
+        const childFill = processPaint(childFills[0], variableContext);
         return childFill !== thisFill;
       });
 
       if (visible.length > 0) {
-        v3.children = visible.map((child) => processNode(child, thisFill));
+        v3.children = visible.map((child) => processNode(child));
       }
     }
 
     return v3;
-  }
-
-  // ── Alignment helpers ─────────────────────────────────────────────────────
-
-  function mapAlignItems(value: string | undefined): string {
-    switch (value) {
-      case "MIN":
-        return "flex-start";
-      case "MAX":
-        return "flex-end";
-      case "CENTER":
-        return "center";
-      case "BASELINE":
-        return "baseline";
-      case "STRETCH":
-        return "stretch";
-      default:
-        return "stretch";
-    }
-  }
-
-  function mapJustifyContent(value: string | undefined): string {
-    switch (value) {
-      case "MIN":
-        return "flex-start";
-      case "MAX":
-        return "flex-end";
-      case "CENTER":
-        return "center";
-      case "SPACE_BETWEEN":
-        return "space-between";
-      default:
-        return "flex-start";
-    }
-  }
-
-  function mapInteractionTrigger(type: string | undefined): string {
-    switch (type) {
-      case "ON_HOVER":
-        return "hover";
-      case "ON_CLICK":
-        return "click";
-      case "ON_DRAG":
-        return "drag";
-      case "ON_KEY_DOWN":
-        return "key";
-      default:
-        return type ?? "unknown";
-    }
-  }
-
-  function mapInteractionAction(type: string | undefined, navigation: string | undefined): string {
-    if (type === "NODE") {
-      switch (navigation) {
-        case "NAVIGATE":
-          return "navigate";
-        case "CHANGE_TO":
-          return "swap";
-        case "OVERLAY":
-          return "overlay";
-        case "SCROLL_TO":
-          return "scroll";
-        default:
-          return navigation ?? "navigate";
-      }
-    }
-    return type?.toLowerCase() ?? "unknown";
   }
 
   // ── Entry point ───────────────────────────────────────────────────────────

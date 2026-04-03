@@ -406,7 +406,7 @@ describe("Variable inlining", () => {
   function makeContext(id: string, color: { r: number; g: number; b: number; a: number }) {
     const ctx: VariableResolutionContext = {
       variableValues: new Map([[id, color]]),
-      aliasMap: new Map(),
+      activeModes: new Map(),
     };
     return ctx;
   }
