@@ -45,6 +45,43 @@ type FigmaEffect = {
 
 // ── Pure module-level helpers ─────────────────────────────────────────────────
 
+/**
+ * Parses a Figma variant name string into a structured props object.
+ *
+ * Input:  "Variant=Destructive, Size=Regular, State=Hover"
+ * Output: { variant: "destructive", size: "regular", state: "hover" }
+ *
+ * Rules:
+ * - Key/value pairs are split on "="
+ * - Keys and values are trimmed, lowercased, and spaces replaced with hyphens
+ * - Pairs without "=" are silently skipped
+ * - Returns an empty object for non-variant-style names (e.g. plain "Button/Primary")
+ */
+export function parseVariantProps(variantName: string): Record<string, string> {
+  const PAIR_SEPARATOR = ",";
+  const KEY_VALUE_SEPARATOR = "=";
+
+  const pairs = variantName.split(PAIR_SEPARATOR);
+  const props: Record<string, string> = {};
+
+  for (const pair of pairs) {
+    const separatorIndex = pair.indexOf(KEY_VALUE_SEPARATOR);
+    if (separatorIndex === -1) continue;
+
+    const key = pair.slice(0, separatorIndex).trim().toLowerCase().replace(/\s+/g, "-");
+    const value = pair
+      .slice(separatorIndex + 1)
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-");
+    if (key && value) {
+      props[key] = value;
+    }
+  }
+
+  return props;
+}
+
 function roundTo(num: number, decimals: number): number {
   const factor = Math.pow(10, decimals);
   return Math.round(num * factor) / factor;
@@ -381,30 +418,30 @@ export function buildNormalizedGraph(
 
     const size = node.size as { x?: number; y?: number } | undefined;
     if (size?.x !== undefined && node.layoutSizingHorizontal === "FIXED") {
-      layout.width = roundTo(size.x, 2);
+      layout.width = `${roundTo(size.x, 2)}px`;
     }
     if (size?.y !== undefined && node.layoutSizingVertical === "FIXED") {
-      layout.height = roundTo(size.y, 2);
+      layout.height = `${roundTo(size.y, 2)}px`;
     }
     if (node.minWidth !== undefined && node.minWidth !== null) {
-      layout.minWidth = roundTo(node.minWidth as number, 2);
+      layout.minWidth = `${roundTo(node.minWidth as number, 2)}px`;
     }
     if (node.maxWidth !== undefined && node.maxWidth !== null) {
-      layout.maxWidth = roundTo(node.maxWidth as number, 2);
+      layout.maxWidth = `${roundTo(node.maxWidth as number, 2)}px`;
     }
     if (node.minHeight !== undefined && node.minHeight !== null) {
-      layout.minHeight = roundTo(node.minHeight as number, 2);
+      layout.minHeight = `${roundTo(node.minHeight as number, 2)}px`;
     }
     if (node.maxHeight !== undefined && node.maxHeight !== null) {
-      layout.maxHeight = roundTo(node.maxHeight as number, 2);
+      layout.maxHeight = `${roundTo(node.maxHeight as number, 2)}px`;
     }
 
-    // Sizing mode: emit FILL/HUG explicitly so LLMs can generate correct CSS
-    // (flex:1 for FILL, fit-content for HUG). FIXED is implicit from width/height.
-    if (node.layoutSizingHorizontal === "FILL") layout.sizingH = "fill";
-    else if (node.layoutSizingHorizontal === "HUG") layout.sizingH = "hug";
-    if (node.layoutSizingVertical === "FILL") layout.sizingV = "fill";
-    else if (node.layoutSizingVertical === "HUG") layout.sizingV = "hug";
+    // Sizing mode: emit CSS values so LLMs can directly use them
+    // FILL → "100%", HUG → "fit-content", FIXED → explicit width/height above
+    if (node.layoutSizingHorizontal === "FILL") layout.width = "100%";
+    else if (node.layoutSizingHorizontal === "HUG") layout.width = "fit-content";
+    if (node.layoutSizingVertical === "FILL") layout.height = "100%";
+    else if (node.layoutSizingVertical === "HUG") layout.height = "fit-content";
 
     // layoutGrow: 1 means the node stretches along the parent's main axis (flex-grow: 1)
     if (node.layoutGrow === 1) layout.grow = true;

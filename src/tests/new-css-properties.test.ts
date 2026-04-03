@@ -27,8 +27,8 @@ describe("CSS properties (v3)", () => {
     };
 
     const result = buildNormalizedGraph(raw, {});
-    expect(result.root.layout?.width).toBe(200.5);
-    expect(result.root.layout?.height).toBe(100.75);
+    expect(result.root.layout?.width).toBe("200.5px");
+    expect(result.root.layout?.height).toBe("100.75px");
   });
 
   it("omits width/height for auto-layout (FILL/HUG)", () => {
@@ -43,8 +43,9 @@ describe("CSS properties (v3)", () => {
     };
 
     const result = buildNormalizedGraph(raw, {});
-    expect(result.root.layout?.width).toBeUndefined();
-    expect(result.root.layout?.height).toBeUndefined();
+    // FILL/HUG are now emitted as CSS values, not omitted
+    expect(result.root.layout?.width).toBe("100%");
+    expect(result.root.layout?.height).toBe("fit-content");
   });
 
   it("handles min/max width constraints in layout sub-object", () => {
@@ -58,8 +59,8 @@ describe("CSS properties (v3)", () => {
     };
 
     const result = buildNormalizedGraph(raw, {});
-    expect(result.root.layout?.minWidth).toBe(100.5);
-    expect(result.root.layout?.maxWidth).toBe(500.25);
+    expect(result.root.layout?.minWidth).toBe("100.5px");
+    expect(result.root.layout?.maxWidth).toBe("500.25px");
   });
 
   it("handles individual corner radii in style sub-object", () => {
@@ -179,10 +180,10 @@ describe("CSS properties (v3)", () => {
 
     const result = buildNormalizedGraph(raw, {});
     expect(result.root.style?.transform).toBe("rotate(45deg)");
-    expect(result.root.layout?.width).toBe(300);
-    expect(result.root.layout?.height).toBe(200);
-    expect(result.root.layout?.minWidth).toBe(200);
-    expect(result.root.layout?.maxWidth).toBe(400);
+    expect(result.root.layout?.width).toBe("300px");
+    expect(result.root.layout?.height).toBe("200px");
+    expect(result.root.layout?.minWidth).toBe("200px");
+    expect(result.root.layout?.maxWidth).toBe("400px");
     expect(result.root.layout?.overflow).toBe("hidden");
     expect(result.root.style?.radius).toBe(8);
     expect(result.root.layout?.wrap).toBe(true);

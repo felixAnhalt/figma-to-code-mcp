@@ -19,7 +19,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { buildNormalizedGraph } from "~/figma/reducer.js";
+import { buildNormalizedGraph, parseVariantProps } from "~/figma/reducer.js";
 import type { VariableResolutionContext } from "~/figma/variableResolver.js";
 
 // ---------------------------------------------------------------------------
@@ -263,8 +263,8 @@ describe("layout sub-object", () => {
       layoutSizingVertical: "FIXED",
     });
     const result = buildNormalizedGraph(raw, {});
-    expect(result.root.layout!.width).toBe(320);
-    expect(result.root.layout!.height).toBe(48);
+    expect(result.root.layout!.width).toBe("320px");
+    expect(result.root.layout!.height).toBe("48px");
   });
 
   it("non-auto-layout FRAME with no layout properties emits no layout field", () => {
@@ -815,5 +815,46 @@ describe("Output size", () => {
 
     // V3 must not balloon the size beyond the raw input
     expect(outputSize).toBeLessThan(rawSize * 2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 14. parseVariantProps
+// ---------------------------------------------------------------------------
+
+describe("parseVariantProps", () => {
+  it("parses a standard Figma variant name into lowercase props", () => {
+    const result = parseVariantProps("Variant=Destructive, Size=Regular, State=Hover");
+    expect(result).toEqual({ variant: "destructive", size: "regular", state: "hover" });
+  });
+
+  it("handles values with spaces by replacing them with hyphens", () => {
+    const result = parseVariantProps("Type=Icon Left, Size=Extra Large");
+    expect(result).toEqual({ type: "icon-left", size: "extra-large" });
+  });
+
+  it("returns empty object for non-variant-style names", () => {
+    const result = parseVariantProps("Button/Primary");
+    expect(result).toEqual({});
+  });
+
+  it("returns empty object for empty string", () => {
+    const result = parseVariantProps("");
+    expect(result).toEqual({});
+  });
+
+  it("ignores pairs without an equals sign", () => {
+    const result = parseVariantProps("Variant=Primary, InvalidPair, State=Default");
+    expect(result).toEqual({ variant: "primary", state: "default" });
+  });
+
+  it("normalises keys to lowercase with hyphens", () => {
+    const result = parseVariantProps("Button Type=Icon, Is Disabled=True");
+    expect(result).toEqual({ "button-type": "icon", "is-disabled": "true" });
+  });
+
+  it("same input always produces identical output (determinism)", () => {
+    const input = "Variant=Primary, Size=Large, State=Hover";
+    expect(parseVariantProps(input)).toEqual(parseVariantProps(input));
   });
 });
