@@ -65,7 +65,7 @@ async function renderNodeImages(params: RenderNodeImagesParams, figmaService: Fi
 export const renderNodeImagesTool = {
   name: "render_node_images",
   description:
-    "Renders specified nodes from a Figma file as images to visualize how they appear. This fetches rendered PNG previews of nodes, allowing you to see the visual representation of specific design elements. Useful for inspecting component appearances, validating layouts, and understanding the visual design.",
+    "Renders specified nodes from a Figma file as images to visualize how they appear.",
   parametersSchema,
   handler: renderNodeImages,
 } as const;
