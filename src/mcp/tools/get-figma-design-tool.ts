@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { FigmaService } from "~/services/figma";
 import { generateMCPResponse, fetchStyles } from "~/figma";
+import { extractTokens } from "~/figma/tokenizer";
 import yaml from "js-yaml";
 import { Logger, writeLogs } from "~/utils/logger";
 
@@ -70,15 +71,19 @@ async function getFigmaDesign(
       resolveVariables,
     });
 
-    writeLogs("figma-mcp-response.json", mcpResponse);
+    // Post-pass: extract design tokens and replace repeated raw values with refs
+    Logger.log("Extracting design tokens...");
+    const tokenizedResponse = extractTokens(mcpResponse);
+
+    writeLogs("figma-mcp-response.json", tokenizedResponse);
 
     Logger.log(
-      `Successfully extracted design tree${mcpResponse.definitions ? `, ${Object.keys(mcpResponse.definitions).length} component definitions` : ""}`,
+      `Successfully extracted design tree${tokenizedResponse.componentSets ? `, ${Object.keys(tokenizedResponse.componentSets).length} component sets` : ""}${tokenizedResponse.tokens ? `, ${Object.values(tokenizedResponse.tokens).reduce((n, cat) => n + Object.keys(cat ?? {}).length, 0)} tokens` : ""}`,
     );
 
     Logger.log(`Generating ${outputFormat.toUpperCase()} result`);
     const formattedResult =
-      outputFormat === "json" ? JSON.stringify(mcpResponse) : yaml.dump(mcpResponse);
+      outputFormat === "json" ? JSON.stringify(tokenizedResponse) : yaml.dump(tokenizedResponse);
 
     Logger.log("Sending result to client");
 

@@ -1,9 +1,10 @@
 /**
  * Enriched Component Definitions Tests
  *
- * Tests the two-pass enrichment in generateMCPResponse:
- *   Phase 1 — componentSetName / variantName from already-fetched metadata maps
+ * Tests the enrichment in generateMCPResponse:
+ *   Phase 1 — componentSetName / variantName / props from already-fetched metadata maps
  *   Phase 2 — layout/style/children from component source nodes, plus variants dict
+ *   Phase 3 — conversion of definitions → componentSets with base dedup and tree patching
  *
  * Network calls are mocked so tests run without a Figma API key.
  */
@@ -72,9 +73,7 @@ function rootFileResponse(rootId: string, children: unknown[]): Record<string, u
   return {
     [rootId]: {
       document: { id: rootId, type: "FRAME", name: "Root", children },
-      components: {
-        // mirrors how the Figma file's /nodes response embeds component metadata
-      },
+      components: {},
       componentSets: {},
     },
   };
@@ -89,7 +88,7 @@ describe("Component definitions — enriched", () => {
     vi.clearAllMocks();
   });
 
-  it("Phase 1: componentSetName is populated from componentSetMap", async () => {
+  it("Phase 3: componentSets is populated and definitions is absent", async () => {
     const compId = "100:1";
     const setId = "200:1";
 
@@ -104,14 +103,11 @@ describe("Component definitions — enriched", () => {
     };
     const componentSetMap = { [setId]: { name: "Button" } };
 
-    // Root node contains one INSTANCE referencing the component
     const inst = instanceNode("I1:2", "ButtonInst", compId);
     (fetchNodesBatch as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce(rootFileResponse("1:1", [inst]))
-      // Phase 2 fetch for the library file
       .mockResolvedValueOnce({ [compId]: frameNodeEntry(compId, "Button/Primary") });
 
-    // variables endpoint (safeFetch) — return empty so variable resolution is skipped
     mockSafeFetch({ meta: { variables: {} } });
 
     const result = await generateMCPResponse({
@@ -123,15 +119,25 @@ describe("Component definitions — enriched", () => {
       resolveVariables: false,
     });
 
-    expect(result.definitions![compId].componentSetName).toBe("Button");
+    expect(result.definitions).toBeUndefined();
+    expect(result.componentSets).toBeDefined();
+    expect(result.componentSets!["Button"]).toBeDefined();
   });
 
-  it("Phase 1: variantName is set to the component's name", async () => {
+  it("Phase 3: componentSet is keyed by the set name", async () => {
     const compId = "100:1";
+    const setId = "200:1";
 
     const componentMap: Record<string, RichComponentMeta> = {
-      [compId]: { key: "abc", file_key: "libFile", node_id: compId, name: "Button/Primary" },
+      [compId]: {
+        key: "abc",
+        file_key: "libFile",
+        node_id: compId,
+        name: "Button/Primary",
+        componentSetId: setId,
+      },
     };
+    const componentSetMap = { [setId]: { name: "Button" } };
 
     const inst = instanceNode("I1:2", "ButtonInst", compId);
     (fetchNodesBatch as ReturnType<typeof vi.fn>)
@@ -143,13 +149,98 @@ describe("Component definitions — enriched", () => {
       authHeaders: { "X-Figma-Token": "tok" },
       rootNodeId: "1:1",
       componentMap,
+      componentSetMap,
       resolveVariables: false,
     });
 
-    expect(result.definitions![compId].variantName).toBe("Button/Primary");
+    const set = result.componentSets!["Button"];
+    expect(set).toBeDefined();
+    expect(set.name).toBe("Button");
   });
 
-  it("Phase 2: layout is merged from the component's fetched node", async () => {
+  it("Phase 1+3: variant props are parsed from the component name", async () => {
+    const compId = "100:1";
+    const setId = "200:1";
+
+    const componentMap: Record<string, RichComponentMeta> = {
+      [compId]: {
+        key: "abc",
+        file_key: "libFile",
+        node_id: compId,
+        name: "Variant=Destructive, Size=Regular, State=Default",
+        componentSetId: setId,
+      },
+    };
+    const componentSetMap = { [setId]: { name: "Button" } };
+
+    const inst = instanceNode("I1:2", "ButtonInst", compId);
+    (fetchNodesBatch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(rootFileResponse("1:1", [inst]))
+      .mockResolvedValueOnce({
+        [compId]: frameNodeEntry(compId, "Variant=Destructive, Size=Regular, State=Default"),
+      });
+
+    const result = await generateMCPResponse({
+      fileKey: "designFile",
+      authHeaders: { "X-Figma-Token": "tok" },
+      rootNodeId: "1:1",
+      componentMap,
+      componentSetMap,
+      resolveVariables: false,
+    });
+
+    const set = result.componentSets!["Button"];
+    expect(set.propKeys).toContain("variant");
+    expect(set.propKeys).toContain("size");
+    expect(set.propKeys).toContain("state");
+
+    // The one variant entry in the set should have parsed props
+    const variantEntry = set.variants[compId];
+    expect(variantEntry).toBeDefined();
+    expect(variantEntry.props).toEqual({
+      variant: "destructive",
+      size: "regular",
+      state: "default",
+    });
+  });
+
+  it("Phase 3: INSTANCE node in tree has component set name and props", async () => {
+    const compId = "100:1";
+    const setId = "200:1";
+
+    const componentMap: Record<string, RichComponentMeta> = {
+      [compId]: {
+        key: "abc",
+        file_key: "libFile",
+        node_id: compId,
+        name: "Variant=Primary, Size=Large",
+        componentSetId: setId,
+      },
+    };
+    const componentSetMap = { [setId]: { name: "Button" } };
+
+    const inst = instanceNode("I1:2", "ButtonInst", compId);
+    (fetchNodesBatch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(rootFileResponse("1:1", [inst]))
+      .mockResolvedValueOnce({
+        [compId]: frameNodeEntry(compId, "Variant=Primary, Size=Large"),
+      });
+
+    const result = await generateMCPResponse({
+      fileKey: "designFile",
+      authHeaders: { "X-Figma-Token": "tok" },
+      rootNodeId: "1:1",
+      componentMap,
+      componentSetMap,
+      resolveVariables: false,
+    });
+
+    const instNode = result.root.children![0] as any;
+    expect(instNode.component).toBe("Button");
+    expect(instNode.props).toEqual({ variant: "primary", size: "large" });
+  });
+
+  it("Phase 2+3: layout is merged from the component's fetched node", async () => {
     const compId = "100:1";
 
     const componentMap: Record<string, RichComponentMeta> = {
@@ -158,7 +249,6 @@ describe("Component definitions — enriched", () => {
 
     const inst = instanceNode("I1:2", "MyCompInst", compId);
 
-    // The fetched component node has an auto-layout with fixed dimensions
     const compNodeEntry = frameNodeEntry(compId, "MyComp", {
       layoutMode: "HORIZONTAL",
       size: { x: 200, y: 48 },
@@ -178,14 +268,20 @@ describe("Component definitions — enriched", () => {
       resolveVariables: false,
     });
 
-    // layout should be present (direction at minimum since layoutMode=HORIZONTAL)
-    expect(result.definitions![compId].layout).toBeDefined();
-    expect(result.definitions![compId].layout?.direction).toBe("row");
-    expect(result.definitions![compId].layout?.width).toBe(200);
-    expect(result.definitions![compId].layout?.height).toBe(48);
+    // The component ends up in componentSets keyed by its name (no set ID → uses name)
+    const set = result.componentSets!["MyComp"];
+    expect(set).toBeDefined();
+
+    // The variant entry (or base) should carry the layout
+    const variantEntry = set.variants[compId];
+    const effectiveLayout = variantEntry?.layout ?? set.base?.layout;
+    expect(effectiveLayout).toBeDefined();
+    expect(effectiveLayout?.direction).toBe("row");
+    expect(effectiveLayout?.width).toBe(200);
+    expect(effectiveLayout?.height).toBe(48);
   });
 
-  it("Phase 2: children are merged from the component's fetched node", async () => {
+  it("Phase 2+3: children are available in the componentSet", async () => {
     const compId = "100:1";
 
     const componentMap: Record<string, RichComponentMeta> = {
@@ -216,13 +312,17 @@ describe("Component definitions — enriched", () => {
       resolveVariables: false,
     });
 
-    const def = result.definitions![compId];
-    expect(def.children).toBeDefined();
-    expect(def.children).toHaveLength(1);
-    expect(def.children![0].type).toBe("TEXT");
+    const set = result.componentSets!["Card"];
+    expect(set).toBeDefined();
+
+    const variantEntry = set.variants[compId];
+    const effectiveChildren = variantEntry?.children ?? set.base?.children;
+    expect(effectiveChildren).toBeDefined();
+    expect(effectiveChildren).toHaveLength(1);
+    expect(effectiveChildren![0].type).toBe("TEXT");
   });
 
-  it("Phase 2: variants dict is populated with sibling variants from the same set", async () => {
+  it("Phase 2+3: sibling variants appear in the componentSet variants dict", async () => {
     const setId = "200:1";
     const compIdA = "100:1";
     const compIdB = "100:2";
@@ -232,26 +332,25 @@ describe("Component definitions — enriched", () => {
         key: "aaa",
         file_key: "libFile",
         node_id: compIdA,
-        name: "Button/Primary",
+        name: "Variant=Primary",
         componentSetId: setId,
       },
       [compIdB]: {
         key: "bbb",
         file_key: "libFile",
         node_id: compIdB,
-        name: "Button/Secondary",
+        name: "Variant=Secondary",
         componentSetId: setId,
       },
     };
 
-    // Only A is used in the design; B is a sibling variant
     const inst = instanceNode("I1:2", "BtnInst", compIdA);
 
     (fetchNodesBatch as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce(rootFileResponse("1:1", [inst]))
       .mockResolvedValueOnce({
-        [compIdA]: frameNodeEntry(compIdA, "Button/Primary"),
-        [compIdB]: frameNodeEntry(compIdB, "Button/Secondary"),
+        [compIdA]: frameNodeEntry(compIdA, "Variant=Primary"),
+        [compIdB]: frameNodeEntry(compIdB, "Variant=Secondary"),
       });
 
     const componentSetMap = { [setId]: { name: "Button" } };
@@ -265,39 +364,77 @@ describe("Component definitions — enriched", () => {
       resolveVariables: false,
     });
 
-    const defA = result.definitions![compIdA];
-    expect(defA.variants).toBeDefined();
-    expect(defA.variants![compIdB]).toBeDefined();
-    expect(defA.variants![compIdB].name).toBe("Button/Secondary");
-    // The variant itself must not have a nested `variants` field
-    expect(defA.variants![compIdB]).not.toHaveProperty("variants");
+    const set = result.componentSets!["Button"];
+    expect(set).toBeDefined();
+    // Both variants should be present
+    expect(set.variants[compIdA]).toBeDefined();
+    expect(set.variants[compIdB]).toBeDefined();
+    expect(set.variants[compIdA].props).toEqual({ variant: "primary" });
+    expect(set.variants[compIdB].props).toEqual({ variant: "secondary" });
+    // propKeys captures the dimension
+    expect(set.propKeys).toContain("variant");
   });
 
-  it("Phase 2: standalone component (no componentSetId) has no variants dict", async () => {
-    const compId = "100:1";
+  it("Phase 3: base styles hold shared values and variant overrides hold only deltas", async () => {
+    const setId = "200:1";
+    const compIdA = "100:1";
+    const compIdB = "100:2";
 
     const componentMap: Record<string, RichComponentMeta> = {
-      [compId]: { key: "abc", file_key: "libFile", node_id: compId, name: "StandaloneIcon" },
+      [compIdA]: {
+        key: "aaa",
+        file_key: "libFile",
+        node_id: compIdA,
+        name: "Variant=Primary",
+        componentSetId: setId,
+      },
+      [compIdB]: {
+        key: "bbb",
+        file_key: "libFile",
+        node_id: compIdB,
+        name: "Variant=Secondary",
+        componentSetId: setId,
+      },
     };
 
-    const inst = instanceNode("I1:2", "IconInst", compId);
+    const inst = instanceNode("I1:2", "BtnInst", compIdA);
 
+    // Both share layoutMode=HORIZONTAL; they differ only in fill colour
     (fetchNodesBatch as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce(rootFileResponse("1:1", [inst]))
-      .mockResolvedValueOnce({ [compId]: frameNodeEntry(compId, "StandaloneIcon") });
+      .mockResolvedValueOnce({
+        [compIdA]: frameNodeEntry(compIdA, "Variant=Primary", {
+          layoutMode: "HORIZONTAL",
+          fills: [{ type: "SOLID", color: { r: 0, g: 0, b: 1, a: 1 } }],
+        }),
+        [compIdB]: frameNodeEntry(compIdB, "Variant=Secondary", {
+          layoutMode: "HORIZONTAL",
+          fills: [{ type: "SOLID", color: { r: 1, g: 0, b: 0, a: 1 } }],
+        }),
+      });
+
+    const componentSetMap = { [setId]: { name: "Button" } };
 
     const result = await generateMCPResponse({
       fileKey: "designFile",
       authHeaders: { "X-Figma-Token": "tok" },
       rootNodeId: "1:1",
       componentMap,
+      componentSetMap,
       resolveVariables: false,
     });
 
-    expect(result.definitions![compId].variants).toBeUndefined();
+    const set = result.componentSets!["Button"];
+    // Shared direction should be in base
+    expect(set.base?.layout?.direction).toBe("row");
+    // Each variant should have only the style override (the differing background)
+    expect(set.variants[compIdA].layout).toBeUndefined();
+    expect(set.variants[compIdA].style?.background).toBeDefined();
+    expect(set.variants[compIdB].layout).toBeUndefined();
+    expect(set.variants[compIdB].style?.background).toBeDefined();
   });
 
-  it("definitions are absent when no INSTANCE nodes exist (no Phase 2 call)", async () => {
+  it("componentSets is absent when no INSTANCE nodes exist", async () => {
     (fetchNodesBatch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       "1:1": {
         document: { id: "1:1", type: "FRAME", name: "Root", children: [] },
@@ -314,7 +451,7 @@ describe("Component definitions — enriched", () => {
     });
 
     expect(result.definitions).toBeUndefined();
-    // fetchNodesBatch should only have been called once (for the root node)
+    expect(result.componentSets).toBeUndefined();
     expect(fetchNodesBatch).toHaveBeenCalledTimes(1);
   });
 });

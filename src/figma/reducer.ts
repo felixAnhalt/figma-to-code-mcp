@@ -45,6 +45,43 @@ type FigmaEffect = {
 
 // ── Pure module-level helpers ─────────────────────────────────────────────────
 
+/**
+ * Parses a Figma variant name string into a structured props object.
+ *
+ * Input:  "Variant=Destructive, Size=Regular, State=Hover"
+ * Output: { variant: "destructive", size: "regular", state: "hover" }
+ *
+ * Rules:
+ * - Key/value pairs are split on "="
+ * - Keys and values are trimmed, lowercased, and spaces replaced with hyphens
+ * - Pairs without "=" are silently skipped
+ * - Returns an empty object for non-variant-style names (e.g. plain "Button/Primary")
+ */
+export function parseVariantProps(variantName: string): Record<string, string> {
+  const PAIR_SEPARATOR = ",";
+  const KEY_VALUE_SEPARATOR = "=";
+
+  const pairs = variantName.split(PAIR_SEPARATOR);
+  const props: Record<string, string> = {};
+
+  for (const pair of pairs) {
+    const separatorIndex = pair.indexOf(KEY_VALUE_SEPARATOR);
+    if (separatorIndex === -1) continue;
+
+    const key = pair.slice(0, separatorIndex).trim().toLowerCase().replace(/\s+/g, "-");
+    const value = pair
+      .slice(separatorIndex + 1)
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-");
+    if (key && value) {
+      props[key] = value;
+    }
+  }
+
+  return props;
+}
+
 function roundTo(num: number, decimals: number): number {
   const factor = Math.pow(10, decimals);
   return Math.round(num * factor) / factor;

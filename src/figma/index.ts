@@ -1,9 +1,17 @@
 import { fetchNodesBatch } from "./batchFetch";
 import { safeFetch } from "./rateLimit";
 import { getCache, setCache } from "./cache";
-import { buildNormalizedGraph } from "./reducer";
+import { buildNormalizedGraph, parseVariantProps } from "./reducer";
 import { buildResolutionContext } from "./variableResolver";
-import type { MCPResponse, V3Node, ComponentVariant } from "./types";
+import type {
+  MCPResponse,
+  V3Node,
+  ComponentVariant,
+  ComponentSet,
+  ComponentDefinition,
+  Layout,
+  Style,
+} from "./types";
 import type { GetLocalVariablesResponse } from "@figma/rest-api-spec";
 import { Logger } from "~/utils/logger";
 
@@ -295,6 +303,7 @@ async function enrichDefinitions(
     if (!meta) continue;
 
     def.variantName = meta.name;
+    def.props = parseVariantProps(meta.name);
 
     if (meta.componentSetId) {
       const setMeta = componentSetMap[meta.componentSetId];
@@ -328,84 +337,330 @@ async function enrichDefinitions(
     toFetch.get(meta.file_key)!.add(meta.node_id);
   }
 
-  if (toFetch.size === 0) return;
+  if (toFetch.size > 0) {
+    // One batched request per source library file, all in parallel.
+    // Gracefully skip files that return 403 (no edit access) — Phase 0+1 data is
+    // already written; only authoritative source-node layout and sibling variants
+    // will be absent.
+    const fetchPromises = [...toFetch.entries()].map(([libFileKey, nodeIds]) =>
+      fetchNodesBatch(libFileKey, [...nodeIds], authHeaders)
+        .then((result) => ({ libFileKey, result }))
+        .catch((err) => {
+          Logger.warn(
+            `[enrichDefinitions] Skipping node tree fetch for ${libFileKey}: ${err instanceof Error ? err.message : err}`,
+          );
+          return null;
+        }),
+    );
+    const fetchResults = (await Promise.all(fetchPromises)).filter(
+      (r): r is { libFileKey: string; result: Awaited<ReturnType<typeof fetchNodesBatch>> } =>
+        r !== null,
+    );
 
-  // One batched request per source library file, all in parallel.
-  // Gracefully skip files that return 403 (no edit access) — Phase 0+1 data is
-  // already written; only authoritative source-node layout and sibling variants
-  // will be absent.
-  const fetchPromises = [...toFetch.entries()].map(([libFileKey, nodeIds]) =>
-    fetchNodesBatch(libFileKey, [...nodeIds], authHeaders)
-      .then((result) => ({ libFileKey, result }))
-      .catch((err) => {
-        Logger.warn(
-          `[enrichDefinitions] Skipping node tree fetch for ${libFileKey}: ${err instanceof Error ? err.message : err}`,
-        );
-        return null;
-      }),
-  );
-  const fetchResults = (await Promise.all(fetchPromises)).filter(
-    (r): r is { libFileKey: string; result: Awaited<ReturnType<typeof fetchNodesBatch>> } =>
-      r !== null,
-  );
+    // Flatten into node_id → raw node entry
+    const fetchedNodes = new Map<string, Record<string, unknown>>();
+    for (const { result } of fetchResults) {
+      for (const [nodeId, nodeEntry] of Object.entries(result)) {
+        fetchedNodes.set(nodeId, nodeEntry as Record<string, unknown>);
+      }
+    }
 
-  // Flatten into node_id → raw node entry
-  const fetchedNodes = new Map<string, Record<string, unknown>>();
-  for (const { result } of fetchResults) {
-    for (const [nodeId, nodeEntry] of Object.entries(result)) {
-      fetchedNodes.set(nodeId, nodeEntry as Record<string, unknown>);
+    // Reduce each fetched node reusing the existing reducer.
+    // Pass the per-node components/componentSets maps through so nested instance
+    // names resolve correctly inside component definitions.
+    const reducedNodes = new Map<string, ReturnType<typeof buildNormalizedGraph>["root"]>();
+    for (const [nodeId, nodeEntry] of fetchedNodes.entries()) {
+      const nestedComponentMap = (nodeEntry.components ?? {}) as Record<string, RichComponentMeta>;
+      const reduced = buildNormalizedGraph(nodeEntry, {}, variableContext, nestedComponentMap);
+      reducedNodes.set(nodeId, reduced.root);
+    }
+
+    // Override Phase 0 data with authoritative source-node layout/style/children
+    for (const [componentId, def] of Object.entries(definitions)) {
+      const meta = componentMap[componentId];
+      if (!meta?.node_id) continue;
+
+      const node = reducedNodes.get(meta.node_id);
+      if (!node) continue;
+
+      if (node.layout) def.layout = node.layout;
+      if (node.style) def.style = node.style;
+      if (node.children) def.children = node.children;
+    }
+
+    // Populate variants for each definition that belongs to a component set
+    for (const [componentId, def] of Object.entries(definitions)) {
+      const meta = componentMap[componentId];
+      if (!meta?.componentSetId) continue;
+
+      const variants: Record<string, ComponentVariant> = {};
+
+      for (const [otherId, otherMeta] of Object.entries(componentMap)) {
+        if (otherId === componentId) continue;
+        if (otherMeta.componentSetId !== meta.componentSetId) continue;
+        if (!otherMeta.node_id) continue;
+
+        const otherNode = reducedNodes.get(otherMeta.node_id);
+        if (!otherNode) continue;
+
+        const variant: ComponentVariant = { name: otherMeta.name };
+        if (otherMeta.description) variant.description = otherMeta.description;
+        variant.variantName = otherMeta.name;
+        variant.props = parseVariantProps(otherMeta.name);
+        if (otherNode.layout) variant.layout = otherNode.layout;
+        if (otherNode.style) variant.style = otherNode.style;
+        if (otherNode.children) variant.children = otherNode.children;
+
+        variants[otherId] = variant;
+      }
+
+      if (Object.keys(variants).length > 0) def.variants = variants;
     }
   }
 
-  // Reduce each fetched node reusing the existing reducer.
-  // Pass the per-node components/componentSets maps through so nested instance
-  // names resolve correctly inside component definitions.
-  const reducedNodes = new Map<string, ReturnType<typeof buildNormalizedGraph>["root"]>();
-  for (const [nodeId, nodeEntry] of fetchedNodes.entries()) {
-    const nestedComponentMap = (nodeEntry.components ?? {}) as Record<string, RichComponentMeta>;
-    const reduced = buildNormalizedGraph(nodeEntry, {}, variableContext, nestedComponentMap);
-    reducedNodes.set(nodeId, reduced.root);
+  // Phase 3 — convert definitions to componentSets and patch tree INSTANCE nodes.
+  // Runs unconditionally so definitions are always cleaned up, even when
+  // component library access was denied or componentMap is empty.
+  normalized.componentSets = buildComponentSets(definitions, componentMap);
+  patchTreeInstances(normalized.root, definitions, componentMap);
+  delete normalized.definitions;
+}
+
+// ── Phase 3 helpers ───────────────────────────────────────────────────────────
+
+/**
+ * Converts the flat definitions dict into a componentSets dict.
+ *
+ * Groups definitions by componentSetName (or the component name for singletons),
+ * computes base styles (values shared across ALL variants in a set), and stores
+ * only the per-variant overrides — the delta against the base.
+ */
+function buildComponentSets(
+  definitions: Record<string, ComponentDefinition>,
+  componentMap: Record<string, RichComponentMeta>,
+): Record<string, ComponentSet> {
+  // Group component IDs by their set name
+  const bySetName = new Map<string, string[]>();
+  for (const [componentId, def] of Object.entries(definitions)) {
+    const setName = def.componentSetName ?? def.name;
+    if (!bySetName.has(setName)) bySetName.set(setName, []);
+    bySetName.get(setName)!.push(componentId);
   }
 
-  // Override Phase 0 data with authoritative source-node layout/style/children
-  for (const [componentId, def] of Object.entries(definitions)) {
-    const meta = componentMap[componentId];
-    if (!meta?.node_id) continue;
+  const componentSets: Record<string, ComponentSet> = {};
 
-    const node = reducedNodes.get(meta.node_id);
-    if (!node) continue;
+  for (const [setName, componentIds] of bySetName.entries()) {
+    const allMembers = collectAllSetMembers(componentIds, definitions);
+    const base = computeBaseStyles(allMembers);
+    const propKeys = extractPropKeys(allMembers);
+    const variants = buildVariantOverrides(allMembers, base, componentMap);
 
-    if (node.layout) def.layout = node.layout;
-    if (node.style) def.style = node.style;
-    if (node.children) def.children = node.children;
+    const set: ComponentSet = { name: setName, propKeys, variants };
+    if (base.layout || base.style || base.children) set.base = base;
+    componentSets[setName] = set;
   }
 
-  // Populate variants for each definition that belongs to a component set
-  for (const [componentId, def] of Object.entries(definitions)) {
-    const meta = componentMap[componentId];
-    if (!meta?.componentSetId) continue;
+  return componentSets;
+}
 
-    const variants: Record<string, ComponentVariant> = {};
+type VariantMember = {
+  componentId: string;
+  def: ComponentDefinition;
+  variant?: ComponentVariant;
+};
 
-    for (const [otherId, otherMeta] of Object.entries(componentMap)) {
-      if (otherId === componentId) continue;
-      if (otherMeta.componentSetId !== meta.componentSetId) continue;
-      if (!otherMeta.node_id) continue;
+/**
+ * Collects the primary definition plus all its sibling variants into a flat list.
+ * For sets with multiple definitions (multiple directly-used variants from same set),
+ * deduplicates by componentId.
+ */
+function collectAllSetMembers(
+  componentIds: string[],
+  definitions: Record<string, ComponentDefinition>,
+): VariantMember[] {
+  const seen = new Set<string>();
+  const members: VariantMember[] = [];
 
-      const otherNode = reducedNodes.get(otherMeta.node_id);
-      if (!otherNode) continue;
+  for (const componentId of componentIds) {
+    const def = definitions[componentId];
+    if (!def) continue;
 
-      const variant: ComponentVariant = { name: otherMeta.name };
-      if (otherMeta.description) variant.description = otherMeta.description;
-      variant.variantName = otherMeta.name;
-      if (otherNode.layout) variant.layout = otherNode.layout;
-      if (otherNode.style) variant.style = otherNode.style;
-      if (otherNode.children) variant.children = otherNode.children;
-
-      variants[otherId] = variant;
+    if (!seen.has(componentId)) {
+      seen.add(componentId);
+      members.push({ componentId, def });
     }
 
-    if (Object.keys(variants).length > 0) def.variants = variants;
+    // Include sibling variants from this definition
+    for (const [variantId, variant] of Object.entries(def.variants ?? {})) {
+      if (!seen.has(variantId)) {
+        seen.add(variantId);
+        members.push({ componentId: variantId, def, variant });
+      }
+    }
+  }
+
+  return members;
+}
+
+/**
+ * Computes the base styles by finding layout/style values that are identical
+ * across ALL members. Only serialisation-equal values are promoted to base.
+ *
+ * Children are included in base only when all members share the same children
+ * (identical JSON) — rare but correct.
+ */
+function computeBaseStyles(members: VariantMember[]): NonNullable<ComponentSet["base"]> {
+  if (members.length === 0) return {};
+
+  const layouts = members.map((m) => m.variant?.layout ?? m.def.layout);
+  const styles = members.map((m) => m.variant?.style ?? m.def.style);
+  const children = members.map((m) => m.variant?.children ?? m.def.children);
+
+  return {
+    layout: intersectObjects(layouts) as Layout | undefined,
+    style: intersectObjects(styles) as Style | undefined,
+    children: allEqual(children) ? children[0] : undefined,
+  };
+}
+
+/**
+ * Returns an object containing only the key-value pairs whose serialised value
+ * is identical across all input objects. Returns undefined when no common keys exist
+ * or when the input array is empty.
+ */
+function intersectObjects(
+  objects: Array<Record<string, unknown> | undefined>,
+): Record<string, unknown> | undefined {
+  const defined = objects.filter((o): o is Record<string, unknown> => o !== undefined);
+  if (defined.length === 0) return undefined;
+
+  // Start with all keys from the first object, then narrow down
+  const first = defined[0];
+  const result: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(first)) {
+    const serialised = JSON.stringify(value);
+    const allMatch = defined.every((obj) => JSON.stringify(obj[key]) === serialised);
+    if (allMatch) result[key] = value;
+  }
+
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+/**
+ * Returns true when all elements of the array serialise identically.
+ */
+function allEqual<T>(items: Array<T | undefined>): boolean {
+  if (items.length === 0) return false;
+  const first = JSON.stringify(items[0]);
+  return items.every((item) => JSON.stringify(item) === first);
+}
+
+/**
+ * Collects all unique prop dimension keys across members.
+ * E.g. members with props { variant, size } and { variant, state } → ["variant", "size", "state"]
+ */
+function extractPropKeys(members: VariantMember[]): string[] {
+  const keySet = new Set<string>();
+  for (const { def, variant } of members) {
+    const props = variant?.props ?? def.props ?? {};
+    for (const key of Object.keys(props)) keySet.add(key);
+  }
+  return [...keySet].sort();
+}
+
+/**
+ * Builds the per-variant overrides: only the fields that differ from base are kept.
+ * Keyed by component node ID.
+ */
+function buildVariantOverrides(
+  members: VariantMember[],
+  base: NonNullable<ComponentSet["base"]>,
+  componentMap: Record<string, RichComponentMeta>,
+): ComponentSet["variants"] {
+  const variants: ComponentSet["variants"] = {};
+
+  for (const { componentId, def, variant: siblingVariant } of members) {
+    const layout = siblingVariant?.layout ?? def.layout;
+    const style = siblingVariant?.style ?? def.style;
+    const children = siblingVariant?.children ?? def.children;
+    const props = siblingVariant?.props ?? def.props;
+    const description = siblingVariant?.description ?? def.description;
+    const meta = componentMap[componentId];
+
+    const entry: ComponentSet["variants"][string] = {};
+
+    if (props && Object.keys(props).length > 0) entry.props = props;
+    if (description) entry.description = description;
+
+    const layoutOverride = diffObjects(layout, base.layout) as Layout | undefined;
+    const styleOverride = diffObjects(style, base.style) as Style | undefined;
+
+    if (layoutOverride) entry.layout = layoutOverride;
+    if (styleOverride) entry.style = styleOverride;
+
+    // Children: only include when different from base
+    if (!allEqual([children, base.children])) {
+      if (children) entry.children = children;
+    }
+
+    // Always emit the entry even if it only has props (identifies the variant)
+    void meta;
+    variants[componentId] = entry;
+  }
+
+  return variants;
+}
+
+/**
+ * Returns an object containing only the key-value pairs in `obj` that differ
+ * from the corresponding values in `base`. Returns undefined if there are no
+ * differences or if obj is undefined.
+ */
+function diffObjects(
+  obj: Record<string, unknown> | undefined,
+  base: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (!obj) return undefined;
+
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (!base || JSON.stringify(value) !== JSON.stringify(base[key])) {
+      result[key] = value;
+    }
+  }
+
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+/**
+ * Walks the V3Node tree and updates every INSTANCE node:
+ * - Sets node.component to the human-readable component set name
+ * - Sets node.props to the parsed variant props for that specific instance
+ */
+function patchTreeInstances(
+  node: V3Node,
+  definitions: Record<string, ComponentDefinition>,
+  componentMap: Record<string, RichComponentMeta>,
+): void {
+  if (node.component) {
+    const componentId = node.component;
+    const def = definitions[componentId];
+    const meta = componentMap[componentId];
+
+    if (def) {
+      node.component = def.componentSetName ?? def.name;
+    }
+
+    // Resolve the specific instance's variant props from its componentId in componentMap
+    if (meta) {
+      const instanceProps = parseVariantProps(meta.name);
+      if (Object.keys(instanceProps).length > 0) node.props = instanceProps;
+    }
+  }
+
+  for (const child of node.children ?? []) {
+    patchTreeInstances(child, definitions, componentMap);
   }
 }
 
@@ -515,4 +770,5 @@ export type {
   GradientStop,
   ComponentDefinition,
   ComponentVariant,
+  ComponentSet,
 } from "./types";

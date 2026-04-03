@@ -1,3 +1,37 @@
+// ── Token types ───────────────────────────────────────────────────────────────
+
+/**
+ * A token reference replacing a raw value in style/layout fields.
+ * Always in "category.name" form, e.g. "colors.primary", "spacing.lg".
+ * Unambiguous from raw values: colors are rgba(...), shadows are "0px ...",
+ * and token refs always contain a dot with no spaces around it.
+ */
+export type TokenRef = string;
+
+export type TypographyToken = {
+  font: string;
+  size: number;
+  weight: number;
+  lineHeight: number | string;
+  letterSpacing?: number;
+};
+
+/**
+ * Design token registry extracted from the response.
+ * Only contains values used 2+ times across the design.
+ */
+export type DesignTokens = {
+  colors?: Record<string, string>;
+  spacing?: Record<string, number>;
+  radius?: Record<string, number>;
+  typography?: Record<string, TypographyToken>;
+  shadows?: Record<string, string>;
+  /** Named [vertical, horizontal] padding combos, e.g. buttonMd → [8, 16] */
+  paddingCombos?: Record<string, [number, number]>;
+  /** Named minHeight values, e.g. md → 36 */
+  heights?: Record<string, number>;
+};
+
 /**
  * MCPResponse v3 — Nested tree optimized for LLM UI building
  *
@@ -11,12 +45,29 @@
  * - Transparent single-child wrapper nodes are collapsed
  * - TEXT nodes only get style.color — never style.background
  * - Defaults omitted: opacity:1, rotate(0deg), zero gap/padding, visible:true
- * - `definitions` dict holds component metadata; INSTANCE nodes reference it via `component`
+ * - `componentSets` dict holds reusable component definitions with parsed variant props
+ *   and base/override deduplication; INSTANCE nodes reference them via `component`
  */
 export type MCPResponse = {
   schema: "v3";
   root: V3Node;
+  /**
+   * Internal: populated by buildNormalizedGraph during tree traversal.
+   * Converted to componentSets by enrichDefinitions and then removed.
+   * Not present in the final response.
+   */
   definitions?: Record<string, ComponentDefinition>;
+  /**
+   * Reusable component set definitions, keyed by component set name (e.g. "Button").
+   * Populated after enrichment. Replaces raw definitions in the final response.
+   */
+  componentSets?: Record<string, ComponentSet>;
+  /**
+   * Design tokens extracted from repeated values across the tree and componentSets.
+   * Populated by the tokenizer pass. Values in style/layout fields may be replaced
+   * with { token: "category.name" } references into this registry.
+   */
+  tokens?: DesignTokens;
 };
 
 /**
@@ -26,17 +77,25 @@ export type MCPResponse = {
  * defaults and zero-values are omitted throughout.
  */
 export type V3Node = {
-  /** Only present on INSTANCE nodes — used to reference definitions */
+  /** Only present on INSTANCE nodes — used to reference componentSets */
   id?: string;
 
   type: string;
   name?: string;
 
   /**
-   * Reference to a component definition (INSTANCE nodes only).
-   * Key into MCPResponse.definitions.
+   * Reference to a component set definition (INSTANCE nodes only).
+   * Key into MCPResponse.componentSets (after enrichment) or
+   * into MCPResponse.definitions (during/before enrichment).
    */
   component?: string;
+
+  /**
+   * Parsed variant props for this specific instance (INSTANCE nodes only).
+   * Populated during tree patching in enrichDefinitions.
+   * e.g. { variant: "destructive", size: "regular", state: "hover" }
+   */
+  props?: Record<string, string>;
 
   /** Flexbox layout and sizing. Present only when any layout property is non-default. */
   layout?: Layout;
@@ -57,6 +116,7 @@ export type V3Node = {
 /**
  * Flexbox layout and sizing properties, grouped separately from visual style
  * so an LLM can reason about structure and decoration independently.
+ * After tokenization, padding and gap values may be replaced with TokenRef strings.
  */
 export type Layout = {
   /** flex-direction equivalent */
@@ -65,12 +125,13 @@ export type Layout = {
   align?: string;
   /** justify-content equivalent */
   justify?: string;
-  gap?: number;
-  /** CSS shorthand: single number if all equal, [vertical,horizontal] for two-axis, full object otherwise */
+  gap?: number | TokenRef;
+  /** CSS shorthand: single number if all equal, [vertical,horizontal] for two-axis, full object otherwise. May be a TokenRef string. */
   padding?:
     | number
     | [number, number]
-    | { top: number; right: number; bottom: number; left: number };
+    | { top: number; right: number; bottom: number; left: number }
+    | TokenRef;
   /** "hidden" when clipsContent */
   overflow?: "hidden";
   /** flex-wrap: wrap */
@@ -81,16 +142,23 @@ export type Layout = {
   height?: number;
   minWidth?: number;
   maxWidth?: number;
-  minHeight?: number;
+  /** Explicit min-height in px, or a token ref (e.g. "heights.md") */
+  minHeight?: number | TokenRef;
   maxHeight?: number;
   /**
+   * Collapsed sizing shorthand when sizingH === sizingV.
+   * "hug" = fit-content, "fill" = flex:1 / grow.
+   * Present instead of sizingH + sizingV when both match.
+   */
+  sizing?: "hug" | "fill";
+  /**
    * Horizontal sizing mode. "fill" = flex:1 / grow to fill parent. "hug" = fit-content.
-   * Omitted when FIXED — explicit width is emitted instead.
+   * Omitted when FIXED (explicit width emitted instead) or when `sizing` covers both axes.
    */
   sizingH?: "fill" | "hug";
   /**
    * Vertical sizing mode. "fill" = flex:1 / grow to fill parent. "hug" = fit-content.
-   * Omitted when FIXED — explicit height is emitted instead.
+   * Omitted when FIXED (explicit height emitted instead) or when `sizing` covers both axes.
    */
   sizingV?: "fill" | "hug";
   /** flex-grow: 1 — node stretches to fill available space in parent's main axis */
@@ -100,16 +168,17 @@ export type Layout = {
 /**
  * Visual decoration properties, grouped separately from layout.
  * All color values are inline rgba() strings — no variable references.
+ * After tokenization, color and shadow values may be replaced with TokenRef strings.
  */
 export type Style = {
-  /** Solid fill as rgba() or gradient/image Paint object */
+  /** Solid fill as rgba() / TokenRef string, or gradient/image Paint object */
   background?: string | Paint[];
-  /** Stroke color as rgba() */
+  /** Stroke color as rgba() or TokenRef string */
   border?: string;
   borderWidth?: number;
-  /** Single radius or [topLeft, topRight, bottomRight, bottomLeft] */
-  radius?: number | number[];
-  /** CSS box-shadow string */
+  /** Single radius or [topLeft, topRight, bottomRight, bottomLeft] or TokenRef string */
+  radius?: number | number[] | TokenRef;
+  /** CSS box-shadow string or TokenRef string */
   shadow?: string;
   /** Layer blur: "blur(Npx)" */
   blur?: string;
@@ -119,7 +188,7 @@ export type Style = {
   blend?: string;
 
   // ── Text-only properties ─────────────────────────────────────────────────
-  /** Text fill color as rgba() (TEXT nodes only — never present on container nodes) */
+  /** Text fill color as rgba() or TokenRef string (TEXT nodes only — never present on container nodes) */
   color?: string;
   font?: string;
   fontSize?: number;
@@ -130,6 +199,8 @@ export type Style = {
   textAlign?: string;
   textDecoration?: string;
   textTransform?: string;
+  /** Typography token reference replacing font/size/weight/lineHeight as a group */
+  typography?: TokenRef;
 };
 
 export type Paint = {
@@ -160,16 +231,9 @@ export type Interaction = {
 };
 
 /**
- * Metadata about a reusable Figma component.
- * Keyed by component node ID in MCPResponse.definitions.
- * The key itself is the ID — it is not repeated inside this object.
- *
- * When component node data is available (i.e. the component was fetched from
- * its source file), layout/style/children hold the full visual definition so
- * consumers can implement the component without a separate Figma lookup.
- *
- * variants holds sibling variants from the same component set, keyed by their
- * node ID. Each entry carries the same visual fields but never nests further.
+ * Internal metadata about a single component variant.
+ * Keyed by component node ID in MCPResponse.definitions during enrichment.
+ * Converted to ComponentSet entries in the final response.
  */
 export type ComponentDefinition = {
   name: string;
@@ -178,6 +242,8 @@ export type ComponentDefinition = {
   variantName?: string;
   /** Parent component set name, e.g. "Link" */
   componentSetName?: string;
+  /** Parsed variant props — populated from variantName during enrichment */
+  props?: Record<string, string>;
   layout?: Layout;
   style?: Style;
   children?: V3Node[];
@@ -194,7 +260,49 @@ export type ComponentVariant = {
   name: string;
   description?: string;
   variantName?: string;
+  /** Parsed variant props, e.g. { variant: "secondary", size: "large" } */
+  props?: Record<string, string>;
   layout?: Layout;
   style?: Style;
   children?: V3Node[];
+};
+
+/**
+ * A reusable component set definition in the final MCPResponse.
+ *
+ * Contains the shared base styles (intersection of all variant styles) plus
+ * per-variant overrides, so consumers can reconstruct any variant by merging
+ * base with a specific variant's overrides.
+ *
+ * Keyed by component set name (e.g. "Button") in MCPResponse.componentSets.
+ */
+export type ComponentSet = {
+  /** Human-readable name of the component set */
+  name: string;
+  /** All prop dimension keys found across variants, e.g. ["variant", "size", "state"] */
+  propKeys: string[];
+  /**
+   * Shared base: layout/style/children common to ALL variants.
+   * Omit a field from a variant's overrides if it matches the base exactly.
+   */
+  base?: {
+    layout?: Layout;
+    style?: Style;
+    children?: V3Node[];
+  };
+  /**
+   * Per-variant overrides, keyed by component node ID.
+   * Each entry contains only the fields that differ from base.
+   */
+  variants: Record<
+    string,
+    {
+      /** Parsed variant props, e.g. { variant: "primary", size: "regular" } */
+      props?: Record<string, string>;
+      description?: string;
+      layout?: Layout;
+      style?: Style;
+      children?: V3Node[];
+    }
+  >;
 };

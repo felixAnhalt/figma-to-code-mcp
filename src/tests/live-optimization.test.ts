@@ -118,12 +118,38 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
       const nodeCount = countNodes(mcpResponse.root);
       const instanceNodes = findInstances(mcpResponse.root);
       const textNodes = findTextNodes(mcpResponse.root);
-      const defCount = mcpResponse.definitions ? Object.keys(mcpResponse.definitions).length : 0;
+      const componentSetCount = mcpResponse.componentSets
+        ? Object.keys(mcpResponse.componentSets).length
+        : 0;
 
       console.log(`✓ Total nodes in tree:       ${nodeCount}`);
       console.log(`✓ INSTANCE nodes:            ${instanceNodes.length}`);
       console.log(`✓ TEXT nodes:                ${textNodes.length}`);
-      console.log(`✓ Component definitions:     ${defCount}`);
+      console.log(`✓ Component sets:            ${componentSetCount}`);
+
+      // Verify componentSets shape — definitions must be absent (converted + deleted)
+      expect(mcpResponse).not.toHaveProperty("definitions");
+      if (componentSetCount > 0) {
+        const firstSet = Object.values(mcpResponse.componentSets)[0];
+        expect(firstSet).toHaveProperty("name");
+        expect(firstSet).toHaveProperty("variants");
+        expect(firstSet).toHaveProperty("propKeys");
+        console.log(`✓ componentSets shape is correct`);
+      }
+
+      // Verify tokens shape
+      if (mcpResponse.tokens) {
+        const tokenCategories = Object.keys(mcpResponse.tokens);
+        const totalTokens = Object.values(mcpResponse.tokens).reduce(
+          (n: number, cat: unknown) => n + Object.keys(cat as Record<string, unknown>).length,
+          0,
+        );
+        console.log(`✓ Token categories:          ${tokenCategories.join(", ")}`);
+        console.log(`✓ Total tokens:              ${totalTokens}`);
+        expect(totalTokens).toBeGreaterThan(0);
+      } else {
+        console.log(`  (no tokens extracted — design may not repeat values)`);
+      }
 
       for (const textNode of textNodes) {
         expect(textNode.style?.background).toBeUndefined();
@@ -138,15 +164,6 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
       expect(responseStr).not.toContain('"display":"flex"');
       expect(responseStr).not.toContain('"flexDirection"');
       console.log("✓ No legacy display/flexDirection at top level");
-
-      // Definitions must have enriched data — at least one definition should have
-      // layout, style, or children beyond just a bare name
-      const definitions = mcpResponse.definitions ?? {};
-      const enrichedCount = Object.values(definitions).filter(
-        (d: any) => d.layout || d.style || d.children || d.variantName || d.componentSetName,
-      ).length;
-      console.log(`✓ Enriched definitions:      ${enrichedCount} / ${defCount}`);
-      expect(enrichedCount).toBeGreaterThanOrEqual(0);
 
       expect(optimizedSize).toBeLessThan(rawSize);
       console.log(`\n✓ Size reduction: ${reduction.toFixed(1)}%`);
