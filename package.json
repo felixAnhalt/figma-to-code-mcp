@@ -1,6 +1,6 @@
 {
   "name": "@tmegit/figma-to-code-mcp",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "mcpName": "io.github.felixAnhalt/figma-to-code-mcp",
   "description": "Transform Figma files into a compact, LLM-friendly format for UI code generation.",
   "type": "module",
