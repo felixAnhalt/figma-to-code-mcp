@@ -305,17 +305,29 @@ function mapInteractionAction(type: string | undefined, navigation: string | und
  * the wrapper in the parent's children array.
  */
 function resolveChildren(children: FigmaRawNode[]): FigmaRawNode[] {
-  return children
-    .filter((child) => child.visible !== false)
-    .map((child) => {
-      // Recursively unwrap transparent wrappers
-      let current = child;
-      while (isTransparentWrapper(current)) {
-        // The single child is guaranteed to exist by isTransparentWrapper
-        current = current.children![0];
+  const result: FigmaRawNode[] = [];
+
+  for (const child of children) {
+    if (!child || child.visible === false) continue;
+
+    // Recursively unwrap transparent wrappers
+    let current: FigmaRawNode | null | undefined = child;
+    while (current && isTransparentWrapper(current)) {
+      const next: FigmaRawNode | undefined = current.children?.[0];
+      if (!next) {
+        // Wrapper has no children or child is null — keep the wrapper
+        break;
       }
-      return current;
-    });
+      current = next;
+    }
+
+    // Only include non-null results
+    if (current) {
+      result.push(current);
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -573,20 +585,22 @@ export function buildNormalizedGraph(
     const rawInteractions = node.interactions as
       | Array<{
           trigger?: { type?: string };
-          actions?: Array<{ type?: string; destinationId?: string; navigation?: string }>;
+          actions?: Array<{ type?: string; destinationId?: string; navigation?: string } | null>;
         }>
       | undefined;
     if (rawInteractions && rawInteractions.length > 0) {
       const mapped: Interaction[] = rawInteractions.flatMap((interaction) => {
         if (!interaction.actions) return [];
-        return interaction.actions.map((action) => {
-          const result: Interaction = {
-            trigger: mapInteractionTrigger(interaction.trigger?.type),
-            action: mapInteractionAction(action.type, action.navigation),
-          };
-          if (action.destinationId) result.destination = action.destinationId;
-          return result;
-        });
+        return interaction.actions
+          .filter((action): action is NonNullable<typeof action> => action !== null)
+          .map((action) => {
+            const result: Interaction = {
+              trigger: mapInteractionTrigger(interaction.trigger?.type),
+              action: mapInteractionAction(action.type, action.navigation),
+            };
+            if (action.destinationId) result.destination = action.destinationId;
+            return result;
+          });
       });
       if (mapped.length > 0) v3.interactions = mapped;
     }
@@ -615,10 +629,10 @@ export function buildNormalizedGraph(
       // Compute this node's fill string for RECTANGLE suppression in children
       const thisFill = typeof style.background === "string" ? style.background : undefined;
 
-      const visible = resolved.filter((child) => {
+      const visible = resolved.filter((child): child is FigmaRawNode => {
         // Suppress RECTANGLE nodes whose fill is identical to this node's fill —
         // they are purely decorative background layers that carry no extra information.
-        if (child.type !== "RECTANGLE" || thisFill === undefined) return true;
+        if (!child || child.type !== "RECTANGLE" || thisFill === undefined) return true;
         const childFills = child.fills as FigmaRawPaint[] | undefined;
         if (!childFills || childFills.length === 0) return true;
         const childFill = processPaint(childFills[0], variableContext);

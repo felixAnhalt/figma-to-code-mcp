@@ -92,7 +92,9 @@ async function getFigmaDesign(
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : JSON.stringify(error);
+    const stack = error instanceof Error ? error.stack : "";
     Logger.error(`Error fetching design:`, message);
+    if (stack) Logger.error(`Stack:`, stack);
     return {
       isError: true,
       content: [{ type: "text" as const, text: `Error fetching design: ${message}` }],
