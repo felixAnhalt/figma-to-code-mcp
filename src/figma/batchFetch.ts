@@ -1,5 +1,5 @@
-import type { GetFileNodesResponse, GetFileResponse } from "@figma/rest-api-spec";
-import { safeFetch } from "./rateLimit.js";
+import type { GetFileNodesResponse } from "@figma/rest-api-spec";
+import { safeFetch } from "./rateLimit";
 
 /**
  * Fetches multiple nodes from a Figma file in a single batched request.
@@ -41,24 +41,4 @@ export async function fetchNodesBatch(
   }
 
   return results;
-}
-
-/**
- * Fetches the entire file structure (used to get root node and discover all node IDs).
- */
-export async function fetchFile(
-  fileKey: string,
-  authHeaders: Record<string, string>,
-): Promise<GetFileResponse> {
-  const url = `https://api.figma.com/v1/files/${fileKey}`;
-
-  const response = await safeFetch(url, {
-    headers: authHeaders,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Figma API error: ${response.status} ${response.statusText}`);
-  }
-
-  return response.json() as Promise<GetFileResponse>;
 }

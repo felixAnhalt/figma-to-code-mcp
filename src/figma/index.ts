@@ -1,11 +1,11 @@
-import { fetchNodesBatch } from "./batchFetch.js";
-import { safeFetch } from "./rateLimit.js";
-import { getCache, setCache } from "./cache.js";
-import { buildNormalizedGraph } from "./reducer.js";
-import { buildResolutionContext } from "./variableResolver.js";
-import type { MCPResponse, V3Node, ComponentVariant } from "./types.js";
+import { fetchNodesBatch } from "./batchFetch";
+import { safeFetch } from "./rateLimit";
+import { getCache, setCache } from "./cache";
+import { buildNormalizedGraph } from "./reducer";
+import { buildResolutionContext } from "./variableResolver";
+import type { MCPResponse, V3Node, ComponentVariant } from "./types";
 import type { GetLocalVariablesResponse } from "@figma/rest-api-spec";
-import { Logger } from "../utils/logger.js";
+import { Logger } from "~/utils/logger";
 
 /**
  * Rich component metadata with file_key and node_id resolved so callers can
@@ -484,41 +484,6 @@ export async function fetchComponents(
 }
 
 /**
- * Fetches all published component sets for a Figma file.
- *
- * Returns a map keyed by the component set's node_id (which matches the
- * componentSetId field on individual components) so callers can resolve
- * component set names without additional lookups.
- */
-export async function fetchComponentSets(
-  fileKey: string,
-  authHeaders: Record<string, string>,
-): Promise<Record<string, { name: string }>> {
-  const url = `https://api.figma.com/v1/files/${fileKey}/component_sets`;
-  const res = await safeFetch(url, {
-    headers: authHeaders,
-  });
-
-  if (!res.ok) {
-    throw new Error(`Figma API error: ${res.status} ${res.statusText}`);
-  }
-
-  const json = (await res.json()) as {
-    meta?: {
-      component_sets?: Array<{ node_id: string; name: string }>;
-    };
-  };
-
-  const setMap: Record<string, { name: string }> = {};
-
-  for (const set of json.meta?.component_sets ?? []) {
-    setMap[set.node_id] = { name: set.name };
-  }
-
-  return setMap;
-}
-
-/**
  * Fetches all local variables for a Figma file.
  */
 export async function fetchVariables(
@@ -550,4 +515,4 @@ export type {
   GradientStop,
   ComponentDefinition,
   ComponentVariant,
-} from "./types.js";
+} from "./types";

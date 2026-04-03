@@ -1,14 +1,14 @@
 import { randomUUID } from "node:crypto";
 import express, { type Request, type Response } from "express";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp";
+import { isInitializeRequest } from "@modelcontextprotocol/sdk/types";
 import { Server } from "http";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Logger } from "./utils/logger.js";
-import { createServer } from "./mcp/index.js";
-import { getServerConfig } from "./config.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp";
+import { Logger } from "./utils/logger";
+import { createServer } from "~/mcp";
+import { getServerConfig } from "./config";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio";
 
 let httpServer: Server | null = null;
 const transports = {

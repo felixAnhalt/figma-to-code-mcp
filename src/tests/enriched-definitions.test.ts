@@ -9,28 +9,28 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { RichComponentMeta } from "~/figma/index.js";
+import type { RichComponentMeta } from "~/figma";
 
 // ---------------------------------------------------------------------------
 // Module mocks — must be hoisted before any imports that trigger module init
 // ---------------------------------------------------------------------------
 
-vi.mock("~/figma/batchFetch.js", () => ({
+vi.mock("~/figma/batchFetch", () => ({
   fetchNodesBatch: vi.fn(),
 }));
 
-vi.mock("~/figma/rateLimit.js", () => ({
+vi.mock("~/figma/rateLimit", () => ({
   safeFetch: vi.fn(),
 }));
 
-vi.mock("~/figma/cache.js", () => ({
+vi.mock("~/figma/cache", () => ({
   getCache: vi.fn(() => null),
   setCache: vi.fn(),
 }));
 
-import { generateMCPResponse } from "~/figma/index.js";
-import { fetchNodesBatch } from "~/figma/batchFetch.js";
-import { safeFetch } from "~/figma/rateLimit.js";
+import { generateMCPResponse } from "~/figma/index";
+import { fetchNodesBatch } from "~/figma/batchFetch";
+import { safeFetch } from "~/figma/rateLimit";
 
 // ---------------------------------------------------------------------------
 // Fixture helpers

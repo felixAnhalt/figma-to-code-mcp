@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { FigmaService } from "../../services/figma.js";
-import { Logger } from "../../utils/logger.js";
+import { FigmaService } from "~/services/figma";
+import { Logger } from "~/utils/logger";
 
 const parametersSchema = z.object({
   fileKey: z

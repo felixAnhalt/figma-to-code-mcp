@@ -2,7 +2,7 @@ import { config as loadEnv } from "dotenv";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { resolve } from "path";
-import type { FigmaAuthOptions } from "./services/figma.js";
+import type { FigmaAuthOptions } from "./services/figma";
 
 interface ServerConfig {
   auth: FigmaAuthOptions;

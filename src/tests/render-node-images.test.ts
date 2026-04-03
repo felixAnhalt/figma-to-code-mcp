@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer } from "~/mcp/index";
 import { config } from "dotenv";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { CallToolResultSchema } from "@modelcontextprotocol/sdk/types.js";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory";
+import { Client } from "@modelcontextprotocol/sdk/client/index";
+import { CallToolResultSchema } from "@modelcontextprotocol/sdk/types";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp";
 
 config();
 

@@ -1,10 +1,10 @@
-import { createServer } from "../mcp/index.js";
+import { createServer } from "../mcp";
 import { config } from "dotenv";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { CallToolResultSchema } from "@modelcontextprotocol/sdk/types.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory";
+import { Client } from "@modelcontextprotocol/sdk/client/index";
+import { CallToolResultSchema } from "@modelcontextprotocol/sdk/types";
 import yaml from "js-yaml";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp";
 
 config();
 

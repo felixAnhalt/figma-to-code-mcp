@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildNormalizedGraph } from "~/figma/reducer.js";
+import { buildNormalizedGraph } from "~/figma/reducer";
 
 describe("Instance and component style rendering (v3)", () => {
   it("COMPONENT node styles appear in style sub-object", () => {

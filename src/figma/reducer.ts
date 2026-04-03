@@ -6,9 +6,9 @@ import type {
   Paint,
   ComponentDefinition,
   Interaction,
-} from "./types.js";
-import type { VariableResolutionContext } from "./variableResolver.js";
-import { resolveVariable } from "./variableResolver.js";
+} from "./types";
+import type { VariableResolutionContext } from "./variableResolver";
+import { resolveVariable } from "./variableResolver";
 import type { VariableAlias } from "@figma/rest-api-spec";
 
 /** Minimal shape of a raw Figma node as returned by the API node tree */
