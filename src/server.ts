@@ -8,10 +8,12 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 
 let httpServer: Server | null = null;
 const transports = {
   streamable: {} as Record<string, StreamableHTTPServerTransport>,
+  sse: {} as Record<string, SSEServerTransport>,
 };
 
 /**
@@ -77,7 +79,7 @@ export async function startHttpServer(
       Logger.log("New initialization request for StreamableHTTP sessionId", sessionId);
       transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
-        onsessioninitialized: (sessionId: string) => {
+        onsessioninitialized: (sessionId) => {
           // Store the transport by session ID
           transports.streamable[sessionId] = transport;
         },
@@ -172,6 +174,46 @@ export async function startHttpServer(
   // Handle DELETE requests for session termination
   app.delete("/mcp", handleSessionRequest);
 
+  app.get("/sse", async (req, res) => {
+    Logger.log("Establishing new SSE connection");
+    const transport = new SSEServerTransport("/messages", res);
+    Logger.log(`New SSE connection established for sessionId ${transport.sessionId}`);
+    Logger.log("/sse request headers:", req.headers);
+    Logger.log("/sse request body:", req.body);
+
+    transports.sse[transport.sessionId] = transport;
+    res.on("close", () => {
+      delete transports.sse[transport.sessionId];
+    });
+
+    // SDK 1.21+ throws if already connected to another transport (e.g. a
+    // Streamable HTTP session). This is a known architectural limitation —
+    // a single McpServer instance can only serve one transport at a time.
+    try {
+      await mcpServer.connect(transport);
+    } catch (error) {
+      delete transports.sse[transport.sessionId];
+      Logger.error("Failed to connect SSE transport:", error);
+      if (!res.headersSent) {
+        res.status(500).send("Failed to establish SSE connection");
+      }
+    }
+  });
+
+  app.post("/messages", async (req, res) => {
+    const sessionId = req.query.sessionId as string;
+    const transport = transports.sse[sessionId];
+    if (transport) {
+      Logger.log(`Received SSE message for sessionId ${sessionId}`);
+      Logger.log("/messages request headers:", req.headers);
+      Logger.log("/messages request body:", req.body);
+      await transport.handlePostMessage(req, res);
+    } else {
+      res.status(400).send(`No transport found for sessionId ${sessionId}`);
+      return;
+    }
+  });
+
   return new Promise((resolve, reject) => {
     const server = app.listen(port, host, () => {
       Logger.log(`HTTP server listening on port ${port}`);
@@ -188,7 +230,9 @@ export async function startHttpServer(
   });
 }
 
-async function closeTransports(transports: Record<string, StreamableHTTPServerTransport>) {
+async function closeTransports(
+  transports: Record<string, SSEServerTransport | StreamableHTTPServerTransport>,
+) {
   for (const sessionId in transports) {
     try {
       await transports[sessionId]?.close();
@@ -205,6 +249,7 @@ export async function stopHttpServer(): Promise<void> {
   }
 
   // Close all transports FIRST so connections drain
+  await closeTransports(transports.sse);
   await closeTransports(transports.streamable);
 
   // Then close the HTTP server

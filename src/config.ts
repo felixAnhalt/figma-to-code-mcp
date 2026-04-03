@@ -132,12 +132,12 @@ export function getServerConfig(isStdioMode: boolean): ServerConfig {
     auth.useOAuth = true;
   }
 
-  // Handle PORT (FRAMELINK_PORT takes precedence, PORT is fallback for backwards compatibility)
+  // Handle PORT (FIGMA_TO_CODE_MCP_PORT takes precedence, PORT is fallback for backwards compatibility)
   if (argv.port) {
     config.port = argv.port;
     config.configSources.port = "cli";
-  } else if (process.env.FRAMELINK_PORT) {
-    config.port = parseInt(process.env.FRAMELINK_PORT, 10);
+  } else if (process.env.FIGMA_TO_CODE_MCP_PORT) {
+    config.port = parseInt(process.env.FIGMA_TO_CODE_MCP_PORT, 10);
     config.configSources.port = "env";
   } else if (process.env.PORT) {
     config.port = parseInt(process.env.PORT, 10);
@@ -148,8 +148,8 @@ export function getServerConfig(isStdioMode: boolean): ServerConfig {
   if (argv.host) {
     config.host = argv.host;
     config.configSources.host = "cli";
-  } else if (process.env.FRAMELINK_HOST) {
-    config.host = process.env.FRAMELINK_HOST;
+  } else if (process.env.FIGMA_TO_CODE_MCP_HOST) {
+    config.host = process.env.FIGMA_TO_CODE_MCP_HOST;
     config.configSources.host = "env";
   }
 
@@ -199,8 +199,8 @@ export function getServerConfig(isStdioMode: boolean): ServerConfig {
       );
       console.log("- Authentication Method: Personal Access Token (X-Figma-Token)");
     }
-    console.log(`- FRAMELINK_PORT: ${config.port} (source: ${config.configSources.port})`);
-    console.log(`- FRAMELINK_HOST: ${config.host} (source: ${config.configSources.host})`);
+    console.log(`- FIGMA_TO_CODE_MCP_PORT: ${config.port} (source: ${config.configSources.port})`);
+    console.log(`- FIGMA_TO_CODE_MCP_HOST: ${config.host} (source: ${config.configSources.host})`);
     console.log(
       `- OUTPUT_FORMAT: ${config.outputFormat} (source: ${config.configSources.outputFormat})`,
     );
