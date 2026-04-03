@@ -1,5 +1,12 @@
 # tmegit-figma-to-code-mcp
 
+## [0.17.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.16.0...v0.17.0) (2026-04-03)
+
+
+### Features
+
+* **batchFetch:** refactor to use authHeaders instead of token for API calls ([#15](https://github.com/felixAnhalt/figma-to-code-mcp/issues/15)) ([8955f94](https://github.com/felixAnhalt/figma-to-code-mcp/commit/8955f9464e52a7a1a74b5a8c5ce7c9a77925ef90))
+
 ## [0.16.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.15.1...v0.16.0) (2026-03-19)
 
 ### Features
