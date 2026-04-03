@@ -68,6 +68,35 @@ export class FigmaService {
   }
 
   /**
+   * Renders specified nodes as images and returns their download URLs.
+   *
+   * Note: The returned map may contain null values, indicating that rendering
+   * failed for those specific nodes (e.g., node doesn't exist, is invisible, or has 0% opacity).
+   * All requested node IDs are guaranteed to be in the map, whether or not rendering succeeded.
+   *
+   * @param fileKey - The Figma file key
+   * @param nodeIds - Array of node IDs to render (e.g., ["1:2", "1:3", "1:4"])
+   * @returns Map of node ID to rendered image URL (or null if render failed)
+   */
+  async renderNodeImages(
+    fileKey: string,
+    nodeIds: string[],
+  ): Promise<Record<string, string | null>> {
+    const idsParam = nodeIds.join(",");
+    const endpoint = `/images/${fileKey}?ids=${idsParam}`;
+    Logger.log(`Rendering node images from ${fileKey}: ${idsParam}`);
+
+    interface RenderImagesResponse {
+      images: Record<string, string | null>;
+      err?: string;
+      status?: number;
+    }
+
+    const response = await this.request<RenderImagesResponse>(endpoint);
+    return response.images || {};
+  }
+
+  /**
    * Get raw Figma API response for a file (for use with flexible extractors)
    */
   async getRawFile(fileKey: string, depth?: number | null): Promise<GetFileResponse> {

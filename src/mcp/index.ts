@@ -4,8 +4,10 @@ import { Logger } from "../utils/logger.js";
 import {
   getFigmaDesignTool,
   getImageFillsTool,
+  renderNodeImagesTool,
   type GetFigmaDesignParams,
   type GetImageFillsParams,
+  type RenderNodeImagesParams,
 } from "./tools/index.js";
 
 const serverInfo = {
@@ -64,6 +66,17 @@ function registerTools(
         annotations: { readOnlyHint: true },
       },
       (params: GetImageFillsParams) => getImageFillsTool.handler(params, figmaService),
+    );
+
+    server.registerTool(
+      renderNodeImagesTool.name,
+      {
+        title: "Render Node Images",
+        description: renderNodeImagesTool.description,
+        inputSchema: renderNodeImagesTool.parametersSchema,
+        annotations: { readOnlyHint: true },
+      },
+      (params: RenderNodeImagesParams) => renderNodeImagesTool.handler(params, figmaService),
     );
   }
 }
