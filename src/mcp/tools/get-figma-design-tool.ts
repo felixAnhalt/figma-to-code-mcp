@@ -32,7 +32,7 @@ const parameters = {
     .boolean()
     .default(false)
     .describe(
-      "Whether to decompress repeated nodes. Default (false) returns v4 compressed format. Set to true for expanded v3 format (larger output, easier for some LLMs to parse).",
+      "Whether to decompress repeated nodes. Default (false) returns compressed format. Adds repeat: create N identical copies of a node. repeatExcept: lists which copies should have different properties. Use case: 20 list rows where rows 1-19 have borders but row 0 doesn't.).",
     ),
 };
 
