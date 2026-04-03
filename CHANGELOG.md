@@ -1,5 +1,12 @@
 # tmegit-figma-to-code-mcp
 
+## [0.18.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.17.0...v0.18.0) (2026-04-03)
+
+
+### Features
+
+* **get-figma-design-tool:** add resolveVariables option for variable resolution ([#17](https://github.com/felixAnhalt/figma-to-code-mcp/issues/17)) ([5a2451f](https://github.com/felixAnhalt/figma-to-code-mcp/commit/5a2451f625b8114a0e180fba66eae65dd39a871e))
+
 ## [0.17.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.16.0...v0.17.0) (2026-04-03)
 
 
