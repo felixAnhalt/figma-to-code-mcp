@@ -1,5 +1,12 @@
 # tmegit-figma-to-code-mcp
 
+## [0.21.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.20.1...v0.21.0) (2026-04-03)
+
+
+### Features
+
+* **reducer:** add param to allow collapsing and expanding repeating patterns ([#26](https://github.com/felixAnhalt/figma-to-code-mcp/issues/26)) ([56cb50b](https://github.com/felixAnhalt/figma-to-code-mcp/commit/56cb50ba05164c5af6b45c1a6a51a40f451907a4))
+
 ## [0.20.1](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.20.0...v0.20.1) (2026-04-03)
 
 
