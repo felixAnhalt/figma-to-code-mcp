@@ -1,13 +1,13 @@
 import { randomUUID } from "node:crypto";
 import express, { type Request, type Response } from "express";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp";
-import { isInitializeRequest } from "@modelcontextprotocol/sdk/types";
 import { Server } from "http";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp";
 import { Logger } from "./utils/logger";
 import { createServer } from "~/mcp";
 import { getServerConfig } from "./config";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 
 let httpServer: Server | null = null;
 const transports = {
@@ -77,7 +77,7 @@ export async function startHttpServer(
       Logger.log("New initialization request for StreamableHTTP sessionId", sessionId);
       transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
-        onsessioninitialized: (sessionId) => {
+        onsessioninitialized: (sessionId: string) => {
           // Store the transport by session ID
           transports.streamable[sessionId] = transport;
         },
