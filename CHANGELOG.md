@@ -1,5 +1,12 @@
 # tmegit-figma-to-code-mcp
 
+## [0.20.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.19.0...v0.20.0) (2026-04-03)
+
+
+### Features
+
+* **tokenizer:** improve datastructure ([#23](https://github.com/felixAnhalt/figma-to-code-mcp/issues/23)) ([b0ea2e6](https://github.com/felixAnhalt/figma-to-code-mcp/commit/b0ea2e64d765dbff659ca7454a3c8b1f478eacef))
+
 ## [0.19.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.18.0...v0.19.0) (2026-04-03)
 
 
