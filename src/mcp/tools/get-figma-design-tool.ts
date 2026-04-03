@@ -20,6 +20,12 @@ const parameters = {
     .describe(
       "The ID of the node to fetch, often found as URL parameter node-id=<nodeId>, always use if provided. Use format '1234:5678' or 'I5666:180910;1:10515;1:10336' for multiple nodes.",
     ),
+  resolveVariables: z
+    .boolean()
+    .default(true)
+    .describe(
+      "Whether to resolve variable references to their actual values. Set to false if already fetched once.",
+    ),
 };
 
 const parametersSchema = z.object(parameters);
@@ -39,7 +45,7 @@ async function getFigmaDesign(
   outputFormat: "yaml" | "json",
 ) {
   try {
-    const { fileKey, nodeId: rawNodeId } = parametersSchema.parse(params);
+    const { fileKey, nodeId: rawNodeId, resolveVariables } = parametersSchema.parse(params);
 
     // Replace - with : in nodeId for Figma API
     const nodeId = rawNodeId.replace(/-/g, ":");
@@ -61,6 +67,7 @@ async function getFigmaDesign(
       authHeaders,
       rootNodeId: nodeId,
       styleMap,
+      resolveVariables,
     });
 
     writeLogs("figma-mcp-response.json", mcpResponse);
