@@ -261,72 +261,85 @@ describe("extractTokens — no fallback tokens for unnamed values", () => {
   });
 });
 
-// ── sizing shorthand collapse ─────────────────────────────────────────────────
+// ── size shorthand collapse (width + height) ──────────────────────────────────
 
-describe("extractTokens — sizing shorthand collapse", () => {
-  it("collapses sizingH:hug + sizingV:hug into sizing:hug", () => {
+describe("extractTokens — size shorthand collapse (width + height)", () => {
+  it("collapses width:100% + height:100% into size:100%", () => {
     const response = makeResponse(
       makeFrame({
-        children: [makeFrame({ layout: { sizingH: "hug", sizingV: "hug" } })],
+        children: [makeFrame({ layout: { width: "100%", height: "100%" } })],
       }),
     );
     const result = extractTokens(response);
     const layout = result.root.children![0].layout!;
-    expect(layout.sizing).toBe("hug");
-    expect(layout.sizingH).toBeUndefined();
-    expect(layout.sizingV).toBeUndefined();
+    expect(layout.size).toBe("100%");
+    expect(layout.width).toBeUndefined();
+    expect(layout.height).toBeUndefined();
   });
 
-  it("collapses sizingH:fill + sizingV:fill into sizing:fill", () => {
+  it("collapses width:fit-content + height:fit-content into size:fit-content", () => {
     const response = makeResponse(
       makeFrame({
-        children: [makeFrame({ layout: { sizingH: "fill", sizingV: "fill" } })],
+        children: [makeFrame({ layout: { width: "fit-content", height: "fit-content" } })],
       }),
     );
     const result = extractTokens(response);
     const layout = result.root.children![0].layout!;
-    expect(layout.sizing).toBe("fill");
-    expect(layout.sizingH).toBeUndefined();
-    expect(layout.sizingV).toBeUndefined();
+    expect(layout.size).toBe("fit-content");
+    expect(layout.width).toBeUndefined();
+    expect(layout.height).toBeUndefined();
   });
 
-  it("leaves sizingH:hug + sizingV:fill as separate fields (no collapse)", () => {
+  it("collapses width:320px + height:320px into size:320px", () => {
     const response = makeResponse(
       makeFrame({
-        children: [makeFrame({ layout: { sizingH: "hug", sizingV: "fill" } })],
+        children: [makeFrame({ layout: { width: "320px", height: "320px" } })],
       }),
     );
     const result = extractTokens(response);
     const layout = result.root.children![0].layout!;
-    expect(layout.sizing).toBeUndefined();
-    expect(layout.sizingH).toBe("hug");
-    expect(layout.sizingV).toBe("fill");
+    expect(layout.size).toBe("320px");
+    expect(layout.width).toBeUndefined();
+    expect(layout.height).toBeUndefined();
   });
 
-  it("leaves solo sizingH (no sizingV) unchanged", () => {
+  it("leaves width:100% + height:fit-content as separate fields (no collapse)", () => {
     const response = makeResponse(
       makeFrame({
-        children: [makeFrame({ layout: { sizingH: "hug" } })],
+        children: [makeFrame({ layout: { width: "100%", height: "fit-content" } })],
       }),
     );
     const result = extractTokens(response);
     const layout = result.root.children![0].layout!;
-    expect(layout.sizing).toBeUndefined();
-    expect(layout.sizingH).toBe("hug");
-    expect(layout.sizingV).toBeUndefined();
+    expect(layout.size).toBeUndefined();
+    expect(layout.width).toBe("100%");
+    expect(layout.height).toBe("fit-content");
   });
 
-  it("leaves solo sizingV (no sizingH) unchanged", () => {
+  it("leaves solo width (no height) unchanged", () => {
     const response = makeResponse(
       makeFrame({
-        children: [makeFrame({ layout: { sizingV: "fill" } })],
+        children: [makeFrame({ layout: { width: "100%" } })],
       }),
     );
     const result = extractTokens(response);
     const layout = result.root.children![0].layout!;
-    expect(layout.sizing).toBeUndefined();
-    expect(layout.sizingH).toBeUndefined();
-    expect(layout.sizingV).toBe("fill");
+    expect(layout.size).toBeUndefined();
+    expect(layout.width).toBe("100%");
+    expect(layout.height).toBeUndefined();
+  });
+
+  it("leaves solo height (no width) unchanged", () => {
+    const response = makeResponse(
+      makeFrame({
+        children: [makeFrame({ layout: { height: "fit-content" } })],
+      }),
+    );
+    const result = extractTokens(response);
+    const layout = result.root.children![0].layout!;
+    expect(layout.size).toBeUndefined();
+    expect(layout.width).toBeUndefined();
+    expect(layout.height).toBe("fit-content");
   });
 });
 
@@ -373,40 +386,53 @@ describe("extractTokens — paddingCombos tokens", () => {
   });
 });
 
-// ── minHeight tokenization ─────────────────────────────────────────────────────
+// ── minHeight tokenization (now as CSS strings) ──────────────────────────────
 
-describe("extractTokens — heights tokens", () => {
-  const HEIGHT_CASES: [number, string][] = [
-    [36, "md"],
-    [32, "sm"],
-    [40, "lg"],
-    [24, "xs"],
+describe("extractTokens — heights tokens (minHeight as CSS strings)", () => {
+  const HEIGHT_CASES: [string, string][] = [
+    ["36px", "md"],
+    ["32px", "sm"],
+    ["40px", "lg"],
+    ["24px", "xs"],
   ];
 
-  for (const [value, tokenName] of HEIGHT_CASES) {
-    it(`tokenizes minHeight:${value} as heights.${tokenName}`, () => {
-      const children = Array.from({ length: 3 }, () => makeFrame({ layout: { minHeight: value } }));
+  for (const [cssValue, tokenName] of HEIGHT_CASES) {
+    it(`tokenizes minHeight:${cssValue} as heights.${tokenName}`, () => {
+      const children = Array.from({ length: 3 }, () =>
+        makeFrame({ layout: { minHeight: cssValue } }),
+      );
       const response = makeResponse(makeFrame({ children }));
       const result = extractTokens(response);
       expect(result.root.children![0].layout?.minHeight).toBe(`heights.${tokenName}`);
-      expect(result.tokens?.heights?.[tokenName]).toBe(value);
+      expect(result.tokens?.heights?.[tokenName]).toBe(parseInt(cssValue));
     });
   }
 
-  it("does NOT tokenize an unknown minHeight value (e.g. 50)", () => {
-    const children = Array.from({ length: 5 }, () => makeFrame({ layout: { minHeight: 50 } }));
+  it("does NOT tokenize an unknown minHeight value (e.g. 50px)", () => {
+    const children = Array.from({ length: 5 }, () => makeFrame({ layout: { minHeight: "50px" } }));
     const response = makeResponse(makeFrame({ children }));
     const result = extractTokens(response);
-    expect(result.root.children![0].layout?.minHeight).toBe(50);
+    expect(result.root.children![0].layout?.minHeight).toBe("50px");
     expect(result.tokens?.heights).toBeUndefined();
   });
 
   it("does NOT tokenize a minHeight that appears only once", () => {
     const response = makeResponse(
-      makeFrame({ children: [makeFrame({ layout: { minHeight: 36 } })] }),
+      makeFrame({ children: [makeFrame({ layout: { minHeight: "36px" } })] }),
     );
     const result = extractTokens(response);
-    expect(result.root.children![0].layout?.minHeight).toBe(36);
+    expect(result.root.children![0].layout?.minHeight).toBe("36px");
+    expect(result.tokens?.heights).toBeUndefined();
+  });
+
+  it("leaves non-px minHeight values unchanged (e.g. fit-content)", () => {
+    const children = Array.from({ length: 5 }, () =>
+      makeFrame({ layout: { minHeight: "fit-content" } }),
+    );
+    const response = makeResponse(makeFrame({ children }));
+    const result = extractTokens(response);
+    // fit-content doesn't end with px, so no tokenization attempt
+    expect(result.root.children![0].layout?.minHeight).toBe("fit-content");
     expect(result.tokens?.heights).toBeUndefined();
   });
 });
@@ -458,7 +484,7 @@ describe("extractTokens — componentSets get token replacement", () => {
           propKeys: ["size"],
           variants: {
             "1:1": {
-              layout: { sizingH: "hug", sizingV: "hug" },
+              layout: { width: "fit-content", height: "fit-content" },
             },
           },
         },
@@ -466,9 +492,9 @@ describe("extractTokens — componentSets get token replacement", () => {
     };
     const result = extractTokens(response);
     const variantLayout = result.componentSets?.Button.variants["1:1"].layout;
-    expect(variantLayout?.sizing).toBe("hug");
-    expect(variantLayout?.sizingH).toBeUndefined();
-    expect(variantLayout?.sizingV).toBeUndefined();
+    expect(variantLayout?.size).toBe("fit-content");
+    expect(variantLayout?.width).toBeUndefined();
+    expect(variantLayout?.height).toBeUndefined();
   });
 });
 

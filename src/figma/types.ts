@@ -136,31 +136,32 @@ export type Layout = {
   overflow?: "hidden";
   /** flex-wrap: wrap */
   wrap?: boolean;
-  /** Explicit pixel width (only when FIXED sizing) */
-  width?: number;
-  /** Explicit pixel height (only when FIXED sizing) */
-  height?: number;
-  minWidth?: number;
-  maxWidth?: number;
-  /** Explicit min-height in px, or a token ref (e.g. "heights.md") */
-  minHeight?: number | TokenRef;
-  maxHeight?: number;
   /**
-   * Collapsed sizing shorthand when sizingH === sizingV.
-   * "hug" = fit-content, "fill" = flex:1 / grow.
-   * Present instead of sizingH + sizingV when both match.
+   * Width as CSS value: "100%" (flex:1 grow), "fit-content" (shrink to fit),
+   * pixel values like "320px", or token refs like "spacing.lg".
+   * Omitted when not specified (sizing is auto/implicit).
    */
-  sizing?: "hug" | "fill";
+  width?: string | TokenRef;
   /**
-   * Horizontal sizing mode. "fill" = flex:1 / grow to fill parent. "hug" = fit-content.
-   * Omitted when FIXED (explicit width emitted instead) or when `sizing` covers both axes.
+   * Height as CSS value: "100%" (flex:1 grow), "fit-content" (shrink to fit),
+   * pixel values like "48px", or token refs like "heights.md".
+   * Omitted when not specified (sizing is auto/implicit).
    */
-  sizingH?: "fill" | "hug";
+  height?: string | TokenRef;
+  /** Min-width as CSS value (e.g., "200px" or token ref) */
+  minWidth?: string | TokenRef;
+  /** Max-width as CSS value (e.g., "800px" or token ref) */
+  maxWidth?: string | TokenRef;
+  /** Min-height as CSS value (e.g., "36px" or token ref like "heights.md") */
+  minHeight?: string | TokenRef;
+  /** Max-height as CSS value (e.g., "100vh" or token ref) */
+  maxHeight?: string | TokenRef;
   /**
-   * Vertical sizing mode. "fill" = flex:1 / grow to fill parent. "hug" = fit-content.
-   * Omitted when FIXED (explicit height emitted instead) or when `sizing` covers both axes.
+   * Collapsed size shorthand when width === height.
+   * e.g., "100%" (both fill), "fit-content" (both hug), or "320px" (both fixed).
+   * Present instead of separate width + height when both are identical.
    */
-  sizingV?: "fill" | "hug";
+  size?: string | TokenRef;
   /** flex-grow: 1 — node stretches to fill available space in parent's main axis */
   grow?: boolean;
 };

@@ -418,30 +418,30 @@ export function buildNormalizedGraph(
 
     const size = node.size as { x?: number; y?: number } | undefined;
     if (size?.x !== undefined && node.layoutSizingHorizontal === "FIXED") {
-      layout.width = roundTo(size.x, 2);
+      layout.width = `${roundTo(size.x, 2)}px`;
     }
     if (size?.y !== undefined && node.layoutSizingVertical === "FIXED") {
-      layout.height = roundTo(size.y, 2);
+      layout.height = `${roundTo(size.y, 2)}px`;
     }
     if (node.minWidth !== undefined && node.minWidth !== null) {
-      layout.minWidth = roundTo(node.minWidth as number, 2);
+      layout.minWidth = `${roundTo(node.minWidth as number, 2)}px`;
     }
     if (node.maxWidth !== undefined && node.maxWidth !== null) {
-      layout.maxWidth = roundTo(node.maxWidth as number, 2);
+      layout.maxWidth = `${roundTo(node.maxWidth as number, 2)}px`;
     }
     if (node.minHeight !== undefined && node.minHeight !== null) {
-      layout.minHeight = roundTo(node.minHeight as number, 2);
+      layout.minHeight = `${roundTo(node.minHeight as number, 2)}px`;
     }
     if (node.maxHeight !== undefined && node.maxHeight !== null) {
-      layout.maxHeight = roundTo(node.maxHeight as number, 2);
+      layout.maxHeight = `${roundTo(node.maxHeight as number, 2)}px`;
     }
 
-    // Sizing mode: emit FILL/HUG explicitly so LLMs can generate correct CSS
-    // (flex:1 for FILL, fit-content for HUG). FIXED is implicit from width/height.
-    if (node.layoutSizingHorizontal === "FILL") layout.sizingH = "fill";
-    else if (node.layoutSizingHorizontal === "HUG") layout.sizingH = "hug";
-    if (node.layoutSizingVertical === "FILL") layout.sizingV = "fill";
-    else if (node.layoutSizingVertical === "HUG") layout.sizingV = "hug";
+    // Sizing mode: emit CSS values so LLMs can directly use them
+    // FILL → "100%", HUG → "fit-content", FIXED → explicit width/height above
+    if (node.layoutSizingHorizontal === "FILL") layout.width = "100%";
+    else if (node.layoutSizingHorizontal === "HUG") layout.width = "fit-content";
+    if (node.layoutSizingVertical === "FILL") layout.height = "100%";
+    else if (node.layoutSizingVertical === "HUG") layout.height = "fit-content";
 
     // layoutGrow: 1 means the node stretches along the parent's main axis (flex-grow: 1)
     if (node.layoutGrow === 1) layout.grow = true;

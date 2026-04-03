@@ -155,7 +155,11 @@ function countFrequencies(response: MCPResponse): {
       increment(spacings, String(p.left));
     }
 
-    if (typeof layout.minHeight === "number") increment(heights, String(layout.minHeight));
+    // minHeight can be a pixel string like "36px" — extract number for tokenization
+    if (typeof layout.minHeight === "string" && layout.minHeight.endsWith("px")) {
+      const numStr = layout.minHeight.slice(0, -2);
+      increment(heights, numStr);
+    }
   }
 
   function countNode(node: V3Node): void {
@@ -413,17 +417,18 @@ function replaceLayoutTokens(
     }
   }
 
-  // minHeight
-  if (typeof l.minHeight === "number") {
-    const t = heightsByRaw.get(String(l.minHeight));
+  // minHeight can be a pixel string like "36px" — tokenize if there's a semantic name
+  if (typeof l.minHeight === "string" && l.minHeight.endsWith("px")) {
+    const numStr = l.minHeight.slice(0, -2);
+    const t = heightsByRaw.get(numStr);
     if (t) l.minHeight = `heights.${t}`;
   }
 
-  // sizing shorthand collapse: if sizingH === sizingV, fold into sizing
-  if (l.sizingH && l.sizingV && l.sizingH === l.sizingV) {
-    l.sizing = l.sizingH;
-    delete l.sizingH;
-    delete l.sizingV;
+  // size shorthand collapse: if width === height, fold into size
+  if (l.width && l.height && l.width === l.height) {
+    l.size = l.width;
+    delete l.width;
+    delete l.height;
   }
 
   return l;

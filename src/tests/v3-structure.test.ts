@@ -263,8 +263,8 @@ describe("layout sub-object", () => {
       layoutSizingVertical: "FIXED",
     });
     const result = buildNormalizedGraph(raw, {});
-    expect(result.root.layout!.width).toBe(320);
-    expect(result.root.layout!.height).toBe(48);
+    expect(result.root.layout!.width).toBe("320px");
+    expect(result.root.layout!.height).toBe("48px");
   });
 
   it("non-auto-layout FRAME with no layout properties emits no layout field", () => {

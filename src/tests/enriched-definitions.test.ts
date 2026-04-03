@@ -277,8 +277,8 @@ describe("Component definitions — enriched", () => {
     const effectiveLayout = variantEntry?.layout ?? set.base?.layout;
     expect(effectiveLayout).toBeDefined();
     expect(effectiveLayout?.direction).toBe("row");
-    expect(effectiveLayout?.width).toBe(200);
-    expect(effectiveLayout?.height).toBe(48);
+    expect(effectiveLayout?.width).toBe("200px");
+    expect(effectiveLayout?.height).toBe("48px");
   });
 
   it("Phase 2+3: children are available in the componentSet", async () => {
