@@ -7,9 +7,9 @@ export type {
   Paint,
   GradientStop,
   ComponentDefinition,
-} from "./figma/types.js";
+} from "./figma/types";
 
 // Main API
-export { generateMCPResponse, fetchStyles, fetchComponents } from "./figma/index.js";
+export { generateMCPResponse, fetchStyles, fetchComponents } from "./figma";
 
-export type { MCPOptions } from "./figma/index.js";
+export type { MCPOptions } from "./figma";

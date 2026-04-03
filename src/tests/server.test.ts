@@ -1,10 +1,10 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
-import { createServer } from "../mcp/index.js";
-import { startHttpServer, stopHttpServer } from "../server.js";
+import { Client } from "@modelcontextprotocol/sdk/client/index";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp";
+import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse";
+import { createServer } from "../mcp";
+import { startHttpServer, stopHttpServer } from "../server";
 import type { AddressInfo } from "net";
-import type { FigmaAuthOptions } from "../services/figma.js";
+import type { FigmaAuthOptions } from "../services/figma";
 
 const dummyAuth: FigmaAuthOptions = {
   figmaApiKey: "test-key-not-used",

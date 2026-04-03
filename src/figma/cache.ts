@@ -26,7 +26,3 @@ export function setCache<T>(key: string, data: T, ttl: number): void {
     ttl,
   });
 }
-
-export function clearCache(): void {
-  cache.clear();
-}

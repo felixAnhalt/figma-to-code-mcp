@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { FigmaService, type FigmaAuthOptions } from "../services/figma.js";
-import { Logger } from "../utils/logger.js";
+import { FigmaService, type FigmaAuthOptions } from "~/services/figma";
+import { Logger } from "~/utils/logger";
 import {
   getFigmaDesignTool,
   getImageFillsTool,
@@ -8,7 +8,7 @@ import {
   type GetFigmaDesignParams,
   type GetImageFillsParams,
   type RenderNodeImagesParams,
-} from "./tools/index.js";
+} from "./tools/index";
 
 const serverInfo = {
   name: "Figma MCP Server",

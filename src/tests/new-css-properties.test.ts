@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildNormalizedGraph } from "../figma/reducer.js";
+import { buildNormalizedGraph } from "../figma/reducer";
 
 describe("CSS properties (v3)", () => {
   it("handles rotation (style.transform: rotate)", () => {

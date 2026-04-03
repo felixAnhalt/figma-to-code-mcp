@@ -1,11 +1,6 @@
-import type {
-  GetFileResponse,
-  GetFileNodesResponse,
-  GetImageFillsResponse,
-  GetLocalVariablesResponse,
-} from "@figma/rest-api-spec";
-import { Logger, writeLogs } from "~/utils/logger.js";
-import { fetchWithRetry } from "~/utils/fetch-with-retry.js";
+import type { GetImageFillsResponse } from "@figma/rest-api-spec";
+import { Logger } from "~/utils/logger";
+import { fetchWithRetry } from "~/utils/fetch-with-retry";
 
 export type FigmaAuthOptions = {
   figmaApiKey: string;
@@ -23,11 +18,6 @@ export class FigmaService {
     this.apiKey = figmaApiKey || "";
     this.oauthToken = figmaOAuthToken || "";
     this.useOAuth = !!useOAuth && !!this.oauthToken;
-  }
-
-  /** Returns the raw token string used for authentication. */
-  getToken(): string {
-    return this.useOAuth ? this.oauthToken : this.apiKey;
   }
 
   getAuthHeaders(): Record<string, string> {
@@ -94,57 +84,5 @@ export class FigmaService {
 
     const response = await this.request<RenderImagesResponse>(endpoint);
     return response.images || {};
-  }
-
-  /**
-   * Get raw Figma API response for a file (for use with flexible extractors)
-   */
-  async getRawFile(fileKey: string, depth?: number | null): Promise<GetFileResponse> {
-    const endpoint = `/files/${fileKey}${depth ? `?depth=${depth}` : ""}`;
-    Logger.log(`Retrieving raw Figma file: ${fileKey} (depth: ${depth ?? "default"})`);
-
-    const response = await this.request<GetFileResponse>(endpoint);
-    writeLogs("figma-raw.json", response);
-
-    return response;
-  }
-
-  /**
-   * Get raw Figma API response for specific nodes (for use with flexible extractors)
-   */
-  async getRawNode(
-    fileKey: string,
-    nodeId: string,
-    depth?: number | null,
-  ): Promise<GetFileNodesResponse> {
-    const endpoint = `/files/${fileKey}/nodes?ids=${nodeId}${depth ? `&depth=${depth}` : ""}`;
-    Logger.log(
-      `Retrieving raw Figma node: ${nodeId} from ${fileKey} (depth: ${depth ?? "default"})`,
-    );
-
-    const response = await this.request<GetFileNodesResponse>(endpoint);
-    writeLogs("figma-raw.json", response);
-
-    return response;
-  }
-
-  /**
-   * Get local variables from a Figma file.
-   *
-   * Returns all variables and variable collections defined in the file.
-   * Used to resolve VariableAlias references (e.g., { type: "VARIABLE_ALIAS", id: "..." })
-   * to actual values.
-   *
-   * @param fileKey - The Figma file key
-   * @returns Variables and variable collections with values by mode
-   */
-  async getLocalVariables(fileKey: string): Promise<GetLocalVariablesResponse> {
-    const endpoint = `/files/${fileKey}/variables/local`;
-    Logger.log(`Retrieving local variables from ${fileKey}`);
-
-    const response = await this.request<GetLocalVariablesResponse>(endpoint);
-    writeLogs("figma-variables.json", response);
-
-    return response;
   }
 }

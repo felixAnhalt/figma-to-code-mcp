@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { config } from "dotenv";
-import { getFigmaDesignTool } from "~/mcp/tools/get-figma-design-tool.js";
-import { FigmaService } from "~/services/figma.js";
+import { getFigmaDesignTool } from "~/mcp/tools/get-figma-design-tool";
+import { FigmaService } from "~/services/figma";
 import fs from "fs";
 import path from "path";
 import yaml from "js-yaml";
@@ -56,7 +56,7 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
       // 2. Call the actual MCP tool handler — identical code path the LLM hits
       console.log("Calling getFigmaDesign tool handler (same path as the LLM)...");
       const toolResult = await getFigmaDesignTool.handler(
-        { fileKey: figmaFileKey, nodeId },
+        { fileKey: figmaFileKey, nodeId, resolveVariables: true },
         figmaService,
         "json",
       );

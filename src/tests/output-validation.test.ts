@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import { buildNormalizedGraph } from "~/figma/reducer.js";
+import { buildNormalizedGraph } from "~/figma/reducer";
 
 describe.skipIf(process.env.RUN_BENCHMARK_TESTS !== "1")(
   "Normalized graph output validation (v3)",
