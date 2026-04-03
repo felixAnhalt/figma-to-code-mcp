@@ -25,7 +25,7 @@ Figma To Code MCP specializes in **extracting only the information LLMs need to 
 **Example transformation:**
 
 - **Original Framelink MCP**: Returns full Figma API response with all metadata
-- **This fork**: Returns CSS-aligned nodes with `display: "flex"`, `backgroundColor: "rgba(...)"`, etc.
+- **This project**: Returns CSS-aligned nodes with `display: "flex"`, `backgroundColor: "rgba(...)"`, etc.
 
 ---
 
@@ -93,26 +93,9 @@ The `tmegit-figma-to-code-mcp` server can be configured by adding the following 
 
 Or you can set `FIGMA_API_KEY` and `PORT` in the `env` field.
 
-## Key Differences from Original
-
-This fork specializes in LLM-optimized output:
-
-| Feature            | Original Framelink MCP                               | This Fork                                    |
-| ------------------ | ---------------------------------------------------- | -------------------------------------------- |
-| **Output format**  | Figma API structure                                  | CSS-aligned properties                       |
-| **Property names** | Figma naming (`layoutMode`, `counterAxisAlignItems`) | CSS naming (`display`, `alignItems`)         |
-| **Size**           | ~50% reduction                                       | **99.5% reduction**                          |
-| **Colors**         | RGBA objects in dictionaries                         | Inline CSS strings (`rgba(r, g, b, a)`)      |
-| **Layout**         | Absolute bounding boxes + flex                       | **Flexbox only** (no absolute positioning)   |
-| **Focus**          | Complete Figma fidelity                              | **UI building only** (omits Figma internals) |
-
 ## Star History
 
 <a href="https://star-history.com/#felixAnhalt/figma-to-code-mcp"><img src="https://api.star-history.com/svg?repos=felixAnhalt/figma-to-code-mcp&type=Date" alt="Star History Chart" width="600" /></a>
-
-## Learn More
-
-The Framelink MCP for Figma is simple but powerful. Get the most out of it by learning more at the [Framelink](https://framelink.ai?utm_source=github&utm_medium=referral&utm_campaign=readme) site (original creator of the project).
 
 ## Acknowledgment
 
