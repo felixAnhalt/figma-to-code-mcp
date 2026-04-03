@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import express, { type Request, type Response } from "express";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types";
 import { Server } from "http";
@@ -9,11 +8,12 @@ import { Logger } from "./utils/logger";
 import { createServer } from "~/mcp";
 import { getServerConfig } from "./config";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/dist/cjs/server/sse";
 
 let httpServer: Server | null = null;
 const transports = {
   streamable: {} as Record<string, StreamableHTTPServerTransport>,
-  sse: {} as Record<string, SSEServerTransport>,
+  sse: {} as Record<string, StreamableHTTPServerTransport>,
 };
 
 /**

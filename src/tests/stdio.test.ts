@@ -1,4 +1,4 @@
-import { Client } from "@modelcontextprotocol/sdk/client";
+import { Client } from "@modelcontextprotocol/sdk/client/index";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio";
 
 describe("stdio transport", () => {

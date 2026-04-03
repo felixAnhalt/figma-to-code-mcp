@@ -8,7 +8,7 @@
 
     "target": "ES2022",
     "lib": ["ES2022", "DOM"],
-    "module": "ES2022",
+    "module": "ESNext",
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "verbatimModuleSyntax": false,
@@ -22,7 +22,7 @@
     "sourceMap": true,
     "removeComments": true,
 
-    "types": ["vitest/globals"],
+    "types": ["vitest/globals", "node"],
 
     "strict": true,
     "esModuleInterop": true,
