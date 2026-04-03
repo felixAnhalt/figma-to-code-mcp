@@ -24,7 +24,6 @@ Figma To Code MCP specializes in **extracting only the information LLMs need to 
 
 **Example transformation:**
 
-- **Original Framelink MCP**: Returns full Figma API response with all metadata
 - **This project**: Returns CSS-aligned nodes with `display: "flex"`, `backgroundColor: "rgba(...)"`, etc.
 
 ---
