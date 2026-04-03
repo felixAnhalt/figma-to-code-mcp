@@ -1,5 +1,12 @@
 # tmegit-figma-to-code-mcp
 
+## [0.19.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.18.0...v0.19.0) (2026-04-03)
+
+
+### Features
+
+* **docs:** update readme ([4d61e94](https://github.com/felixAnhalt/figma-to-code-mcp/commit/4d61e94c16b3bba35c6e126e1de05157a5c2bb6a))
+
 ## [0.18.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.17.0...v0.18.0) (2026-04-03)
 
 
