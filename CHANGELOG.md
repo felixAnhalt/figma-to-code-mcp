@@ -1,5 +1,12 @@
 # tmegit-figma-to-code-mcp
 
+## [0.20.1](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.20.0...v0.20.1) (2026-04-03)
+
+
+### Bug Fixes
+
+* **reducer:** improve child resolution and interaction mapping logic ([86a9775](https://github.com/felixAnhalt/figma-to-code-mcp/commit/86a977520ada265d9edeb10138badb34fb9212db))
+
 ## [0.20.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.19.0...v0.20.0) (2026-04-03)
 
 
