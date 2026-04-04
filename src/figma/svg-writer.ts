@@ -3,6 +3,16 @@ const SVG_URI_SCHEME = "figma://vector/";
 /** In-memory cache of SVG content by URI key (e.g., "fileKey_nodeId") */
 const svgContentCache = new Map<string, string>();
 
+/** Returns the number of cached SVGs - useful for debugging */
+export function getSvgCacheSize(): number {
+  return svgContentCache.size;
+}
+
+/** Lists all cached SVG keys - useful for debugging */
+export function getCachedSvgKeys(): string[] {
+  return Array.from(svgContentCache.keys());
+}
+
 /**
  * Builds a minimal valid SVG file from a Figma vector node's geometry.
  * Uses a viewBox derived from the path data bounds (not computed — just unbounded).

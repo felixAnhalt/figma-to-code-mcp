@@ -774,7 +774,7 @@ export async function fetchVariables(
   return json as GetLocalVariablesResponse;
 }
 
-// Re-export types
+// Re-export types and functions
 export type {
   MCPResponse,
   V3Node,
@@ -786,3 +786,5 @@ export type {
   ComponentVariant,
   ComponentSet,
 } from "./types";
+
+export { extractTokens } from "./tokenizer";

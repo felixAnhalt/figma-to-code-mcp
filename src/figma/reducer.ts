@@ -9,7 +9,6 @@ import type {
 } from "./types";
 import type { VariableResolutionContext } from "./variableResolver";
 import { resolveVariable } from "./variableResolver";
-import { compressChildren } from "./compress";
 import { writeVectorSvg } from "./svg-writer";
 import type { VariableAlias } from "@figma/rest-api-spec";
 
@@ -801,8 +800,6 @@ export function buildNormalizedGraph(
 
       if (visible.length > 0) {
         v3.children = visible.map((child) => processNode(child));
-        // v4: Compress repeated patterns (recursively)
-        v3.children = compressChildren(v3.children);
       }
     }
 

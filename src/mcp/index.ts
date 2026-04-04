@@ -5,9 +5,11 @@ import {
   getFigmaDesignTool,
   getImageFillsTool,
   renderNodeImagesTool,
+  readVectorSvgTool,
   type GetFigmaDesignParams,
   type GetImageFillsParams,
   type RenderNodeImagesParams,
+  type ReadVectorSvgParams,
 } from "~/mcp/tools";
 import { registerVectorSvgResource } from "~/mcp/resources/vector-svg-resource";
 
@@ -56,6 +58,17 @@ function registerTools(
     },
     (params: GetFigmaDesignParams) =>
       getFigmaDesignTool.handler(params, figmaService, options.outputFormat),
+  );
+
+  server.registerTool(
+    readVectorSvgTool.name,
+    {
+      title: "Read Vector SVG",
+      description: readVectorSvgTool.description,
+      inputSchema: readVectorSvgTool.parametersSchema,
+      annotations: { readOnlyHint: true },
+    },
+    (params: ReadVectorSvgParams) => readVectorSvgTool.handler(params),
   );
 
   if (!options.skipImageDownloads) {

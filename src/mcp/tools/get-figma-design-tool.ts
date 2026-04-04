@@ -1,8 +1,6 @@
 import { z } from "zod";
 import type { FigmaService } from "~/services/figma";
-import { generateMCPResponse, fetchStyles } from "~/figma";
-import { extractTokens } from "~/figma/tokenizer";
-import { decompressTree } from "~/figma/compress";
+import { generateMCPResponse, fetchStyles, extractTokens } from "~/figma";
 import yaml from "js-yaml";
 import { Logger, writeLogs } from "~/utils/logger";
 
@@ -28,12 +26,6 @@ const parameters = {
     .describe(
       "Whether to resolve variable references to their actual values. Set to false if already fetched once.",
     ),
-  decompress: z
-    .boolean()
-    .default(false)
-    .describe(
-      "Whether to decompress repeated nodes. Default (false) returns compressed format. Adds repeat: create N identical copies of a node. repeatExcept: lists which copies should have different properties. Use case: 20 list rows where rows 1-19 have borders but row 0 doesn't.).",
-    ),
 };
 
 const parametersSchema = z.object(parameters);
@@ -53,12 +45,7 @@ async function getFigmaDesign(
   outputFormat: "yaml" | "json",
 ) {
   try {
-    const {
-      fileKey,
-      nodeId: rawNodeId,
-      resolveVariables,
-      decompress,
-    } = parametersSchema.parse(params);
+    const { fileKey, nodeId: rawNodeId, resolveVariables } = parametersSchema.parse(params);
 
     // Replace - with : in nodeId for Figma API
     const nodeId = rawNodeId.replace(/-/g, ":");
@@ -85,18 +72,12 @@ async function getFigmaDesign(
 
     // Post-pass: extract design tokens and replace repeated raw values with refs
     Logger.log("Extracting design tokens...");
-    let tokenizedResponse = extractTokens(mcpResponse);
-
-    // Optional decompression for LLMs that prefer expanded format
-    if (decompress) {
-      Logger.log("Decompressing repeated nodes...");
-      tokenizedResponse.root = decompressTree(tokenizedResponse.root);
-    }
+    const tokenizedResponse = extractTokens(mcpResponse);
 
     writeLogs("figma-mcp-response.json", tokenizedResponse);
 
     Logger.log(
-      `Successfully extracted design tree${tokenizedResponse.componentSets ? `, ${Object.keys(tokenizedResponse.componentSets).length} component sets` : ""}${tokenizedResponse.tokens ? `, ${Object.values(tokenizedResponse.tokens).reduce((n, cat) => n + Object.keys(cat ?? {}).length, 0)} tokens` : ""}${decompress ? " (decompressed)" : " (v4 compressed)"}`,
+      `Successfully extracted design tree${tokenizedResponse.componentSets ? `, ${Object.keys(tokenizedResponse.componentSets).length} component sets` : ""}${tokenizedResponse.tokens ? `, ${Object.values(tokenizedResponse.tokens).reduce((n, cat) => n + Object.keys(cat ?? {}).length, 0)} tokens` : ""}`,
     );
 
     Logger.log(`Generating ${outputFormat.toUpperCase()} result`);

@@ -531,12 +531,9 @@ describe("Wrapper collapsing", () => {
 
     expect(result.root.children).toHaveLength(1);
     expect((result.root.children![0] as any).type).toBe("FRAME");
-    // The FRAME is not collapsed, but its children are now compressed (1 node with repeat: 2)
-    // When decompressed, we get 2 nodes back
+    // Without compression, children are not collapsed
     const frameChildren = (result.root.children![0] as any).children;
-    expect(frameChildren).toHaveLength(1);
-    expect(frameChildren[0].repeat).toBeDefined();
-    expect(frameChildren[0].repeat.count).toBe(2);
+    expect(frameChildren).toHaveLength(2);
   });
 
   it("chain of transparent wrappers is fully collapsed", () => {
