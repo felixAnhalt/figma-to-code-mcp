@@ -113,6 +113,7 @@ function indexMatchesSpec(index: number, spec: number | string | number[]): bool
 /**
  * Detect if nodes starting at startIndex follow a repeating pattern.
  * Returns: { count, exceptions } or null if no compression possible.
+ * Note: VECTOR nodes are never compressed because each has a unique vectorPathUri.
  */
 function detectPattern(
   children: V3Node[],
@@ -121,6 +122,10 @@ function detectPattern(
   if (startIndex >= children.length) return null;
 
   const baseNode = children[startIndex];
+
+  // Never compress VECTOR nodes — each has a unique vectorPathUri generated from nodeId
+  if (baseNode.type === "VECTOR") return null;
+
   let count = 1;
   const exceptions: Map<number, any> = new Map();
 
