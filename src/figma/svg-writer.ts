@@ -1,38 +1,7 @@
-import { writeFile, mkdir } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-
 const SVG_URI_SCHEME = "figma://vector/";
-const SVG_DIR_PREFIX = "figma-mcp-svg-";
 
-/** Stable temp directory for this process — created on first use. */
-let svgDir: string | null = null;
-/** Promise to ensure directory creation only happens once */
-let svgDirPromise: Promise<string> | null = null;
-
-async function getSvgDir(): Promise<string> {
-  if (svgDir) return svgDir;
-
-  // Use a promise to ensure only one mkdir call happens, even with concurrent calls
-  if (!svgDirPromise) {
-    svgDirPromise = (async () => {
-      // Use a per-process directory so concurrent server instances don't collide.
-      const dir = join(tmpdir(), `${SVG_DIR_PREFIX}${process.pid}`);
-      try {
-        await mkdir(dir, { recursive: true });
-      } catch (err) {
-        // Ignore "already exists" errors (can happen in race conditions)
-        if ((err as NodeJS.ErrnoException).code !== "EEXIST") {
-          throw err;
-        }
-      }
-      svgDir = dir;
-      return dir;
-    })();
-  }
-
-  return svgDirPromise;
-}
+/** In-memory cache of SVG content by URI key (e.g., "fileKey_nodeId") */
+const svgContentCache = new Map<string, string>();
 
 /**
  * Builds a minimal valid SVG file from a Figma vector node's geometry.
@@ -51,13 +20,12 @@ function buildSvgContent(paths: Array<{ d: string; fillRule?: string }>): string
 }
 
 /**
- * Writes SVG geometry for a Figma VECTOR node to the process-scoped temp directory.
+ * Stores SVG geometry for a Figma VECTOR node in the in-memory cache.
  *
  * Returns the MCP resource URI (e.g. "figma://vector/fileKey_nodeId") on success,
- * or undefined if the write fails (callers should skip the vectorPathUri field).
+ * or undefined if the geometry is invalid (callers should skip the vectorPathUri field).
  *
- * The file name is node-id-based: figma_{fileKey}_{sanitizedNodeId}.svg
- * so each vector node has a stable, traceable file on disk.
+ * The URI key is stable and uniquely identifies this vector node across server lifetime.
  */
 export async function writeVectorSvg(
   fileKey: string,
@@ -69,26 +37,23 @@ export async function writeVectorSvg(
     if (!paths || paths.length === 0 || !paths.some((p) => p.d)) {
       return undefined;
     }
-    const dir = await getSvgDir();
-    // Sanitize nodeId (colons → underscores) for safe file names
+    // Sanitize nodeId (colons → underscores) for safe cache keys
     const safeNodeId = nodeId.replace(/[:/\\]/g, "_");
-    const fileName = `figma_${fileKey}_${safeNodeId}.svg`;
-    const filePath = join(dir, fileName);
+    const cacheKey = `${fileKey}_${safeNodeId}`;
     const content = buildSvgContent(paths);
-    await writeFile(filePath, content, "utf-8");
-    return `${SVG_URI_SCHEME}${fileKey}_${safeNodeId}`;
+    svgContentCache.set(cacheKey, content);
+    return `${SVG_URI_SCHEME}${cacheKey}`;
   } catch {
     return undefined;
   }
 }
 
 /**
- * Resolves a vector URI back to the absolute file path on disk.
- * Returns undefined if the URI doesn't match the expected scheme.
+ * Retrieves SVG content from the in-memory cache by URI.
+ * Returns the SVG content string if found, undefined otherwise.
  */
 export async function resolveVectorUri(uri: string): Promise<string | undefined> {
   if (!uri.startsWith(SVG_URI_SCHEME)) return undefined;
   const key = uri.slice(SVG_URI_SCHEME.length);
-  const dir = await getSvgDir();
-  return join(dir, `figma_${key}.svg`);
+  return svgContentCache.get(key);
 }

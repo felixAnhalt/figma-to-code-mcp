@@ -1,4 +1,3 @@
-import { readFile } from "node:fs/promises";
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { resolveVectorUri } from "~/figma/svg-writer";
@@ -11,11 +10,11 @@ const VECTOR_SVG_URI_TEMPLATE = "figma://vector/{key}";
  * Registers the figma://vector/{key} resource template on the MCP server.
  *
  * When an LLM requests a URI matching this template, the handler resolves the
- * key to an SVG file path on disk (written by svg-writer during graph reduction)
- * and returns the SVG content as an image/svg+xml resource.
+ * key to SVG content from the in-memory cache (populated by svg-writer during
+ * graph reduction) and returns the SVG content as an image/svg+xml resource.
  *
- * If the file cannot be read (e.g. not yet written, temp dir cleaned up), the
- * handler returns an error resource rather than throwing.
+ * If the URI is not found in the cache, the handler returns an error resource
+ * rather than throwing.
  */
 export function registerVectorSvgResource(server: McpServer): void {
   const template = new ResourceTemplate(VECTOR_SVG_URI_TEMPLATE, { list: undefined });
@@ -30,9 +29,9 @@ export function registerVectorSvgResource(server: McpServer): void {
     },
     async (uri) => {
       const uriString = uri.toString();
-      const filePath = await resolveVectorUri(uriString);
+      const svgContent = await resolveVectorUri(uriString);
 
-      if (!filePath) {
+      if (!svgContent) {
         Logger.warn(`[vector-svg-resource] Could not resolve URI: ${uriString}`);
         return {
           contents: [
@@ -45,30 +44,15 @@ export function registerVectorSvgResource(server: McpServer): void {
         };
       }
 
-      try {
-        const svgContent = await readFile(filePath, "utf-8");
-        return {
-          contents: [
-            {
-              uri: uriString,
-              mimeType: "image/svg+xml",
-              text: svgContent,
-            },
-          ],
-        };
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        Logger.warn(`[vector-svg-resource] Failed to read ${filePath}: ${message}`);
-        return {
-          contents: [
-            {
-              uri: uriString,
-              mimeType: "text/plain",
-              text: `SVG file not available: ${message}`,
-            },
-          ],
-        };
-      }
+      return {
+        contents: [
+          {
+            uri: uriString,
+            mimeType: "image/svg+xml",
+            text: svgContent,
+          },
+        ],
+      };
     },
   );
 }
