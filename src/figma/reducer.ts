@@ -851,14 +851,39 @@ export function buildNormalizedGraph(
  * vectorPathUri assignments persist in the final response.
  */
 export async function flushAllPendingVectorSvgs(): Promise<void> {
+  console.log(`[VECTOR] Flushing ${globalPendingVectorWrites.length} pending writes`);
+  let successCount = 0;
+  let failCount = 0;
+  const failures: string[] = [];
+
   await Promise.all(
     globalPendingVectorWrites.map(async ({ fileKey, nodeId, paths, target }) => {
+      // Check if paths are valid before attempting write
+      const pathsValid = paths && paths.length > 0 && paths.some((p) => p.d);
+      if (!pathsValid) {
+        console.log(`  [SKIP] ${nodeId}: no valid paths (got ${paths?.length || 0} items)`);
+        failures.push(`${nodeId}`);
+        failCount++;
+        return;
+      }
+
       const uri = await writeVectorSvg(fileKey, nodeId, paths);
       if (uri) {
         target.vectorPathUri = uri;
+        successCount++;
+      } else {
+        console.log(`  [FAIL] ${nodeId}: writeVectorSvg returned undefined`);
+        failures.push(`${nodeId}`);
+        failCount++;
       }
     }),
   );
+
+  console.log(`[VECTOR] Results: ${successCount} success, ${failCount} failed`);
+  if (failures.length > 0 && failures.length <= 10) {
+    console.log(`  First failures: ${failures.slice(0, 10).join(", ")}`);
+  }
+
   // Clear the global accumulator after flushing so subsequent calls don't re-flush.
   globalPendingVectorWrites.length = 0;
 }

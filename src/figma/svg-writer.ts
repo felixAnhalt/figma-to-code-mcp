@@ -49,6 +49,7 @@ export async function writeVectorSvg(
   try {
     // Guard: need at least one path with valid d attribute
     if (!paths || paths.length === 0 || !paths.some((p) => p.d)) {
+      console.log("no paths found for", fileKey, nodeId, paths);
       return undefined;
     }
     const dir = await getSvgDir();
