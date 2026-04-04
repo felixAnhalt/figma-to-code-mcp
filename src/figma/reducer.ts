@@ -737,6 +737,7 @@ export function buildNormalizedGraph(
     // ── Vector paths (VECTOR nodes only) ───────────────────────────────────
     const vectorPaths = extractVectorPaths(node);
     if (vectorPaths) {
+      // Bounds are now computed from path data in svg-writer.ts (not absolute canvas position)
       globalPendingVectorWrites.push({ fileKey, nodeId: node.id, paths: vectorPaths, target: v3 });
     }
 
