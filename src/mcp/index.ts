@@ -8,7 +8,8 @@ import {
   type GetFigmaDesignParams,
   type GetImageFillsParams,
   type RenderNodeImagesParams,
-} from "./tools/index";
+} from "~/mcp/tools";
+import { registerVectorSvgResource } from "~/mcp/resources/vector-svg-resource";
 
 const serverInfo = {
   name: "Figma MCP Server",
@@ -30,6 +31,7 @@ function createServer(
   const server = new McpServer(serverInfo);
   const figmaService = new FigmaService(authOptions);
   registerTools(server, figmaService, { outputFormat, skipImageDownloads });
+  registerVectorSvgResource(server);
 
   Logger.isHTTP = isHTTP;
 

@@ -112,8 +112,12 @@ export type V3Node = {
   /** Inline child nodes */
   children?: V3Node[];
 
-  /** Vector paths for VECTOR nodes (SVG-renderable data) */
-  vectorPaths?: VectorPath[];
+  /**
+   * MCP resource URI for the SVG file written to disk for this VECTOR node.
+   * Format: "figma://vector/{fileKey}_{nodeId}"
+   * Only present when vector geometry data was available and successfully written.
+   */
+  vectorPathUri?: string;
 
   /**
    * Compression marker: indicates this node represents N identical/similar repeated instances.
@@ -235,13 +239,6 @@ export type Paint = {
   imageRef?: string;
   scaleMode?: string;
   opacity?: number;
-};
-
-export type VectorPath = {
-  /** SVG path data (d attribute) */
-  d: string;
-  /** SVG fill-rule: "nonzero" or "evenodd" */
-  fillRule?: string;
 };
 
 export type GradientStop = {

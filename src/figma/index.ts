@@ -225,8 +225,15 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
     }
   }
 
-  // Pass 1 — build the filtered normalized tree
-  const normalized = buildNormalizedGraph(rootNode, styleMap, variableContext, componentMap);
+  // Pass 1 — build the filtered normalized tree, then flush all VECTOR SVGs to disk.
+  const { flushVectorSvgs, ...normalized } = buildNormalizedGraph(
+    rootNode,
+    styleMap,
+    variableContext,
+    componentMap,
+    fileKey,
+  );
+  await flushVectorSvgs();
 
   // Enrich definitions if any INSTANCE nodes survived filtering
   if (normalized.definitions && Object.keys(normalized.definitions).length > 0) {
@@ -357,23 +364,28 @@ async function enrichDefinitions(
         r !== null,
     );
 
-    // Flatten into node_id → raw node entry
-    const fetchedNodes = new Map<string, Record<string, unknown>>();
-    for (const { result } of fetchResults) {
-      for (const [nodeId, nodeEntry] of Object.entries(result)) {
-        fetchedNodes.set(nodeId, nodeEntry as Record<string, unknown>);
-      }
-    }
-
     // Reduce each fetched node reusing the existing reducer.
     // Pass the per-node components/componentSets maps through so nested instance
     // names resolve correctly inside component definitions.
+    // Collect flushVectorSvgs from each reduction and await them all in parallel.
     const reducedNodes = new Map<string, ReturnType<typeof buildNormalizedGraph>["root"]>();
-    for (const [nodeId, nodeEntry] of fetchedNodes.entries()) {
-      const nestedComponentMap = (nodeEntry.components ?? {}) as Record<string, RichComponentMeta>;
-      const reduced = buildNormalizedGraph(nodeEntry, {}, variableContext, nestedComponentMap);
-      reducedNodes.set(nodeId, reduced.root);
+    const vectorFlushers: Array<() => Promise<void>> = [];
+    for (const { libFileKey, result } of fetchResults) {
+      for (const [nodeId, nodeEntry] of Object.entries(result)) {
+        const nestedComponentMap = ((nodeEntry as Record<string, unknown>).components ??
+          {}) as Record<string, RichComponentMeta>;
+        const { flushVectorSvgs: flush, ...reduced } = buildNormalizedGraph(
+          nodeEntry as Record<string, unknown>,
+          {},
+          variableContext,
+          nestedComponentMap,
+          libFileKey,
+        );
+        reducedNodes.set(nodeId, reduced.root);
+        vectorFlushers.push(flush);
+      }
     }
+    await Promise.all(vectorFlushers.map((flush) => flush()));
 
     // Override Phase 0 data with authoritative source-node layout/style/children
     for (const [componentId, def] of Object.entries(definitions)) {
