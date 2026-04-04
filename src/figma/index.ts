@@ -1,7 +1,7 @@
 import { fetchNodesBatch } from "./batchFetch";
 import { safeFetch } from "./rateLimit";
 import { getCache, setCache } from "./cache";
-import { buildNormalizedGraph, parseVariantProps } from "./reducer";
+import { buildNormalizedGraph, parseVariantProps, flushAllPendingVectorSvgs } from "./reducer";
 import { buildResolutionContext } from "./variableResolver";
 import type {
   MCPResponse,
@@ -225,8 +225,17 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
     }
   }
 
-  // Pass 1 — build the filtered normalized tree
-  const normalized = buildNormalizedGraph(rootNode, styleMap, variableContext, componentMap);
+  // Pass 1 — build the filtered normalized tree (vectors accumulate globally).
+  // flushVectorSvgs is a no-op; actual flushing happens at the end via flushAllPendingVectorSvgs().
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { flushVectorSvgs, ...normalized } = buildNormalizedGraph(
+    rootNode,
+    styleMap,
+    variableContext,
+    componentMap,
+    fileKey,
+  );
+  // Don't flush yet; vectors will accumulate through Pass 2 enrichment
 
   // Enrich definitions if any INSTANCE nodes survived filtering
   if (normalized.definitions && Object.keys(normalized.definitions).length > 0) {
@@ -238,6 +247,9 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
       variableContext,
     );
   }
+
+  // Flush all accumulated VECTOR SVGs now that graph is fully constructed
+  await flushAllPendingVectorSvgs();
 
   setCache(cacheKey, normalized, cacheTTL);
 
@@ -357,22 +369,24 @@ async function enrichDefinitions(
         r !== null,
     );
 
-    // Flatten into node_id → raw node entry
-    const fetchedNodes = new Map<string, Record<string, unknown>>();
-    for (const { result } of fetchResults) {
-      for (const [nodeId, nodeEntry] of Object.entries(result)) {
-        fetchedNodes.set(nodeId, nodeEntry as Record<string, unknown>);
-      }
-    }
-
     // Reduce each fetched node reusing the existing reducer.
     // Pass the per-node components/componentSets maps through so nested instance
     // names resolve correctly inside component definitions.
+    // Vectors accumulate globally and will be flushed after all enrichment is done.
     const reducedNodes = new Map<string, ReturnType<typeof buildNormalizedGraph>["root"]>();
-    for (const [nodeId, nodeEntry] of fetchedNodes.entries()) {
-      const nestedComponentMap = (nodeEntry.components ?? {}) as Record<string, RichComponentMeta>;
-      const reduced = buildNormalizedGraph(nodeEntry, {}, variableContext, nestedComponentMap);
-      reducedNodes.set(nodeId, reduced.root);
+    for (const { libFileKey, result } of fetchResults) {
+      for (const [nodeId, nodeEntry] of Object.entries(result)) {
+        const nestedComponentMap = ((nodeEntry as Record<string, unknown>).components ??
+          {}) as Record<string, RichComponentMeta>;
+        const { ...reduced } = buildNormalizedGraph(
+          nodeEntry as Record<string, unknown>,
+          {},
+          variableContext,
+          nestedComponentMap,
+          libFileKey,
+        );
+        reducedNodes.set(nodeId, reduced.root);
+      }
     }
 
     // Override Phase 0 data with authoritative source-node layout/style/children
@@ -760,7 +774,7 @@ export async function fetchVariables(
   return json as GetLocalVariablesResponse;
 }
 
-// Re-export types
+// Re-export types and functions
 export type {
   MCPResponse,
   V3Node,
@@ -772,3 +786,5 @@ export type {
   ComponentVariant,
   ComponentSet,
 } from "./types";
+
+export { extractTokens } from "./tokenizer";

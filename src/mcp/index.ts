@@ -5,10 +5,14 @@ import {
   getFigmaDesignTool,
   getImageFillsTool,
   renderNodeImagesTool,
+  readVectorSvgTool,
+  saveVectorSvgsTool,
   type GetFigmaDesignParams,
   type GetImageFillsParams,
   type RenderNodeImagesParams,
-} from "./tools/index";
+  type ReadVectorSvgParams,
+} from "~/mcp/tools";
+import { registerVectorSvgResource } from "~/mcp/resources/vector-svg-resource";
 
 const serverInfo = {
   name: "Figma MCP Server",
@@ -30,6 +34,7 @@ function createServer(
   const server = new McpServer(serverInfo);
   const figmaService = new FigmaService(authOptions);
   registerTools(server, figmaService, { outputFormat, skipImageDownloads });
+  registerVectorSvgResource(server);
 
   Logger.isHTTP = isHTTP;
 
@@ -54,6 +59,28 @@ function registerTools(
     },
     (params: GetFigmaDesignParams) =>
       getFigmaDesignTool.handler(params, figmaService, options.outputFormat),
+  );
+
+  server.registerTool(
+    readVectorSvgTool.name,
+    {
+      title: "Read Vector SVG",
+      description: readVectorSvgTool.description,
+      inputSchema: readVectorSvgTool.parametersSchema,
+      annotations: { readOnlyHint: true },
+    },
+    (params: ReadVectorSvgParams) => readVectorSvgTool.handler(params),
+  );
+
+  server.registerTool(
+    saveVectorSvgsTool.name,
+    {
+      title: "Save Vector SVGs to Files",
+      description: saveVectorSvgsTool.description,
+      inputSchema: saveVectorSvgsTool.parametersSchema,
+      annotations: { readOnlyHint: false },
+    },
+    (params: { uris: string[] }) => saveVectorSvgsTool.handler(params),
   );
 
   if (!options.skipImageDownloads) {

@@ -113,26 +113,11 @@ export type V3Node = {
   children?: V3Node[];
 
   /**
-   * Compression marker: indicates this node represents N identical/similar repeated instances.
-   * When present, the node should be expanded into `count` copies during decompression.
-   * Used to reduce YAML output for patterns like lists of identical rows/columns.
+   * MCP resource URI for the SVG file written to disk for this VECTOR node.
+   * Format: "figma://vector/{fileKey}_{nodeId}"
+   * Only present when vector geometry data was available and successfully written.
    */
-  repeat?: {
-    /** Number of times this node is repeated */
-    count: number;
-  };
-
-  /**
-   * Exceptions to the base node during repetition.
-   * Each exception specifies indices and a merge object that overrides base properties.
-   * Supports index specs: exact (0), range ("1..15"), or array ([1,2,3]).
-   */
-  repeatExcept?: Array<{
-    /** Index spec: number, "start..end" string, or array of indices */
-    indices: number | string | number[];
-    /** Properties to merge into the base node for these indices */
-    merge: Record<string, any>;
-  }>;
+  vectorPathUri?: string;
 };
 
 /**
