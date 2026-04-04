@@ -1,5 +1,12 @@
 # tmegit-figma-to-code-mcp
 
+## [0.22.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.21.0...v0.22.0) (2026-04-04)
+
+
+### Features
+
+* **reducer:** add svg support and tool to save to disk ([#28](https://github.com/felixAnhalt/figma-to-code-mcp/issues/28)) ([235883a](https://github.com/felixAnhalt/figma-to-code-mcp/commit/235883a65fa2bf427184c27997d4fbf8fa4e98b5))
+
 ## [0.21.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.20.1...v0.21.0) (2026-04-03)
 
 
