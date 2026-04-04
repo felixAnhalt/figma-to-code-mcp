@@ -6,6 +6,7 @@ import type {
   Paint,
   ComponentDefinition,
   Interaction,
+  VectorPath,
 } from "./types";
 import type { VariableResolutionContext } from "./variableResolver";
 import { resolveVariable } from "./variableResolver";
@@ -42,6 +43,11 @@ type FigmaEffect = {
   offset?: { x: number; y: number };
   radius?: number;
   spread?: number;
+};
+
+type FigmaGeometry = {
+  path: string;
+  windingRule?: string;
 };
 
 // ── Pure module-level helpers ─────────────────────────────────────────────────
@@ -174,6 +180,29 @@ function processPaint(
   }
 
   return undefined;
+}
+
+/**
+ * Extracts SVG path data from VECTOR nodes for React/web rendering.
+ * Prioritizes fillGeometry, falls back to strokeGeometry.
+ * Returns an array of VectorPath objects with SVG d attribute and fill rule.
+ */
+function extractVectorPaths(node: FigmaRawNode): VectorPath[] | undefined {
+  if (node.type !== "VECTOR") return undefined;
+
+  const fillGeometry = node.fillGeometry as FigmaGeometry[] | undefined;
+  const strokeGeometry = node.strokeGeometry as FigmaGeometry[] | undefined;
+
+  // Use fillGeometry if available, otherwise strokeGeometry
+  const geometry = fillGeometry && fillGeometry.length > 0 ? fillGeometry : strokeGeometry;
+
+  if (!geometry || geometry.length === 0) return undefined;
+
+  return geometry.map((geo) => ({
+    d: geo.path,
+    fillRule:
+      geo.windingRule && geo.windingRule.toLowerCase() === "evenodd" ? "evenodd" : "nonzero",
+  }));
 }
 
 /**
@@ -581,6 +610,10 @@ export function buildNormalizedGraph(
     }
 
     if (Object.keys(style).length > 0) v3.style = style;
+
+    // ── Vector paths (VECTOR nodes only) ───────────────────────────────────
+    const vectorPaths = extractVectorPaths(node);
+    if (vectorPaths) v3.vectorPaths = vectorPaths;
 
     // ── Interactions ───────────────────────────────────────────────────────
     const rawInteractions = node.interactions as

@@ -112,6 +112,9 @@ export type V3Node = {
   /** Inline child nodes */
   children?: V3Node[];
 
+  /** Vector paths for VECTOR nodes (SVG-renderable data) */
+  vectorPaths?: VectorPath[];
+
   /**
    * Compression marker: indicates this node represents N identical/similar repeated instances.
    * When present, the node should be expanded into `count` copies during decompression.
@@ -232,6 +235,13 @@ export type Paint = {
   imageRef?: string;
   scaleMode?: string;
   opacity?: number;
+};
+
+export type VectorPath = {
+  /** SVG path data (d attribute) */
+  d: string;
+  /** SVG fill-rule: "nonzero" or "evenodd" */
+  fillRule?: string;
 };
 
 export type GradientStop = {

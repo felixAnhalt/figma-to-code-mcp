@@ -7,6 +7,7 @@ export type {
   Paint,
   GradientStop,
   ComponentDefinition,
+  VectorPath,
 } from "./figma/types";
 
 // Main API

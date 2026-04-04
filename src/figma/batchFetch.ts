@@ -22,7 +22,7 @@ export async function fetchNodesBatch(
 
   for (const chunk of chunks) {
     const ids = chunk.join(",");
-    const url = `https://api.figma.com/v1/files/${fileKey}/nodes?ids=${ids}&depth=100`;
+    const url = `https://api.figma.com/v1/files/${fileKey}/nodes?ids=${ids}&depth=100&geometry=paths`;
 
     const response = await safeFetch(url, {
       headers: authHeaders,
