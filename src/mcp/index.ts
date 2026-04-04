@@ -6,6 +6,7 @@ import {
   getImageFillsTool,
   renderNodeImagesTool,
   readVectorSvgTool,
+  saveVectorSvgsTool,
   type GetFigmaDesignParams,
   type GetImageFillsParams,
   type RenderNodeImagesParams,
@@ -69,6 +70,17 @@ function registerTools(
       annotations: { readOnlyHint: true },
     },
     (params: ReadVectorSvgParams) => readVectorSvgTool.handler(params),
+  );
+
+  server.registerTool(
+    saveVectorSvgsTool.name,
+    {
+      title: "Save Vector SVGs to Files",
+      description: saveVectorSvgsTool.description,
+      inputSchema: saveVectorSvgsTool.parametersSchema,
+      annotations: { readOnlyHint: false },
+    },
+    (params: { uris: string[] }) => saveVectorSvgsTool.handler(params),
   );
 
   if (!options.skipImageDownloads) {

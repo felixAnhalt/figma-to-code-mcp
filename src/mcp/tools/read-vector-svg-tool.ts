@@ -1,22 +1,36 @@
 import { z } from "zod";
+import { writeFile, mkdir } from "node:fs/promises";
 import { resolveVectorUri, getCachedSvgKeys, getSvgCacheSize } from "~/figma/svg-writer";
 import { Logger } from "~/utils/logger";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-const parameters = {
+const SVG_FILES_DIR = join(tmpdir(), "figma-mcp-svg-files");
+
+async function ensureSvgFilesDir(): Promise<string> {
+  try {
+    await mkdir(SVG_FILES_DIR, { recursive: true });
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err;
+  }
+  return SVG_FILES_DIR;
+}
+
+const readParameters = {
   uri: z
     .string()
     .regex(/^figma:\/\/vector\/.+$/, "URI must be figma://vector/...")
     .describe("The vector URI to read (e.g., figma://vector/fileKey_nodeId)"),
 };
 
-const parametersSchema = z.object(parameters);
-export type ReadVectorSvgParams = z.infer<typeof parametersSchema>;
+const readParametersSchema = z.object(readParameters);
+export type ReadVectorSvgParams = z.infer<typeof readParametersSchema>;
 
-export const readVectorSvgTool = {
+const readVectorSvgTool = {
   name: "read_vector_svg",
   description:
     "Reads cached SVG content for a Figma VECTOR node. Use this after calling get_figma_design to retrieve the SVG geometry for vectors that have vectorPathUri. The URI should be taken from the vectorPathUri field in the design response.",
-  parametersSchema,
+  parametersSchema: readParametersSchema,
   handler: async (params: ReadVectorSvgParams) => {
     try {
       const { uri } = params;
@@ -66,3 +80,75 @@ export const readVectorSvgTool = {
     }
   },
 };
+
+const saveVectorSvgsTool = {
+  name: "save_vector_svgs_to_files",
+  description:
+    "Saves multiple SVG files to disk and returns the file paths. Use this to export SVG assets that can be copied into a project assets folder. Input is an array of vector URIs from the design response.",
+  parametersSchema: z.object({
+    uris: z
+      .array(z.string().regex(/^figma:\/\/vector\/.+$/))
+      .describe(
+        "Array of vector URIs to save (e.g., ['figma://vector/fileKey_nodeId1', 'figma://vector/fileKey_nodeId2'])",
+      ),
+  }),
+  handler: async (params: { uris: string[] }) => {
+    try {
+      const { uris } = params;
+      const dir = await ensureSvgFilesDir();
+      const savedFiles: string[] = [];
+      const errors: string[] = [];
+
+      for (const uri of uris) {
+        const svgContent = await resolveVectorUri(uri);
+        if (!svgContent) {
+          errors.push(`Not found: ${uri}`);
+          continue;
+        }
+
+        const key = uri.replace("figma://vector/", "");
+        const fileName = `${key}.svg`;
+        const filePath = join(dir, fileName);
+
+        await writeFile(filePath, svgContent, "utf-8");
+        savedFiles.push(filePath);
+        Logger.log(`[save_vector_svgs] Wrote ${filePath}`);
+      }
+
+      if (savedFiles.length === 0) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text" as const,
+              text: `No SVGs saved. Errors: ${errors.join(", ")}`,
+            },
+          ],
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Saved ${savedFiles.length} SVG file(s):\n\n${savedFiles.join("\n")}\n\nCopy these files to your assets folder.`,
+          },
+        ],
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      Logger.error(`[save_vector_svgs] Error: ${message}`);
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text" as const,
+            text: `Error saving SVGs: ${message}`,
+          },
+        ],
+      };
+    }
+  },
+};
+
+export { readVectorSvgTool, saveVectorSvgsTool };
