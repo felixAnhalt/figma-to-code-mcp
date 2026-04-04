@@ -72,11 +72,21 @@ type FigmaVectorNetwork = {
 
 /** Pending vector SVG write — collected during tree traversal, flushed after. */
 type PendingVectorWrite = {
+  fileKey: string;
   nodeId: string;
   paths: Array<{ d: string; fillRule?: string }>;
   /** The V3Node to assign vectorPathUri on once the write resolves. */
   target: V3Node;
 };
+
+// ── Module-level pending writes accumulator ──────────────────────────────────
+/**
+ * Global accumulator for pending VECTOR SVG writes across all buildNormalizedGraph calls.
+ * Each write carries the target node so vectorPathUri can be assigned after disk write.
+ * This allows vectors collected in Pass 1, Pass 2 Phase 1, and Pass 2 Phase 2 to all
+ * persist correctly in the final response.
+ */
+const globalPendingVectorWrites: PendingVectorWrite[] = [];
 
 // ── Pure module-level helpers ─────────────────────────────────────────────────
 
@@ -291,25 +301,28 @@ function extractVectorPaths(
 
   // Try fillGeometry first
   if (fillGeometry && fillGeometry.length > 0) {
-    return fillGeometry.map((geo) => ({
+    const paths = fillGeometry.map((geo) => ({
       d: geo.path,
       fillRule:
         geo.windingRule && geo.windingRule.toLowerCase() === "evenodd" ? "evenodd" : "nonzero",
     }));
+    if (paths.length > 0 && paths.some((p) => p.d)) return paths;
   }
 
   // Fall back to strokeGeometry
   if (strokeGeometry && strokeGeometry.length > 0) {
-    return strokeGeometry.map((geo) => ({
+    const paths = strokeGeometry.map((geo) => ({
       d: geo.path,
       fillRule:
         geo.windingRule && geo.windingRule.toLowerCase() === "evenodd" ? "evenodd" : "nonzero",
     }));
+    if (paths.length > 0 && paths.some((p) => p.d)) return paths;
   }
 
   // Fall back to vectorNetwork
   if (vectorNetwork) {
-    return vectorNetworkToSvg(vectorNetwork);
+    const paths = vectorNetworkToSvg(vectorNetwork);
+    if (paths && paths.length > 0) return paths;
   }
 
   return undefined;
@@ -492,7 +505,6 @@ export function buildNormalizedGraph(
   fileKey = "",
 ): MCPResponse & { flushVectorSvgs: () => Promise<void> } {
   const definitions: Record<string, ComponentDefinition> = {};
-  const pendingVectorWrites: PendingVectorWrite[] = [];
 
   // styleMap is accepted for API compatibility but styles come directly from node properties.
   void styleMap;
@@ -726,7 +738,7 @@ export function buildNormalizedGraph(
     // ── Vector paths (VECTOR nodes only) ───────────────────────────────────
     const vectorPaths = extractVectorPaths(node);
     if (vectorPaths) {
-      pendingVectorWrites.push({ nodeId: node.id, paths: vectorPaths, target: v3 });
+      globalPendingVectorWrites.push({ fileKey, nodeId: node.id, paths: vectorPaths, target: v3 });
     }
 
     // ── Interactions ───────────────────────────────────────────────────────
@@ -814,18 +826,39 @@ export function buildNormalizedGraph(
   }
 
   /**
-   * Writes all collected VECTOR node geometries to temp SVG files and assigns
-   * vectorPathUri on each node. Must be awaited before returning the response
-   * to callers. Skips any node whose write fails (vectorPathUri stays absent).
+   * Returns a flush function that performs a no-op. The actual flushing of all
+   * accumulated vectors happens via flushAllPendingVectorSvgs() at the end of
+   * buildNormalizedDesignTree, after all enrichment is complete.
+   * This allows vectors collected across Pass 1 and Pass 2 to all accumulate
+   * before any writes occur.
    */
   async function flushVectorSvgs(): Promise<void> {
-    await Promise.all(
-      pendingVectorWrites.map(async ({ nodeId, paths, target }) => {
-        const uri = await writeVectorSvg(fileKey, nodeId, paths);
-        if (uri) target.vectorPathUri = uri;
-      }),
-    );
+    // No-op. Actual flushing happens at the end via flushAllPendingVectorSvgs().
   }
 
   return { ...response, flushVectorSvgs };
+}
+
+// ── Module-level flush for all accumulated vectors ────────────────────────────
+
+/**
+ * Flushes all accumulated VECTOR SVG writes to disk and assigns vectorPathUri
+ * on each target node. Call this once at the end of buildNormalizedDesignTree,
+ * after Pass 1 + Pass 2 enrichment is complete.
+ *
+ * Each write's target is a V3Node from either Pass 1 or Pass 2. By deferring
+ * the flush until after all graph construction is done, we ensure all
+ * vectorPathUri assignments persist in the final response.
+ */
+export async function flushAllPendingVectorSvgs(): Promise<void> {
+  await Promise.all(
+    globalPendingVectorWrites.map(async ({ fileKey, nodeId, paths, target }) => {
+      const uri = await writeVectorSvg(fileKey, nodeId, paths);
+      if (uri) {
+        target.vectorPathUri = uri;
+      }
+    }),
+  );
+  // Clear the global accumulator after flushing so subsequent calls don't re-flush.
+  globalPendingVectorWrites.length = 0;
 }

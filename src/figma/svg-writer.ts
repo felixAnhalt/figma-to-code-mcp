@@ -47,6 +47,10 @@ export async function writeVectorSvg(
   paths: Array<{ d: string; fillRule?: string }>,
 ): Promise<string | undefined> {
   try {
+    // Guard: need at least one path with valid d attribute
+    if (!paths || paths.length === 0 || !paths.some((p) => p.d)) {
+      return undefined;
+    }
     const dir = await getSvgDir();
     // Sanitize nodeId (colons → underscores) for safe file names
     const safeNodeId = nodeId.replace(/[:/\\]/g, "_");
