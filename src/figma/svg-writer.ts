@@ -7,13 +7,31 @@ const SVG_DIR_PREFIX = "figma-mcp-svg-";
 
 /** Stable temp directory for this process — created on first use. */
 let svgDir: string | null = null;
+/** Promise to ensure directory creation only happens once */
+let svgDirPromise: Promise<string> | null = null;
 
 async function getSvgDir(): Promise<string> {
   if (svgDir) return svgDir;
-  // Use a per-process directory so concurrent server instances don't collide.
-  svgDir = join(tmpdir(), `${SVG_DIR_PREFIX}${process.pid}`);
-  await mkdir(svgDir, { recursive: true });
-  return svgDir;
+
+  // Use a promise to ensure only one mkdir call happens, even with concurrent calls
+  if (!svgDirPromise) {
+    svgDirPromise = (async () => {
+      // Use a per-process directory so concurrent server instances don't collide.
+      const dir = join(tmpdir(), `${SVG_DIR_PREFIX}${process.pid}`);
+      try {
+        await mkdir(dir, { recursive: true });
+      } catch (err) {
+        // Ignore "already exists" errors (can happen in race conditions)
+        if ((err as NodeJS.ErrnoException).code !== "EEXIST") {
+          throw err;
+        }
+      }
+      svgDir = dir;
+      return dir;
+    })();
+  }
+
+  return svgDirPromise;
 }
 
 /**
@@ -49,7 +67,6 @@ export async function writeVectorSvg(
   try {
     // Guard: need at least one path with valid d attribute
     if (!paths || paths.length === 0 || !paths.some((p) => p.d)) {
-      console.log("no paths found for", fileKey, nodeId, paths);
       return undefined;
     }
     const dir = await getSvgDir();
