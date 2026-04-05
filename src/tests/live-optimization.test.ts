@@ -34,7 +34,7 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
       console.log("Fetching raw Figma API response...");
       let rawResponse;
       try {
-        rawResponse = await figmaService.getRawFile(figmaFileKey, 2);
+        rawResponse = await figmaService.getRawFile(figmaFileKey, 100);
       } catch (error) {
         throw new Error(
           `Failed to fetch Figma file. Check that FIGMA_API_KEY and FIGMA_FILE_KEY are correct in .env file. Error: ${error}`,

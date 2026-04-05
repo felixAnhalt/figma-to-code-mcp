@@ -95,7 +95,7 @@ export class FigmaService {
    * Get raw Figma API response for a file (for use with flexible extractors)
    */
   async getRawFile(fileKey: string, depth?: number | null): Promise<GetFileResponse> {
-    const endpoint = `/files/${fileKey}${depth ? `?depth=${depth}` : ""}`;
+    const endpoint = `/files/${fileKey}?geometry=paths${depth ? `&depth=${depth}` : ""}`;
     Logger.log(`Retrieving raw Figma file: ${fileKey} (depth: ${depth ?? "default"})`);
 
     const response = await this.request<GetFileResponse>(endpoint);

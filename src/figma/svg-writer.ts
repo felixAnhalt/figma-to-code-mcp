@@ -1,7 +1,7 @@
 const SVG_URI_SCHEME = "figma://vector/";
 
 /** In-memory cache of SVG content by URI key (e.g., "fileKey_nodeId") */
-const svgContentCache = new Map<string, string>();
+export const svgContentCache = new Map<string, string>();
 
 /** Gets SVG content from the cache by key */
 export function getSvgContentFromCache(key: string): string | undefined {
@@ -278,8 +278,126 @@ function computeBoundsFromPaths(
 }
 
 /**
+ * A group of paths that share the same fill/stroke, with an optional transform matrix.
+ * The transform is a 2x3 affine transform: [a, b, c, d, tx, ty] representing:
+ * x' = a*x + c*y + tx
+ * y' = b*x + d*y + ty
+ */
+export type SvgPathEntry = {
+  paths: Array<{ d: string; fillRule?: string; fillColor?: string }>;
+  transform?: [number, number, number, number, number, number];
+};
+
+/**
+ * Applies a 2D affine transform to a path string.
+ * Returns a new path string with transformed coordinates.
+ */
+function transformPath(
+  d: string,
+  transform: [number, number, number, number, number, number],
+): string {
+  const [a, b, c, d_val, tx, ty] = transform;
+
+  const numbers = d.match(/-?\d+\.?\d*/g);
+  if (!numbers) return d;
+
+  let numIdx = 0;
+  const numCount = numbers.length;
+
+  const replaceNumber = () => {
+    if (numIdx >= numCount) return null;
+    const num = parseFloat(numbers[numIdx++]);
+    const isOdd = (numIdx - 1) % 2 === 1;
+    const isX = !isOdd;
+
+    if (isX) {
+      const y = numIdx < numCount ? parseFloat(numbers[numIdx]) : 0;
+      const newX = a * num + c * y + tx;
+      return newX.toString();
+    } else {
+      const x = parseFloat(numbers[numIdx - 2]);
+      const newY = b * x + d_val * num + ty;
+      return newY.toString();
+    }
+  };
+
+  let resultD = "";
+  let i = 0;
+  while (i < d.length) {
+    const match = d.slice(i).match(/^[MLHVCSQTAZ]/i);
+    if (!match) {
+      const numMatch = d.slice(i).match(/^-?[\d.]+/);
+      if (numMatch) {
+        const newNum = replaceNumber();
+        if (newNum !== null) {
+          resultD += newNum;
+        }
+        i += numMatch[0].length;
+      } else {
+        resultD += d[i];
+        i++;
+      }
+    } else {
+      resultD += match[0];
+      i += match[0].length;
+    }
+  }
+
+  return resultD;
+}
+
+/**
+ * Rounds a number to 4 decimal places for cleaner SVG output
+ */
+function roundCoord(num: number): string {
+  return Number(num.toFixed(4)).toString();
+}
+
+/**
+ * Rounds all coordinates in an SVG path string
+ */
+function roundPathCoordinates(d: string): string {
+  return d.replace(/-?\d+\.?\d*/g, (match) => {
+    const num = parseFloat(match);
+    if (isNaN(num)) return match;
+    return roundCoord(num);
+  });
+}
+
+/**
+ * Builds a minimal valid SVG file from path entries.
+ * Each entry contains paths and an optional transform matrix.
+ * Exported for use in reducer.ts for vector group merging.
+ */
+export function buildSvgContentFromEntries(entries: SvgPathEntry[], bounds?: SvgBounds): string {
+  const allPaths: Array<{ d: string; fillRule?: string; fillColor?: string }> = [];
+
+  for (const entry of entries) {
+    if (!entry.paths) continue;
+
+    for (const pathObj of entry.paths) {
+      if (!pathObj.d) continue;
+
+      let d = pathObj.d;
+      if (entry.transform) {
+        d = transformPath(d, entry.transform);
+      }
+      d = roundPathCoordinates(d);
+
+      allPaths.push({
+        d,
+        fillRule: pathObj.fillRule,
+        fillColor: pathObj.fillColor,
+      });
+    }
+  }
+
+  return buildSvgContentWithFills(allPaths, bounds);
+}
+
+/**
  * Builds a minimal valid SVG file from a Figma vector node's geometry.
- * Includes viewBox derived from the node's absoluteBoundingBox.
+ * Includes viewBox derived from computed bounds.
  */
 function buildSvgContent(
   paths: Array<{ d: string; fillRule?: string }>,
@@ -297,6 +415,29 @@ function buildSvgContent(
     : "";
 
   return `<svg xmlns="http://www.w3.org/2000/svg"${viewBoxAttr} fill="currentColor">\n${pathElements}\n</svg>\n`;
+}
+
+/**
+ * Builds an SVG with fill colors on each path
+ */
+function buildSvgContentWithFills(
+  paths: Array<{ d: string; fillRule?: string; fillColor?: string }>,
+  bounds?: SvgBounds,
+): string {
+  const pathElements = paths
+    .map((p) => {
+      const fillRuleAttr = p.fillRule ? ` fill-rule="${p.fillRule}"` : "";
+      const fillAttr = p.fillColor ? ` fill="${p.fillColor}"` : "";
+      return `  <path d="${p.d}"${fillAttr}${fillRuleAttr} />`;
+    })
+    .join("\n");
+
+  let svgAttrs = 'xmlns="http://www.w3.org/2000/svg"';
+  if (bounds) {
+    svgAttrs += ` width="${Math.ceil(bounds.width)}" height="${Math.ceil(bounds.height)}" viewBox="0 0 ${Math.ceil(bounds.width)} ${Math.ceil(bounds.height)}"`;
+  }
+
+  return `<svg ${svgAttrs}>\n${pathElements}\n</svg>\n`;
 }
 
 /**
@@ -360,6 +501,39 @@ export async function writeVectorSvgToDisk(
     const safeNodeId = nodeId.replace(/[:/\\]/g, "_");
     const fileName = `${fileKey}_${safeNodeId}.svg`;
     const filePath = join(outputDir, fileName);
+
+    await mkdir(outputDir, { recursive: true });
+    await writeFile(filePath, content, "utf-8");
+
+    return fileName;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Writes a merged SVG from multiple path entries to disk.
+ * Each entry has paths and an optional transform matrix.
+ *
+ * @param outputDir - Absolute path to the output directory
+ * @param fileKey - The Figma file key
+ * @param nodeId - The Figma node ID (colons will be replaced with underscores)
+ * @param entries - Array of path entries with optional transforms
+ * @param bounds - Optional bounding box for viewBox/width/height
+ */
+export async function writeMergedVectorSvgToDisk(
+  outputDir: string,
+  fileKey: string,
+  nodeId: string,
+  entries: SvgPathEntry[],
+  bounds?: SvgBounds,
+): Promise<string | undefined> {
+  try {
+    const safeNodeId = nodeId.replace(/[:/\\]/g, "_");
+    const fileName = `${fileKey}_${safeNodeId}.svg`;
+    const filePath = join(outputDir, fileName);
+
+    const content = buildSvgContentFromEntries(entries, bounds);
 
     await mkdir(outputDir, { recursive: true });
     await writeFile(filePath, content, "utf-8");

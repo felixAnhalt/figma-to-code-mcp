@@ -9,7 +9,15 @@ import type {
 } from "./types";
 import type { VariableResolutionContext } from "./variableResolver";
 import { resolveVariable } from "./variableResolver";
-import { writeVectorSvg, writeVectorSvgToDisk, getSvgContentFromCache } from "./svg-writer";
+import {
+  writeVectorSvg,
+  writeVectorSvgToDisk,
+  getSvgContentFromCache,
+  type SvgPathEntry,
+  buildSvgContentFromEntries,
+  svgContentCache,
+} from "./svg-writer";
+import { writeMergedVectorSvgToDisk } from "./svg-writer";
 import type { VariableAlias } from "@figma/rest-api-spec";
 
 /** Minimal shape of a raw Figma node as returned by the API node tree */
@@ -69,13 +77,19 @@ type FigmaVectorNetwork = {
   }>;
 };
 
+import type { SvgBounds } from "./svg-writer";
+
 /** Pending vector SVG write — collected during tree traversal, flushed after. */
 type PendingVectorWrite = {
   fileKey: string;
   nodeId: string;
   paths: Array<{ d: string; fillRule?: string }>;
-  /** The V3Node to assign vectorPathUri on once the write resolves. */
+  /** The V3Node to assign svgPathInAssetFolder on once the write resolves. */
   target: V3Node;
+  /** Optional path entries with transforms for merged SVG (vector groups) */
+  entries?: SvgPathEntry[];
+  /** Optional bounding box for merged SVG */
+  bounds?: SvgBounds;
 };
 
 // ── Module-level pending writes accumulator ──────────────────────────────────
@@ -237,6 +251,26 @@ function formatColor(color: unknown): string | undefined {
   const g = Math.round(c.g * 255);
   const b = Math.round(c.b * 255);
   return `rgba(${r}, ${g}, ${b}, ${c.a})`;
+}
+
+/**
+ * Converts a color object to hex format (#RRGGBB)
+ */
+function colorToHex(color: unknown): string | undefined {
+  if (!color || typeof color !== "object") return undefined;
+  if (!("r" in color)) return undefined;
+
+  const c = color as { r: number; g: number; b: number };
+  const r = Math.round(c.r * 255)
+    .toString(16)
+    .padStart(2, "0");
+  const g = Math.round(c.g * 255)
+    .toString(16)
+    .padStart(2, "0");
+  const b = Math.round(c.b * 255)
+    .toString(16)
+    .padStart(2, "0");
+  return `#${r}${g}${b}`;
 }
 
 /**
@@ -786,6 +820,10 @@ export function buildNormalizedGraph(
     if (node.children && node.children.length > 0) {
       const resolved = resolveChildren(node.children);
 
+      // Check if this is a vector-only group (all children are VECTOR)
+      const isVectorOnlyGroup =
+        node.type === "GROUP" && resolved.length > 0 && resolved.every((c) => c.type === "VECTOR");
+
       // Compute this node's fill string for RECTANGLE suppression in children
       const thisFill = typeof style.background === "string" ? style.background : undefined;
 
@@ -800,7 +838,92 @@ export function buildNormalizedGraph(
       });
 
       if (visible.length > 0) {
-        v3.children = visible.map((child) => processNode(child));
+        if (isVectorOnlyGroup && visible.length > 1) {
+          // Collect paths from all vector children with their transforms
+          const entries: SvgPathEntry[] = [];
+
+          // Get the group bounds for viewBox
+          const rawBounds = node.absoluteBoundingBox as
+            | { width: number; height: number }
+            | undefined;
+          const groupBounds = rawBounds
+            ? {
+                x: 0,
+                y: 0,
+                width: rawBounds.width,
+                height: rawBounds.height,
+              }
+            : undefined;
+
+          for (const child of visible) {
+            const childPaths = extractVectorPaths(child);
+            if (!childPaths) continue;
+
+            // Get the fill color from child's fills (hex format for cleaner SVG)
+            let fillColor: string | undefined;
+            const childFills = child.fills as FigmaRawPaint[] | undefined;
+            if (childFills && childFills.length > 0 && childFills[0].type === "SOLID") {
+              fillColor = colorToHex(childFills[0].color);
+            }
+
+            // Add fillColor to each path
+            const pathsWithFill = childPaths.map((p) => ({
+              ...p,
+              fillColor,
+            }));
+
+            // Get the relativeTransform from the child
+            // Figma returns it as [[a, c, tx], [b, d, ty]] - convert to flat [a, b, c, d, tx, ty]
+            const relativeTransform = child.relativeTransform as number[][] | undefined;
+            let transform: [number, number, number, number, number, number] | undefined;
+            if (
+              relativeTransform &&
+              relativeTransform.length === 2 &&
+              relativeTransform[0]?.length === 3 &&
+              relativeTransform[1]?.length === 3
+            ) {
+              transform = [
+                relativeTransform[0][0], // a
+                relativeTransform[1][0], // b
+                relativeTransform[0][1], // c
+                relativeTransform[1][1], // d
+                relativeTransform[0][2], // tx
+                relativeTransform[1][2], // ty
+              ];
+            }
+
+            entries.push({
+              paths: pathsWithFill,
+              transform: transform,
+            });
+          }
+
+          if (entries.length > 0) {
+            // Create a simple single child WITHOUT calling processNode
+            // (to avoid triggering individual vector path extraction)
+            const firstChild = visible[0];
+            v3.children = [
+              {
+                type: "VECTOR" as const,
+                name: firstChild.name,
+              },
+            ];
+
+            // Mark for merged SVG processing with group node ID
+            globalPendingVectorWrites.push({
+              fileKey,
+              nodeId: node.id, // Use group node ID for the merged SVG
+              paths: [],
+              target: v3.children[0],
+              entries,
+              bounds: groupBounds,
+            });
+          } else {
+            v3.children = visible.map((child) => processNode(child));
+          }
+        } else {
+          v3.children = visible.map((child) => processNode(child));
+        }
       }
     }
 
@@ -853,13 +976,34 @@ export function buildNormalizedGraph(
  */
 export async function flushAllPendingVectorSvgs(outputDir: string): Promise<void> {
   await Promise.all(
-    globalPendingVectorWrites.map(async ({ fileKey, nodeId, paths, target }) => {
+    globalPendingVectorWrites.map(async ({ fileKey, nodeId, paths, target, entries, bounds }) => {
+      const safeNodeId = nodeId.replace(/[:/\\]/g, "_");
+
+      // Handle merged SVG (vector groups) - when entries is provided
+      if (entries && entries.length > 0) {
+        // Write merged SVG to in-memory cache
+        const mergedContent = buildSvgContentFromEntries(entries, bounds);
+        const cacheKey = `${fileKey}_${safeNodeId}`;
+        svgContentCache.set(cacheKey, mergedContent);
+
+        // Set the relative path on target (single child)
+        const fileName = `${fileKey}_${safeNodeId}.svg`;
+        target.svgPathInAssetFolder = fileName;
+
+        // Write to disk if outputDir is provided
+        if (outputDir) {
+          await writeMergedVectorSvgToDisk(outputDir, fileKey, nodeId, entries, bounds);
+        }
+
+        return;
+      }
+
+      // Regular vector write (individual vectors)
       // First write to in-memory cache (needed for MCP resource resolution)
       const uri = await writeVectorSvg(fileKey, nodeId, paths);
       if (!uri) return;
 
       // Always set the relative path (even if outputDir is empty, for backwards compatibility)
-      const safeNodeId = nodeId.replace(/[:/\\]/g, "_");
       const fileName = `${fileKey}_${safeNodeId}.svg`;
       target.svgPathInAssetFolder = fileName;
 
