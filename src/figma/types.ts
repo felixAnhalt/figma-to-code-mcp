@@ -68,6 +68,12 @@ export type MCPResponse = {
    * with { token: "category.name" } references into this registry.
    */
   tokens?: DesignTokens;
+  /**
+   * Absolute path to the folder where SVG asset files are saved.
+   * Each VECTOR node with svgPathInAssetFolder contains a relative filename.
+   * Copy all files from this folder to your project's assets folder.
+   */
+  svgAssetsFolder?: string;
 };
 
 /**
@@ -113,11 +119,12 @@ export type V3Node = {
   children?: V3Node[];
 
   /**
-   * MCP resource URI for the SVG file written to disk for this VECTOR node.
-   * Format: "figma://vector/{fileKey}_{nodeId}"
-   * Only present when vector geometry data was available and successfully written.
+   * Relative filename of the SVG file for this VECTOR node.
+   * Format: "{fileKey}_{nodeId}.svg"
+   * Only present when vector geometry data was available and successfully written to disk.
+   * Combine with svgAssetsFolder at the root level to get the full path.
    */
-  vectorPathUri?: string;
+  svgPathInAssetFolder?: string;
 };
 
 /**

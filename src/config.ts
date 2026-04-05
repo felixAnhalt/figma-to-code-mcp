@@ -2,6 +2,7 @@ import { config as loadEnv } from "dotenv";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { resolve } from "path";
+import { tmpdir } from "node:os";
 import type { FigmaAuthOptions } from "./services/figma";
 
 interface ServerConfig {
@@ -10,6 +11,7 @@ interface ServerConfig {
   host: string;
   outputFormat: "yaml" | "json";
   skipImageDownloads?: boolean;
+  svgOutputDir: string;
   configSources: {
     figmaApiKey: "cli" | "env";
     figmaOAuthToken: "cli" | "env" | "none";
@@ -18,6 +20,7 @@ interface ServerConfig {
     outputFormat: "cli" | "env" | "default";
     envFile: "cli" | "default";
     skipImageDownloads?: "cli" | "env" | "default";
+    svgOutputDir: "cli" | "env" | "default";
   };
 }
 
@@ -34,6 +37,7 @@ interface CliArgs {
   host?: string;
   json?: boolean;
   "skip-image-downloads"?: boolean;
+  "svg-output-dir"?: string;
 }
 
 export function getServerConfig(isStdioMode: boolean): ServerConfig {
@@ -70,6 +74,10 @@ export function getServerConfig(isStdioMode: boolean): ServerConfig {
         description: "Do not register image-related tools (skip image fill fetching)",
         default: false,
       },
+      "svg-output-dir": {
+        type: "string",
+        description: "Directory to save SVG asset files (default: system temp folder)",
+      },
     })
     .help()
     .version(process.env.NPM_PACKAGE_VERSION ?? "unknown")
@@ -101,6 +109,7 @@ export function getServerConfig(isStdioMode: boolean): ServerConfig {
     host: "127.0.0.1",
     outputFormat: "yaml",
     skipImageDownloads: false,
+    svgOutputDir: "",
     configSources: {
       figmaApiKey: "env",
       figmaOAuthToken: "none",
@@ -109,6 +118,7 @@ export function getServerConfig(isStdioMode: boolean): ServerConfig {
       outputFormat: "default",
       envFile: envFileSource,
       skipImageDownloads: "default",
+      svgOutputDir: "default",
     },
   };
 
@@ -176,6 +186,17 @@ export function getServerConfig(isStdioMode: boolean): ServerConfig {
     config.configSources.skipImageDownloads = "env";
   }
 
+  // Handle svgOutputDir (default: system temp directory)
+  if (argv["svg-output-dir"]) {
+    config.svgOutputDir = resolve(argv["svg-output-dir"]);
+    config.configSources.svgOutputDir = "cli";
+  } else if (process.env.FIGMA_SVG_OUTPUT_DIR) {
+    config.svgOutputDir = resolve(process.env.FIGMA_SVG_OUTPUT_DIR);
+    config.configSources.svgOutputDir = "env";
+  } else {
+    config.svgOutputDir = resolve(tmpdir(), "figma-mcp-svg-files");
+  }
+
   // Validate configuration
   if (!auth.figmaApiKey && !auth.figmaOAuthToken) {
     console.error(
@@ -206,6 +227,9 @@ export function getServerConfig(isStdioMode: boolean): ServerConfig {
     );
     console.log(
       `- SKIP_IMAGE_DOWNLOADS: ${config.skipImageDownloads} (source: ${config.configSources.skipImageDownloads})`,
+    );
+    console.log(
+      `- FIGMA_SVG_OUTPUT_DIR: ${config.svgOutputDir} (source: ${config.configSources.svgOutputDir})`,
     );
     console.log(); // Empty line for better readability
   }

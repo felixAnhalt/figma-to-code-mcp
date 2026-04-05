@@ -9,7 +9,7 @@ import type {
 } from "./types";
 import type { VariableResolutionContext } from "./variableResolver";
 import { resolveVariable } from "./variableResolver";
-import { writeVectorSvg } from "./svg-writer";
+import { writeVectorSvg, writeVectorSvgToDisk, getSvgContentFromCache } from "./svg-writer";
 import type { VariableAlias } from "@figma/rest-api-spec";
 
 /** Minimal shape of a raw Figma node as returned by the API node tree */
@@ -840,20 +840,38 @@ export function buildNormalizedGraph(
 // ── Module-level flush for all accumulated vectors ────────────────────────────
 
 /**
- * Flushes all accumulated VECTOR SVG writes to disk and assigns vectorPathUri
+ * Flushes all accumulated VECTOR SVG writes to disk and assigns svgPathInAssetFolder
  * on each target node. Call this once at the end of buildNormalizedDesignTree,
  * after Pass 1 + Pass 2 enrichment is complete.
  *
  * Each write's target is a V3Node from either Pass 1 or Pass 2. By deferring
  * the flush until after all graph construction is done, we ensure all
- * vectorPathUri assignments persist in the final response.
+ * svgPathInAssetFolder assignments persist in the final response.
+ *
+ * @param outputDir - Absolute path to the directory where SVG files should be saved.
+ *                    If empty, only writes to in-memory cache (no disk write).
  */
-export async function flushAllPendingVectorSvgs(): Promise<void> {
+export async function flushAllPendingVectorSvgs(outputDir: string): Promise<void> {
   await Promise.all(
     globalPendingVectorWrites.map(async ({ fileKey, nodeId, paths, target }) => {
+      // First write to in-memory cache (needed for MCP resource resolution)
       const uri = await writeVectorSvg(fileKey, nodeId, paths);
-      if (uri) {
-        target.vectorPathUri = uri;
+      if (!uri) return;
+
+      // Always set the relative path (even if outputDir is empty, for backwards compatibility)
+      const safeNodeId = nodeId.replace(/[:/\\]/g, "_");
+      const fileName = `${fileKey}_${safeNodeId}.svg`;
+      target.svgPathInAssetFolder = fileName;
+
+      // If outputDir is provided, also write to disk
+      if (outputDir) {
+        // Get the content from cache
+        const cacheKey = `${fileKey}_${safeNodeId}`;
+        const content = getSvgContentFromCache(cacheKey);
+        if (!content) return;
+
+        // Write to disk
+        await writeVectorSvgToDisk(outputDir, fileKey, nodeId, content);
       }
     }),
   );

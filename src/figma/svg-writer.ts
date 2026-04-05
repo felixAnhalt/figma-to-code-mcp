@@ -3,6 +3,14 @@ const SVG_URI_SCHEME = "figma://vector/";
 /** In-memory cache of SVG content by URI key (e.g., "fileKey_nodeId") */
 const svgContentCache = new Map<string, string>();
 
+/** Gets SVG content from the cache by key */
+export function getSvgContentFromCache(key: string): string | undefined {
+  return svgContentCache.get(key);
+}
+
+import { writeFile, mkdir } from "node:fs/promises";
+import { join } from "node:path";
+
 /** Bounding box for a node, used for SVG viewBox */
 export interface SvgBounds {
   x: number;
@@ -331,4 +339,33 @@ export async function resolveVectorUri(uri: string): Promise<string | undefined>
   if (!uri.startsWith(SVG_URI_SCHEME)) return undefined;
   const key = uri.slice(SVG_URI_SCHEME.length);
   return svgContentCache.get(key);
+}
+
+/**
+ * Writes an SVG file to disk and returns the relative filename.
+ * Returns undefined if the SVG content is invalid or write fails.
+ *
+ * @param outputDir - Absolute path to the output directory
+ * @param fileKey - The Figma file key
+ * @param nodeId - The Figma node ID (colons will be replaced with underscores)
+ * @param content - The SVG content string
+ */
+export async function writeVectorSvgToDisk(
+  outputDir: string,
+  fileKey: string,
+  nodeId: string,
+  content: string,
+): Promise<string | undefined> {
+  try {
+    const safeNodeId = nodeId.replace(/[:/\\]/g, "_");
+    const fileName = `${fileKey}_${safeNodeId}.svg`;
+    const filePath = join(outputDir, fileName);
+
+    await mkdir(outputDir, { recursive: true });
+    await writeFile(filePath, content, "utf-8");
+
+    return fileName;
+  } catch {
+    return undefined;
+  }
 }

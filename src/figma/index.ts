@@ -35,6 +35,7 @@ export type MCPOptions = {
   styleMap?: Record<string, unknown>;
   cacheTTL?: number;
   resolveVariables?: boolean;
+  svgOutputDir?: string;
   /**
    * Pre-built component map keyed by local node ID.
    * When omitted, generateMCPResponse builds it automatically from the raw
@@ -169,6 +170,7 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
     styleMap = {},
     cacheTTL = 5 * 60 * 1000,
     resolveVariables = true,
+    svgOutputDir,
   } = opts;
 
   const cacheKey = `MCP:${fileKey}:${rootNodeId}`;
@@ -249,7 +251,14 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
   }
 
   // Flush all accumulated VECTOR SVGs now that graph is fully constructed
-  await flushAllPendingVectorSvgs();
+  // Always pass outputDir so svgPathInAssetFolder is always set
+  const outputDir = svgOutputDir || "";
+  await flushAllPendingVectorSvgs(outputDir);
+
+  // Always set svgAssetsFolder in response (even if empty, it indicates where SVGs would go)
+  if (outputDir) {
+    normalized.svgAssetsFolder = outputDir;
+  }
 
   setCache(cacheKey, normalized, cacheTTL);
 

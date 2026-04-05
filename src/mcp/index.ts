@@ -5,14 +5,10 @@ import {
   getFigmaDesignTool,
   getImageFillsTool,
   renderNodeImagesTool,
-  readVectorSvgTool,
-  saveVectorSvgsTool,
   type GetFigmaDesignParams,
   type GetImageFillsParams,
   type RenderNodeImagesParams,
-  type ReadVectorSvgParams,
 } from "~/mcp/tools";
-import { registerVectorSvgResource } from "~/mcp/resources/vector-svg-resource";
 
 const serverInfo = {
   name: "Figma MCP Server",
@@ -25,16 +21,21 @@ type CreateServerOptions = {
   isHTTP?: boolean;
   outputFormat?: "yaml" | "json";
   skipImageDownloads?: boolean;
+  svgOutputDir?: string;
 };
 
 function createServer(
   authOptions: FigmaAuthOptions,
-  { isHTTP = false, outputFormat = "yaml", skipImageDownloads = false }: CreateServerOptions = {},
+  {
+    isHTTP = false,
+    outputFormat = "yaml",
+    skipImageDownloads = false,
+    svgOutputDir,
+  }: CreateServerOptions = {},
 ) {
   const server = new McpServer(serverInfo);
   const figmaService = new FigmaService(authOptions);
-  registerTools(server, figmaService, { outputFormat, skipImageDownloads });
-  registerVectorSvgResource(server);
+  registerTools(server, figmaService, { outputFormat, skipImageDownloads, svgOutputDir });
 
   Logger.isHTTP = isHTTP;
 
@@ -47,6 +48,7 @@ function registerTools(
   options: {
     outputFormat: "yaml" | "json";
     skipImageDownloads: boolean;
+    svgOutputDir?: string;
   },
 ): void {
   server.registerTool(
@@ -58,29 +60,7 @@ function registerTools(
       annotations: { readOnlyHint: true },
     },
     (params: GetFigmaDesignParams) =>
-      getFigmaDesignTool.handler(params, figmaService, options.outputFormat),
-  );
-
-  server.registerTool(
-    readVectorSvgTool.name,
-    {
-      title: "Read Vector SVG",
-      description: readVectorSvgTool.description,
-      inputSchema: readVectorSvgTool.parametersSchema,
-      annotations: { readOnlyHint: true },
-    },
-    (params: ReadVectorSvgParams) => readVectorSvgTool.handler(params),
-  );
-
-  server.registerTool(
-    saveVectorSvgsTool.name,
-    {
-      title: "Save Vector SVGs to Files",
-      description: saveVectorSvgsTool.description,
-      inputSchema: saveVectorSvgsTool.parametersSchema,
-      annotations: { readOnlyHint: false },
-    },
-    (params: { uris: string[] }) => saveVectorSvgsTool.handler(params),
+      getFigmaDesignTool.handler(params, figmaService, options.outputFormat, options.svgOutputDir),
   );
 
   if (!options.skipImageDownloads) {
