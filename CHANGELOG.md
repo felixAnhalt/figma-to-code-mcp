@@ -1,5 +1,12 @@
 # tmegit-figma-to-code-mcp
 
+## [0.24.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.23.0...v0.24.0) (2026-04-05)
+
+
+### Features
+
+* **readme:** update documentation with new features and API call details ([#35](https://github.com/felixAnhalt/figma-to-code-mcp/issues/35)) ([c0763ae](https://github.com/felixAnhalt/figma-to-code-mcp/commit/c0763ae08fdedd92a6dafd7d9d24844455e093cc))
+
 ## [0.23.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.22.0...v0.23.0) (2026-04-05)
 
 
