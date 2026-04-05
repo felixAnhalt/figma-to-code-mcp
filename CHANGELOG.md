@@ -1,5 +1,12 @@
 # tmegit-figma-to-code-mcp
 
+## [0.23.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.22.0...v0.23.0) (2026-04-05)
+
+
+### Features
+
+* **svg:** add svgOutputDir option for saving SVG files to disk ([#32](https://github.com/felixAnhalt/figma-to-code-mcp/issues/32)) ([58cfd7f](https://github.com/felixAnhalt/figma-to-code-mcp/commit/58cfd7f5f3fc8d5484dea955b01a937ce5dc8bd7))
+
 ## [0.22.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.21.0...v0.22.0) (2026-04-04)
 
 
