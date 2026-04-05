@@ -274,6 +274,182 @@ function colorToHex(color: unknown): string | undefined {
 }
 
 /**
+ * Extracts fill color as hex from first SOLID fill.
+ * Returns undefined if no valid solid fill found.
+ */
+function extractFillColor(fills: FigmaRawPaint[] | undefined): string | undefined {
+  if (!fills || fills.length === 0) return undefined;
+  if (fills[0].type !== "SOLID") return undefined;
+  return colorToHex(fills[0].color);
+}
+
+/**
+ * Parses Figma's nested array relativeTransform into flat 6-element array.
+ * Figma returns [[a, c, tx], [b, d, ty]] - converts to [a, b, c, d, tx, ty]
+ */
+function parseRelativeTransform(
+  transform: number[][] | undefined,
+): [number, number, number, number, number, number] | undefined {
+  if (!transform || transform.length !== 2) return undefined;
+  if (!transform[0] || transform[0].length !== 3) return undefined;
+  if (!transform[1] || transform[1].length !== 3) return undefined;
+
+  return [
+    transform[0][0], // a
+    transform[1][0], // b
+    transform[0][1], // c
+    transform[1][1], // d
+    transform[0][2], // tx
+    transform[1][2], // ty
+  ];
+}
+
+/**
+ * Extracts vector entries from children nodes for merging.
+ * Handles direct VECTOR children. Excludes mask vectors.
+ */
+function extractVectorEntriesFromChildren(children: FigmaRawNode[]): SvgPathEntry[] {
+  const entries: SvgPathEntry[] = [];
+
+  for (const child of children) {
+    if ((child as FigmaRawNode).isMask === true) continue;
+    const childPaths = extractVectorPaths(child);
+    if (!childPaths) continue;
+
+    const fillColor = extractFillColor(child.fills as FigmaRawPaint[] | undefined);
+    const pathsWithFill = childPaths.map((p) => ({ ...p, fillColor }));
+    const transform = parseRelativeTransform(child.relativeTransform as number[][] | undefined);
+
+    entries.push({ paths: pathsWithFill, transform });
+  }
+
+  return entries;
+}
+
+/**
+ * Collects all VECTOR nodes at any depth within a group.
+ * Returns array of { node, parentOffsetX, parentOffsetY } for transform calculation.
+ * Excludes mask vectors (isMask === true) and vectors inside mask groups.
+ */
+function collectVectorsDeep(
+  node: FigmaRawNode,
+  parentX: number = 0,
+  parentY: number = 0,
+): Array<{ node: FigmaRawNode; offsetX: number; offsetY: number }> {
+  const result: Array<{ node: FigmaRawNode; offsetX: number; offsetY: number }> = [];
+
+  const children = node.children ?? [];
+  for (const child of children) {
+    const childNode = child as FigmaRawNode;
+
+    if (childNode.type === "VECTOR") {
+      if (childNode.isMask === true) continue;
+      result.push({ node: childNode, offsetX: parentX, offsetY: parentY });
+    } else if (childNode.type === "GROUP" || childNode.type === "FRAME") {
+      if (childNode.isMask === true) continue;
+      const childBounds = childNode.absoluteBoundingBox as { x: number; y: number } | undefined;
+      const childX = childBounds?.x ?? 0;
+      const childY = childBounds?.y ?? 0;
+      const newOffsetX = parentX + childX;
+      const newOffsetY = parentY + childY;
+
+      result.push(...collectVectorsDeep(childNode, newOffsetX, newOffsetY));
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Extracts vector entries from deeply nested vectors within a group.
+ * Handles vectors at any depth by collecting them and calculating transforms.
+ */
+function extractVectorEntriesFromDeepGroup(groupNode: FigmaRawNode): SvgPathEntry[] {
+  const vectorInfos = collectVectorsDeep(groupNode);
+  const entries: SvgPathEntry[] = [];
+
+  for (const { node, offsetX, offsetY } of vectorInfos) {
+    const childPaths = extractVectorPaths(node);
+    if (!childPaths) continue;
+
+    const fillColor = extractFillColor(node.fills as FigmaRawPaint[] | undefined);
+    const pathsWithFill = childPaths.map((p) => ({ ...p, fillColor }));
+
+    const relativeTransform = node.relativeTransform as number[][] | undefined;
+    const baseTransform = parseRelativeTransform(relativeTransform);
+
+    let transform: [number, number, number, number, number, number] | undefined;
+    if (baseTransform) {
+      transform = baseTransform;
+    } else {
+      transform = [1, 0, 0, 1, offsetX, offsetY];
+    }
+
+    entries.push({ paths: pathsWithFill, transform });
+  }
+
+  return entries;
+}
+
+/**
+ * Checks if a GROUP contains vectors at any depth (not just direct children).
+ * Returns the vector count if vectors found, or 0 if none.
+ */
+function countVectorsInGroupDeep(groupNode: FigmaRawNode): number {
+  return collectVectorsDeep(groupNode).length;
+}
+function extractVectorEntriesFromGroupChildren(
+  groupNodes: FigmaRawNode[],
+  frameBounds: { x: number; y: number; width: number; height: number },
+): SvgPathEntry[] {
+  const entries: SvgPathEntry[] = [];
+
+  for (const groupNode of groupNodes) {
+    const groupChildren = resolveChildren(groupNode.children ?? []);
+    const groupRawBounds = groupNode.absoluteBoundingBox as { x: number; y: number } | undefined;
+
+    const groupX = groupRawBounds?.x ?? 0;
+    const groupY = groupRawBounds?.y ?? 0;
+    const offsetX = groupX - frameBounds.x;
+    const offsetY = groupY - frameBounds.y;
+
+    for (const vectorChild of groupChildren) {
+      if ((vectorChild as FigmaRawNode).isMask === true) continue;
+      const childPaths = extractVectorPaths(vectorChild);
+      if (!childPaths) continue;
+
+      const fillColor = extractFillColor(
+        (vectorChild as FigmaRawNode).fills as FigmaRawPaint[] | undefined,
+      );
+      const pathsWithFill = childPaths.map((p) => ({ ...p, fillColor }));
+
+      const relativeTransform = (vectorChild as FigmaRawNode).relativeTransform as
+        | number[][]
+        | undefined;
+      const baseTransform = parseRelativeTransform(relativeTransform);
+
+      let transform: [number, number, number, number, number, number] | undefined;
+      if (baseTransform) {
+        transform = [
+          baseTransform[0],
+          baseTransform[1],
+          baseTransform[2],
+          baseTransform[3],
+          baseTransform[4] + offsetX,
+          baseTransform[5] + offsetY,
+        ];
+      } else {
+        transform = [1, 0, 0, 1, offsetX, offsetY];
+      }
+
+      entries.push({ paths: pathsWithFill, transform });
+    }
+  }
+
+  return entries;
+}
+
+/**
  * Processes a raw paint object, resolving any variable aliases inline.
  * Returns a CSS rgba() string for solid colors, a Paint object for gradients/images,
  * or undefined if the paint is not usable.
@@ -824,6 +1000,14 @@ export function buildNormalizedGraph(
       const isVectorOnlyGroup =
         node.type === "GROUP" && resolved.length > 0 && resolved.every((c) => c.type === "VECTOR");
 
+      // Check if this is a GROUP with vectors at nested depth (not just direct children)
+      // This handles groups like: GROUP -> GROUP -> GROUP -> VECTOR
+      const isGroupWithNestedVectors =
+        node.type === "GROUP" &&
+        resolved.length > 0 &&
+        !isVectorOnlyGroup &&
+        countVectorsInGroupDeep(node) > 1;
+
       // Check if this is a frame with vector-friendly children
       // Pattern 1: all direct children are VECTORs
       // Pattern 2: all direct children are GROUPs, and each group's children are all VECTORs
@@ -853,80 +1037,20 @@ export function buildNormalizedGraph(
 
       if (visible.length > 0) {
         if (isVectorOnlyGroup && visible.length > 1) {
-          // Collect paths from all vector children with their transforms
-          const entries: SvgPathEntry[] = [];
-
-          // Get the group bounds for viewBox
           const rawBounds = node.absoluteBoundingBox as
             | { width: number; height: number }
             | undefined;
           const groupBounds = rawBounds
-            ? {
-                x: 0,
-                y: 0,
-                width: rawBounds.width,
-                height: rawBounds.height,
-              }
+            ? { x: 0, y: 0, width: rawBounds.width, height: rawBounds.height }
             : undefined;
 
-          for (const child of visible) {
-            const childPaths = extractVectorPaths(child);
-            if (!childPaths) continue;
-
-            // Get the fill color from child's fills (hex format for cleaner SVG)
-            let fillColor: string | undefined;
-            const childFills = child.fills as FigmaRawPaint[] | undefined;
-            if (childFills && childFills.length > 0 && childFills[0].type === "SOLID") {
-              fillColor = colorToHex(childFills[0].color);
-            }
-
-            // Add fillColor to each path
-            const pathsWithFill = childPaths.map((p) => ({
-              ...p,
-              fillColor,
-            }));
-
-            // Get the relativeTransform from the child
-            // Figma returns it as [[a, c, tx], [b, d, ty]] - convert to flat [a, b, c, d, tx, ty]
-            const relativeTransform = child.relativeTransform as number[][] | undefined;
-            let transform: [number, number, number, number, number, number] | undefined;
-            if (
-              relativeTransform &&
-              relativeTransform.length === 2 &&
-              relativeTransform[0]?.length === 3 &&
-              relativeTransform[1]?.length === 3
-            ) {
-              transform = [
-                relativeTransform[0][0], // a
-                relativeTransform[1][0], // b
-                relativeTransform[0][1], // c
-                relativeTransform[1][1], // d
-                relativeTransform[0][2], // tx
-                relativeTransform[1][2], // ty
-              ];
-            }
-
-            entries.push({
-              paths: pathsWithFill,
-              transform: transform,
-            });
-          }
+          const entries = extractVectorEntriesFromChildren(visible);
 
           if (entries.length > 0) {
-            // Create a simple single child WITHOUT calling processNode
-            // (to avoid triggering individual vector path extraction)
-            const firstChild = visible[0];
-            v3.children = [
-              {
-                type: "VECTOR" as const,
-                name: firstChild.name,
-              },
-            ];
-
-            // Mark for merged SVG processing with group node ID
+            v3.children = [{ type: "VECTOR" as const, name: visible[0].name }];
             globalPendingVectorWrites.push({
               fileKey,
-              nodeId: node.id, // Use group node ID for the merged SVG
+              nodeId: node.id,
               paths: [],
               target: v3.children[0],
               entries,
@@ -935,148 +1059,53 @@ export function buildNormalizedGraph(
           } else {
             v3.children = visible.map((child) => processNode(child));
           }
-        } else if ((isFrameWithVectors || isFrameWithGroups) && visible.length > 1) {
-          // Frame with direct VECTOR children or GROUP children (each having VECTOR children)
-          // Merge all vectors into a single SVG using the frame's bounds
-          const entries: SvgPathEntry[] = [];
+        } else if (isGroupWithNestedVectors) {
+          const rawBounds = node.absoluteBoundingBox as
+            | { x: number; y: number; width: number; height: number }
+            | undefined;
+          const groupBounds = rawBounds
+            ? { x: 0, y: 0, width: rawBounds.width, height: rawBounds.height }
+            : undefined;
 
-          // Get frame bounds for viewBox
+          const entries = extractVectorEntriesFromDeepGroup(node);
+
+          if (entries.length > 1) {
+            v3.children = [{ type: "VECTOR" as const, name: node.name }];
+            globalPendingVectorWrites.push({
+              fileKey,
+              nodeId: node.id,
+              paths: [],
+              target: v3.children[0],
+              entries,
+              bounds: groupBounds,
+            });
+          } else if (entries.length === 1) {
+            v3.children = visible.map((child) => processNode(child));
+          } else {
+            v3.children = visible.map((child) => processNode(child));
+          }
+        } else if ((isFrameWithVectors || isFrameWithGroups) && visible.length > 1) {
           const rawFrameBounds = node.absoluteBoundingBox as
             | { x: number; y: number; width: number; height: number }
             | undefined;
           const frameBounds = rawFrameBounds
-            ? {
-                x: 0,
-                y: 0,
-                width: rawFrameBounds.width,
-                height: rawFrameBounds.height,
-              }
+            ? { x: 0, y: 0, width: rawFrameBounds.width, height: rawFrameBounds.height }
             : undefined;
 
-          // Calculate frame origin in absolute coordinates
-          const frameX = rawFrameBounds?.x ?? 0;
-          const frameY = rawFrameBounds?.y ?? 0;
-
-          if (isFrameWithVectors) {
-            // Pattern 1: Direct VECTOR children
-            for (const child of visible) {
-              const childPaths = extractVectorPaths(child);
-              if (!childPaths) continue;
-
-              let fillColor: string | undefined;
-              const childFills = child.fills as FigmaRawPaint[] | undefined;
-              if (childFills && childFills.length > 0 && childFills[0].type === "SOLID") {
-                fillColor = colorToHex(childFills[0].color);
-              }
-
-              const pathsWithFill = childPaths.map((p) => ({
-                ...p,
-                fillColor,
-              }));
-
-              // Get child's relativeTransform (already relative to frame)
-              const relativeTransform = child.relativeTransform as number[][] | undefined;
-              let transform: [number, number, number, number, number, number] | undefined;
-              if (
-                relativeTransform &&
-                relativeTransform.length === 2 &&
-                relativeTransform[0]?.length === 3 &&
-                relativeTransform[1]?.length === 3
-              ) {
-                transform = [
-                  relativeTransform[0][0],
-                  relativeTransform[1][0],
-                  relativeTransform[0][1],
-                  relativeTransform[1][1],
-                  relativeTransform[0][2],
-                  relativeTransform[1][2],
-                ];
-              }
-
-              entries.push({
-                paths: pathsWithFill,
-                transform,
+          const entries = isFrameWithVectors
+            ? extractVectorEntriesFromChildren(visible)
+            : extractVectorEntriesFromGroupChildren(visible as FigmaRawNode[], {
+                x: rawFrameBounds?.x ?? 0,
+                y: rawFrameBounds?.y ?? 0,
+                width: rawFrameBounds?.width ?? 0,
+                height: rawFrameBounds?.height ?? 0,
               });
-            }
-          } else if (isFrameWithGroups) {
-            // Pattern 2: GROUP children, each having VECTOR children
-            for (const groupNode of visible) {
-              const groupChildren = resolveChildren((groupNode as FigmaRawNode).children ?? []);
-              const groupRawBounds = (groupNode as FigmaRawNode).absoluteBoundingBox as
-                | { x: number; y: number }
-                | undefined;
-
-              // Calculate group's offset within the frame
-              const groupX = groupRawBounds?.x ?? 0;
-              const groupY = groupRawBounds?.y ?? 0;
-              const offsetX = groupX - frameX;
-              const offsetY = groupY - frameY;
-
-              for (const vectorChild of groupChildren) {
-                const childPaths = extractVectorPaths(vectorChild);
-                if (!childPaths) continue;
-
-                let fillColor: string | undefined;
-                const childFills = (vectorChild as FigmaRawNode).fills as
-                  | FigmaRawPaint[]
-                  | undefined;
-                if (childFills && childFills.length > 0 && childFills[0].type === "SOLID") {
-                  fillColor = colorToHex(childFills[0].color);
-                }
-
-                const pathsWithFill = childPaths.map((p) => ({
-                  ...p,
-                  fillColor,
-                }));
-
-                // Get vector's relativeTransform and add group offset
-                const relativeTransform = (vectorChild as FigmaRawNode).relativeTransform as
-                  | number[][]
-                  | undefined;
-                let transform: [number, number, number, number, number, number] | undefined;
-                if (
-                  relativeTransform &&
-                  relativeTransform.length === 2 &&
-                  relativeTransform[0]?.length === 3 &&
-                  relativeTransform[1]?.length === 3
-                ) {
-                  // Base transform from vector
-                  const baseA = relativeTransform[0][0];
-                  const baseB = relativeTransform[1][0];
-                  const baseC = relativeTransform[0][1];
-                  const baseD = relativeTransform[1][1];
-                  const baseTx = relativeTransform[0][2];
-                  const baseTy = relativeTransform[1][2];
-
-                  // Apply group offset: newTx = baseTx + offsetX, newTy = baseTy + offsetY
-                  transform = [baseA, baseB, baseC, baseD, baseTx + offsetX, baseTy + offsetY];
-                } else {
-                  // No relativeTransform, just apply offset as translation
-                  transform = [1, 0, 0, 1, offsetX, offsetY];
-                }
-
-                entries.push({
-                  paths: pathsWithFill,
-                  transform,
-                });
-              }
-            }
-          }
 
           if (entries.length > 0) {
-            // Create single VECTOR child (similar to group merging)
-            const firstChild = visible[0];
-            v3.children = [
-              {
-                type: "VECTOR" as const,
-                name: firstChild.name,
-              },
-            ];
-
-            // Mark for merged SVG processing with frame node ID
+            v3.children = [{ type: "VECTOR" as const, name: visible[0].name }];
             globalPendingVectorWrites.push({
               fileKey,
-              nodeId: node.id, // Use frame node ID for the merged SVG
+              nodeId: node.id,
               paths: [],
               target: v3.children[0],
               entries,
