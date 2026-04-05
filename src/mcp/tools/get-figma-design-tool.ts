@@ -3,6 +3,8 @@ import type { FigmaService } from "~/services/figma";
 import { generateMCPResponse, fetchStyles, extractTokens } from "~/figma";
 import yaml from "js-yaml";
 import { Logger, writeLogs } from "~/utils/logger";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const parameters = {
   fileKey: z
@@ -43,9 +45,13 @@ async function getFigmaDesign(
   params: GetFigmaDesignParams,
   figmaService: FigmaService,
   outputFormat: "yaml" | "json",
+  svgOutputDir?: string,
 ) {
   try {
     const { fileKey, nodeId: rawNodeId, resolveVariables } = parametersSchema.parse(params);
+
+    // Use provided svgOutputDir or default to temp directory
+    const outputDir = svgOutputDir || join(tmpdir(), "figma-mcp-svg-files");
 
     // Replace - with : in nodeId for Figma API
     const nodeId = rawNodeId.replace(/-/g, ":");
@@ -68,6 +74,7 @@ async function getFigmaDesign(
       rootNodeId: nodeId,
       styleMap,
       resolveVariables,
+      svgOutputDir: outputDir,
     });
 
     // Post-pass: extract design tokens and replace repeated raw values with refs
@@ -81,6 +88,14 @@ async function getFigmaDesign(
     );
 
     Logger.log(`Generating ${outputFormat.toUpperCase()} result`);
+
+    // Move svgAssetsFolder to the end of the response for better readability
+    const svgAssetsFolder = tokenizedResponse.svgAssetsFolder;
+    delete tokenizedResponse.svgAssetsFolder;
+    if (svgAssetsFolder) {
+      tokenizedResponse.svgAssetsFolder = svgAssetsFolder;
+    }
+
     const formattedResult =
       outputFormat === "json" ? JSON.stringify(tokenizedResponse) : yaml.dump(tokenizedResponse);
 
@@ -105,7 +120,7 @@ async function getFigmaDesign(
 export const getFigmaDesignTool = {
   name: "get_figma_design",
   description:
-    "Get complete Figma design data with full layout, styling, Flexbox primitives, and component relationships. Returns normalized graph optimized for LLM code generation.",
+    "Get complete Figma design data with full layout, styling, Flexbox primitives, and component relationships. SVG assets are automatically saved to a temp folder referenced in the response.",
   parametersSchema,
   handler: getFigmaDesign,
 } as const;
