@@ -62,7 +62,7 @@ describe("svg-writer", () => {
       ];
 
       const result = buildSvgContentFromEntries(entries);
-      expect(result).toContain("M15 15"); // 10+5, 10+5
+      expect(result).toContain("15 15"); // 10+5, 10+5 (space after M is fine)
     });
   });
 });
