@@ -21,16 +21,34 @@ Figma To Code MCP specializes in **extracting only the information LLMs need to 
 - ✅ **Complete UI-building data** preserved (layout, styling, text, components)
 - ✅ **Inline styles** - no separate dictionaries to parse
 - ✅ **Omits Figma internals** - no bounding boxes, constraints, or prototype data
-
-**Example transformation:**
-
-- **This project**: Returns CSS-aligned nodes with `display: "flex"`, `backgroundColor: "rgba(...)"`, etc.
+- ✅ **Variable resolution** - resolves Figma variables to actual values
+- ✅ **SVG support** - exports vector graphics to disk
+- ✅ **Pattern collapsing** - deduplicates repeating UI patterns
 
 ---
 
 Give [Cursor](https://cursor.sh/) and other AI-powered coding tools access to your Figma files with this [Model Context Protocol](https://modelcontextprotocol.io/introduction) server.
 
-Figma To Code MCP optimizes the Figma data specifically for **LLM UI building** by converting Figma's internal format to CSS-aligned properties while reducing response size by up to 99.5%.
+## Available Tools
+
+| Tool                 | Description                                    |
+| -------------------- | ---------------------------------------------- |
+| `get_figma_design`   | Fetches CSS-aligned, LLM-optimized design data |
+| `get_image_fills`    | Retrieves image fill URLs from a Figma file    |
+| `render_node_images` | Renders Figma nodes as PNG images              |
+| `read_vector_svg`    | Reads vector node data as SVG                  |
+
+## Required Scopes
+
+Create a Figma personal access token with these scopes:
+
+| Scope                  | Purpose                                    |
+| ---------------------- | ------------------------------------------ |
+| `file_content:read`    | Read file nodes, layout, styles            |
+| `library_content:read` | Read published components/styles           |
+| `file_variables:read`  | Read variables (Enterprise only, optional) |
+
+> **Note:** Variable resolution requires Enterprise plan. Set `resolveVariables: false` if not on Enterprise.
 
 ## How it works
 
@@ -91,6 +109,25 @@ The `tmegit-figma-to-code-mcp` server can be configured by adding the following 
 ```
 
 Or you can set `FIGMA_API_KEY` and `PORT` in the `env` field.
+
+## API Calls & Rate Limits
+
+One execution of `get_figma_design` makes the following API calls:
+
+| Call | Endpoint                                  | Tier | Description                                          |
+| ---- | ----------------------------------------- | ---- | ---------------------------------------------------- |
+| 1    | `GET /v1/files/{fileKey}/nodes`           | T1   | Fetch requested nodes (geometry=paths)               |
+| 2    | `GET /v1/files/{fileKey}/styles`          | T3   | Fetch all styles                                     |
+| 3    | `GET /v1/files/{fileKey}/variables/local` | T2   | Fetch local variables (if resolveVariables=true)     |
+| 4    | `GET /v1/components/{key}`                | T3   | Resolve component key → library file (up to 3 tries) |
+| 5    | `GET /v1/files/{libFileKey}/components`   | T3   | Fetch all components from library                    |
+| 6+   | `GET /v1/files/{libFileKey}/nodes`        | T1   | Fetch component definitions from each library        |
+
+Amount of T1 calls: 1 + N (N=number of unique library files)
+Amount of T2 calls: 1 (if resolveVariables=true)
+Amount of T3 calls: 2 + N (styles + component key resolution + N library components)
+
+For Professional plan with Dev/Full seat: **10 req/min** (Tier 1), **25 req/min** (Tier 2), **50 req/min** (Tier 3).
 
 ## Star History
 
