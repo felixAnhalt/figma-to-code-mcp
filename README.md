@@ -73,8 +73,6 @@ Many code editors and other AI clients use a configuration file to manage MCP se
 
 The `tmegit-figma-to-code-mcp` server can be configured by adding the following to your configuration file.
 
-> NOTE: You will need to create a Figma access token to use this server. Instructions on how to create a Figma API access token can be found [here](https://help.figma.com/hc/en-us/articles/8085703771159-Manage-personal-access-tokens).
-
 ### MacOS / Linux
 
 ```json
