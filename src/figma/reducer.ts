@@ -1,21 +1,5 @@
-import type {
-  ComponentDefinition,
-  Layout,
-  MCPResponse,
-  PendingVectorWrite,
-  Style,
-  V3Node,
-} from "./types";
+import type { ComponentDefinition, MCPResponse, V3Node } from "./types";
 import type { VariableResolutionContext } from "./variableResolver";
-import {
-  buildSvgContentFromEntries,
-  getSvgContentFromCache,
-  svgContentCache,
-  writeMergedVectorSvgToDisk,
-  writeVectorSvg,
-  writeVectorSvgToDisk,
-} from "./svg-writer";
-import { formatColor, mapAlignItems, mapJustifyContent, roundTo } from "./reducer/utils";
 import { parseVariantProps, resolveChildren } from "./reducer/node";
 import { extractInteractions } from "./reducer/interaction";
 import { extractVectorPaths } from "./reducer/vector";
@@ -25,12 +9,14 @@ import {
   extractVectorEntriesFromDeepGroup,
   extractVectorEntriesFromGroupChildren,
 } from "./reducer/group";
+import { extractLayoutFromNode } from "./reducer/layout";
+import { extractStyleFromNode } from "./reducer/style";
+import { extractTextStyleFromNode } from "./reducer/text";
 import { processPaint } from "./reducer/paint";
-import { FigmaRawNode, FigmaRawPaint, FigmaEffect } from "~/figma/reducer/types";
+import { addPendingVectorWrite, flushAllPendingVectorSvgs } from "./reducer/flush";
+import { FigmaRawNode, FigmaRawPaint } from "~/figma/reducer/types";
 
-export { parseVariantProps };
-
-const globalPendingVectorWrites: PendingVectorWrite[] = [];
+export { parseVariantProps, flushAllPendingVectorSvgs };
 
 export function buildNormalizedGraph(
   rootNode: Record<string, unknown>,
@@ -65,216 +51,30 @@ export function buildNormalizedGraph(
       v3.id = node.id;
     }
 
-    // ── Layout sub-object ──────────────────────────────────────────────────
-    const layout: Layout = {};
+    // ── Layout ───────────────────────────────────────────────────────────────
+    const layout = extractLayoutFromNode(node);
+    if (layout) v3.layout = layout;
 
-    if (node.layoutMode) {
-      layout.direction = node.layoutMode === "HORIZONTAL" ? "row" : "column";
-
-      // Suppress "stretch" (align-items default) and "flex-start" (justify-content default)
-      const align = mapAlignItems(
-        typeof node.counterAxisAlignItems === "string" ? node.counterAxisAlignItems : undefined,
-      );
-      if (align !== "stretch") layout.align = align;
-
-      const justify = mapJustifyContent(
-        typeof node.primaryAxisAlignItems === "string" ? node.primaryAxisAlignItems : undefined,
-      );
-      if (justify !== "flex-start") layout.justify = justify;
-
-      const gap =
-        node.itemSpacing !== undefined && node.itemSpacing !== 0
-          ? (node.itemSpacing as number)
-          : undefined;
-      if (gap !== undefined) layout.gap = gap;
-
-      const paddingLeft = (node.paddingLeft as number | undefined) ?? 0;
-      const paddingRight = (node.paddingRight as number | undefined) ?? 0;
-      const paddingTop = (node.paddingTop as number | undefined) ?? 0;
-      const paddingBottom = (node.paddingBottom as number | undefined) ?? 0;
-      if (paddingLeft || paddingRight || paddingTop || paddingBottom) {
-        // CSS shorthand: single value if all equal, [v, h] for two-axis symmetry, full object otherwise
-        if (
-          paddingTop === paddingRight &&
-          paddingRight === paddingBottom &&
-          paddingBottom === paddingLeft
-        ) {
-          layout.padding = paddingTop;
-        } else if (paddingTop === paddingBottom && paddingLeft === paddingRight) {
-          layout.padding = [paddingTop, paddingRight];
-        } else {
-          layout.padding = {
-            top: paddingTop,
-            right: paddingRight,
-            bottom: paddingBottom,
-            left: paddingLeft,
-          };
-        }
-      }
-
-      if (node.layoutWrap === "WRAP") layout.wrap = true;
-    }
-
-    if (node.clipsContent === true) layout.overflow = "hidden";
-
-    const size = node.size as { x?: number; y?: number } | undefined;
-    if (size?.x !== undefined && node.layoutSizingHorizontal === "FIXED") {
-      layout.width = `${roundTo(size.x, 2)}px`;
-    }
-    if (size?.y !== undefined && node.layoutSizingVertical === "FIXED") {
-      layout.height = `${roundTo(size.y, 2)}px`;
-    }
-    if (node.minWidth !== undefined && node.minWidth !== null) {
-      layout.minWidth = `${roundTo(node.minWidth as number, 2)}px`;
-    }
-    if (node.maxWidth !== undefined && node.maxWidth !== null) {
-      layout.maxWidth = `${roundTo(node.maxWidth as number, 2)}px`;
-    }
-    if (node.minHeight !== undefined && node.minHeight !== null) {
-      layout.minHeight = `${roundTo(node.minHeight as number, 2)}px`;
-    }
-    if (node.maxHeight !== undefined && node.maxHeight !== null) {
-      layout.maxHeight = `${roundTo(node.maxHeight as number, 2)}px`;
-    }
-
-    // Sizing mode: emit CSS values so LLMs can directly use them
-    // FILL → "100%", HUG → "fit-content", FIXED → explicit width/height above
-    if (node.layoutSizingHorizontal === "FILL") layout.width = "100%";
-    else if (node.layoutSizingHorizontal === "HUG") layout.width = "fit-content";
-    if (node.layoutSizingVertical === "FILL") layout.height = "100%";
-    else if (node.layoutSizingVertical === "HUG") layout.height = "fit-content";
-
-    // layoutGrow: 1 means the node stretches along the parent's main axis (flex-grow: 1)
-    if (node.layoutGrow === 1) layout.grow = true;
-
-    if (Object.keys(layout).length > 0) v3.layout = layout;
-
-    // ── Style sub-object ───────────────────────────────────────────────────
-    const style: Style = {};
-
-    const fills = node.fills as FigmaRawPaint[] | undefined;
-    if (fills && fills.length > 0) {
-      const processed = processPaint(fills[0], variableContext);
-      if (node.type === "TEXT") {
-        // Text fill → color only, never background
-        if (typeof processed === "string") style.color = processed;
-      } else {
-        if (typeof processed === "string") style.background = processed;
-        else if (processed) style.background = [processed];
-      }
-    }
-
-    const strokes = node.strokes as FigmaRawPaint[] | undefined;
-    if (strokes && strokes.length > 0) {
-      const processed = processPaint(strokes[0], variableContext);
-      if (typeof processed === "string") style.border = processed;
-      if (node.strokeWeight !== undefined && node.strokeWeight !== 0) {
-        style.borderWidth = node.strokeWeight as number;
-      }
-    }
-
-    // Border radius
-    const rectangleCornerRadii = node.rectangleCornerRadii as number[] | undefined;
-    if (rectangleCornerRadii) {
-      const allSame = rectangleCornerRadii.every((r) => r === rectangleCornerRadii[0]);
-      if (allSame && rectangleCornerRadii[0] !== 0) {
-        style.radius = rectangleCornerRadii[0];
-      } else if (!allSame) {
-        style.radius = rectangleCornerRadii;
-      }
-    } else if (node.cornerRadius !== undefined && node.cornerRadius !== 0) {
-      style.radius = node.cornerRadius as number;
-    }
-
-    // Effects
-    const effects = node.effects as FigmaEffect[] | undefined;
-    if (effects && effects.length > 0) {
-      const shadows = effects
-        .filter(
-          (e) => (e.type === "DROP_SHADOW" || e.type === "INNER_SHADOW") && e.visible !== false,
-        )
-        .map((e) => {
-          const color = formatColor(e.color);
-          const x = e.offset?.x ?? 0;
-          const y = e.offset?.y ?? 0;
-          const blur = e.radius ?? 0;
-          const spread = e.spread ?? 0;
-          const inset = e.type === "INNER_SHADOW" ? " inset" : "";
-          return `${x}px ${y}px ${blur}px ${spread}px ${color}${inset}`;
-        });
-      if (shadows.length > 0) style.shadow = shadows.join(", ");
-
-      const layerBlur = effects.find((e) => e.type === "LAYER_BLUR" && e.visible !== false);
-      if (layerBlur) style.blur = `blur(${layerBlur.radius ?? 0}px)`;
-    }
-
-    if (node.opacity !== undefined && node.opacity !== 1) {
-      style.opacity = roundTo(node.opacity as number, 3);
-    }
-
-    // Rotation — suppressed when zero after conversion to degrees
-    if (node.rotation !== undefined && node.rotation !== 0) {
-      const degrees = roundTo(((node.rotation as number) * 180) / Math.PI, 2);
-      if (degrees !== 0) {
-        style.transform = `rotate(${degrees}deg)`;
-      }
-    }
-
-    if (node.blendMode && node.blendMode !== "NORMAL" && node.blendMode !== "PASS_THROUGH") {
-      style.blend = node.blendMode as string;
-    }
+    // ── Style ────────────────────────────────────────────────────────────────
+    const style = extractStyleFromNode(node, variableContext);
 
     // ── Text properties (TEXT nodes only) ──────────────────────────────────
     if (node.type === "TEXT") {
-      const s = (node.style ?? {}) as Record<string, unknown>;
-      const fontName = node.fontName as { family?: string; style?: string } | undefined;
-
-      if (s.fontFamily || fontName?.family) {
-        style.font = (s.fontFamily ?? fontName?.family) as string;
-      }
-      if (s.fontSize || node.fontSize) {
-        style.fontSize = (s.fontSize ?? node.fontSize) as number;
-      }
-      if (s.fontWeight || node.fontWeight) {
-        style.fontWeight = (s.fontWeight ?? node.fontWeight) as number;
-      }
-      const fontStyleStr = (s.fontStyle ?? fontName?.style) as string | undefined;
-      if (fontStyleStr?.toLowerCase().includes("italic")) {
-        style.fontStyle = "italic";
-      }
-      if (s.lineHeightPx) {
-        style.lineHeight = roundTo(s.lineHeightPx as number, 2);
-      } else if (s.lineHeightPercent) {
-        style.lineHeight = `${roundTo(s.lineHeightPercent as number, 0)}%`;
-      }
-      if (s.letterSpacing) {
-        style.letterSpacing = roundTo(s.letterSpacing as number, 2);
-      }
-      if (s.textAlignHorizontal) {
-        style.textAlign = (s.textAlignHorizontal as string).toLowerCase();
-      }
-      if (s.textDecoration && s.textDecoration !== "NONE") {
-        style.textDecoration = (s.textDecoration as string).toLowerCase().replace("_", "-");
-      }
-      if (s.textCase && s.textCase !== "ORIGINAL") {
-        const caseMap: Record<string, string> = {
-          UPPER: "uppercase",
-          LOWER: "lowercase",
-          TITLE: "capitalize",
-        };
-        style.textTransform = caseMap[s.textCase as string] ?? (s.textCase as string).toLowerCase();
+      const textStyle = extractTextStyleFromNode(node);
+      if (textStyle && style) {
+        Object.assign(style, textStyle);
       }
 
       if (node.characters) v3.text = node.characters as string;
     }
 
-    if (Object.keys(style).length > 0) v3.style = style;
+    if (style && Object.keys(style).length > 0) v3.style = style;
 
     // ── Vector paths (VECTOR nodes only) ───────────────────────────────────
     const vectorPaths = extractVectorPaths(node);
     if (vectorPaths) {
       // Bounds are now computed from path data in svg-writer.ts (not absolute canvas position)
-      globalPendingVectorWrites.push({ fileKey, nodeId: node.id, paths: vectorPaths, target: v3 });
+      addPendingVectorWrite({ fileKey, nodeId: node.id, paths: vectorPaths, target: v3 });
     }
 
     // ── Interactions ───────────────────────────────────────────────────────
@@ -329,7 +129,7 @@ export function buildNormalizedGraph(
         });
 
       // Compute this node's fill string for RECTANGLE suppression in children
-      const thisFill = typeof style.background === "string" ? style.background : undefined;
+      const thisFill = style && typeof style.background === "string" ? style.background : undefined;
 
       const visible = resolved.filter((child): child is FigmaRawNode => {
         // Suppress RECTANGLE nodes whose fill is identical to this node's fill —
@@ -354,7 +154,7 @@ export function buildNormalizedGraph(
 
           if (entries.length > 0) {
             v3.children = [{ type: "VECTOR" as const, name: visible[0].name }];
-            globalPendingVectorWrites.push({
+            addPendingVectorWrite({
               fileKey,
               nodeId: node.id,
               paths: [],
@@ -377,7 +177,7 @@ export function buildNormalizedGraph(
 
           if (entries.length > 1) {
             v3.children = [{ type: "VECTOR" as const, name: node.name }];
-            globalPendingVectorWrites.push({
+            addPendingVectorWrite({
               fileKey,
               nodeId: node.id,
               paths: [],
@@ -409,7 +209,7 @@ export function buildNormalizedGraph(
 
           if (entries.length > 0) {
             v3.children = [{ type: "VECTOR" as const, name: visible[0].name }];
-            globalPendingVectorWrites.push({
+            addPendingVectorWrite({
               fileKey,
               nodeId: node.id,
               paths: [],
@@ -457,67 +257,4 @@ export function buildNormalizedGraph(
   }
 
   return { ...response, flushVectorSvgs };
-}
-
-// ── Module-level flush for all accumulated vectors ────────────────────────────
-
-/**
- * Flushes all accumulated VECTOR SVG writes to disk and assigns svgPathInAssetFolder
- * on each target node. Call this once at the end of buildNormalizedDesignTree,
- * after Pass 1 + Pass 2 enrichment is complete.
- *
- * Each write's target is a V3Node from either Pass 1 or Pass 2. By deferring
- * the flush until after all graph construction is done, we ensure all
- * svgPathInAssetFolder assignments persist in the final response.
- *
- * @param outputDir - Absolute path to the directory where SVG files should be saved.
- *                    If empty, only writes to in-memory cache (no disk write).
- */
-export async function flushAllPendingVectorSvgs(outputDir: string): Promise<void> {
-  await Promise.all(
-    globalPendingVectorWrites.map(async ({ fileKey, nodeId, paths, target, entries, bounds }) => {
-      const safeNodeId = nodeId.replace(/[:/\\]/g, "_");
-
-      // Handle merged SVG (vector groups) - when entries is provided
-      if (entries && entries.length > 0) {
-        // Write merged SVG to in-memory cache
-        const mergedContent = buildSvgContentFromEntries(entries, bounds);
-        const cacheKey = `${fileKey}_${safeNodeId}`;
-        svgContentCache.set(cacheKey, mergedContent);
-
-        // Set the relative path on target (single child)
-        const fileName = `${fileKey}_${safeNodeId}.svg`;
-        target.svgPathInAssetFolder = fileName;
-
-        // Write to disk if outputDir is provided
-        if (outputDir) {
-          await writeMergedVectorSvgToDisk(outputDir, fileKey, nodeId, entries, bounds);
-        }
-
-        return;
-      }
-
-      // Regular vector write (individual vectors)
-      // First write to in-memory cache (needed for MCP resource resolution)
-      const uri = await writeVectorSvg(fileKey, nodeId, paths);
-      if (!uri) return;
-
-      // Always set the relative path (even if outputDir is empty, for backwards compatibility)
-      const fileName = `${fileKey}_${safeNodeId}.svg`;
-      target.svgPathInAssetFolder = fileName;
-
-      // If outputDir is provided, also write to disk
-      if (outputDir) {
-        // Get the content from cache
-        const cacheKey = `${fileKey}_${safeNodeId}`;
-        const content = getSvgContentFromCache(cacheKey);
-        if (!content) return;
-
-        // Write to disk
-        await writeVectorSvgToDisk(outputDir, fileKey, nodeId, content);
-      }
-    }),
-  );
-  // Clear the global accumulator after flushing so subsequent calls don't re-flush.
-  globalPendingVectorWrites.length = 0;
 }
