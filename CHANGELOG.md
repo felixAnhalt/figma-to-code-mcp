@@ -1,5 +1,12 @@
 # tmegit-figma-to-code-mcp
 
+## [0.24.2](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.24.1...v0.24.2) (2026-04-06)
+
+
+### Bug Fixes
+
+* **readme:** update Figma access token instructions in README ([f8191c1](https://github.com/felixAnhalt/figma-to-code-mcp/commit/f8191c1b132e9fc1a358c3877950f73d981cfcba))
+
 ## [0.24.1](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.24.0...v0.24.1) (2026-04-06)
 
 
