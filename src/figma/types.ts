@@ -1,5 +1,8 @@
 // ── Token types ───────────────────────────────────────────────────────────────
 
+import type { SvgBounds, SvgPathEntry } from "~/figma/svg";
+import { Interaction } from "~/figma/reducer/types";
+
 /**
  * A token reference replacing a raw value in style/layout fields.
  * Always in "category.name" form, e.g. "colors.primary", "spacing.lg".
@@ -233,19 +236,6 @@ export type GradientStop = {
 };
 
 /**
- * A prototype interaction on a node (e.g. hover triggers a variant swap).
- * Normalized from Figma's verbose interaction format to the fields useful for web building.
- */
-export type Interaction = {
-  /** Normalized trigger: "hover", "click", "drag", "key", or raw Figma trigger type */
-  trigger: string;
-  /** Normalized action: "navigate", "swap", "overlay", "scroll", or raw type */
-  action: string;
-  /** Target node ID, if applicable */
-  destination?: string;
-};
-
-/**
  * Internal metadata about a single component variant.
  * Keyed by component node ID in MCPResponse.definitions during enrichment.
  * Converted to ComponentSet entries in the final response.
@@ -320,4 +310,13 @@ export type ComponentSet = {
       children?: V3Node[];
     }
   >;
+};
+
+export type PendingVectorWrite = {
+  fileKey: string;
+  nodeId: string;
+  paths: Array<{ d: string; fillRule?: string }>;
+  target: V3Node;
+  entries?: SvgPathEntry[];
+  bounds?: SvgBounds;
 };
