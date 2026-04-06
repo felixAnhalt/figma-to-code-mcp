@@ -3,6 +3,7 @@ import { safeFetch } from "./rateLimit";
 import { getCache, setCache } from "./cache";
 import { buildNormalizedGraph, parseVariantProps, flushAllPendingVectorSvgs } from "./reducer";
 import { buildResolutionContext } from "./variableResolver";
+import { fetchVariables } from "./fetch";
 import type {
   MCPResponse,
   V3Node,
@@ -12,7 +13,6 @@ import type {
   Layout,
   Style,
 } from "./types";
-import type { GetLocalVariablesResponse } from "@figma/rest-api-spec";
 import { Logger } from "~/utils/logger";
 
 /**
@@ -687,102 +687,6 @@ function patchTreeInstances(
   }
 }
 
-/**
- * Fetches all styles for a Figma file.
- */
-export async function fetchStyles(
-  fileKey: string,
-  authHeaders: Record<string, string>,
-): Promise<Record<string, unknown>> {
-  const url = `https://api.figma.com/v1/files/${fileKey}/styles`;
-  const res = await safeFetch(url, {
-    headers: authHeaders,
-  });
-
-  if (!res.ok) {
-    throw new Error(`Figma API error: ${res.status} ${res.statusText}`);
-  }
-
-  const json = (await res.json()) as { meta?: { styles?: Array<{ key: string }> } };
-  const stylesMap: Record<string, unknown> = {};
-
-  for (const style of json.meta?.styles ?? []) {
-    stylesMap[style.key] = style;
-  }
-
-  return stylesMap;
-}
-
-/**
- * Fetches all published components for a Figma file.
- *
- * Preserves file_key, node_id, and componentSetId from the API response so
- * callers can later fetch component node trees without extra resolution calls.
- */
-export async function fetchComponents(
-  fileKey: string,
-  authHeaders: Record<string, string>,
-): Promise<Record<string, RichComponentMeta>> {
-  const url = `https://api.figma.com/v1/files/${fileKey}/components`;
-  const res = await safeFetch(url, {
-    headers: authHeaders,
-  });
-
-  if (!res.ok) {
-    throw new Error(`Figma API error: ${res.status} ${res.statusText}`);
-  }
-
-  const json = (await res.json()) as {
-    meta?: {
-      components?: Array<{
-        node_id: string;
-        key: string;
-        file_key: string;
-        name: string;
-        description?: string;
-        component_set_id?: string;
-      }>;
-    };
-  };
-
-  const componentMap: Record<string, RichComponentMeta> = {};
-
-  for (const comp of json.meta?.components ?? []) {
-    componentMap[comp.node_id] = {
-      key: comp.key,
-      file_key: comp.file_key,
-      node_id: comp.node_id,
-      name: comp.name,
-      ...(comp.description ? { description: comp.description } : {}),
-      ...(comp.component_set_id ? { componentSetId: comp.component_set_id } : {}),
-    };
-  }
-
-  return componentMap;
-}
-
-/**
- * Fetches all local variables for a Figma file.
- */
-export async function fetchVariables(
-  fileKey: string,
-  authHeaders: Record<string, string>,
-): Promise<GetLocalVariablesResponse | null> {
-  const url = `https://api.figma.com/v1/files/${fileKey}/variables/local`;
-  const res = await safeFetch(url, {
-    headers: authHeaders,
-  });
-
-  if (!res.ok) {
-    // Variables endpoint might fail if the file has no variables or permissions issue
-    Logger.warn(`Failed to fetch variables: ${res.status} ${res.statusText}`);
-    return null;
-  }
-
-  const json = await res.json();
-  return json as GetLocalVariablesResponse;
-}
-
 // Re-export types and functions
 export type {
   MCPResponse,
@@ -797,3 +701,4 @@ export type {
 } from "./types";
 
 export { extractTokens } from "./tokenizer";
+export { fetchStyles, fetchComponents, fetchVariables } from "./fetch";
