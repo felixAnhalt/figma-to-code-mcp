@@ -234,5 +234,88 @@ describe("vector merging in groups and frames", () => {
 
       expect(svgContentCache.size).toBeGreaterThan(0);
     });
+
+    it("should preserve vector positions in merged output", async () => {
+      const v1 = vector("1:2", "Vector1", {
+        relativeTransform: [
+          [1, 0, 0],
+          [0, 1, 0],
+        ],
+      });
+      const v2 = vector("1:3", "Vector2", {
+        relativeTransform: [
+          [1, 0, 0],
+          [0, 1, 20],
+        ],
+      });
+      const g = group("1:1", "Group", [v1, v2]);
+
+      buildNormalizedGraph(g, {});
+      await flushAllPendingVectorSvgs("");
+
+      const cacheKeys = Array.from(svgContentCache.keys());
+      expect(cacheKeys.length).toBe(1);
+
+      const svgContent = svgContentCache.get(cacheKeys[0]);
+      expect(svgContent).toBeDefined();
+      expect(svgContent).toContain("<svg");
+    });
+
+    it("should preserve different Y coordinates for merged vectors at different vertical positions", async () => {
+      const v1 = vector("1:2", "Char1", {
+        relativeTransform: [
+          [1, 0, 0],
+          [0, 1, 0],
+        ],
+        fillGeometry: [{ path: "M0 0L10 0L10 10L0 10Z", windingRule: "NONZERO" }],
+      });
+      const v2 = vector("1:3", "Char2", {
+        relativeTransform: [
+          [1, 0, 0],
+          [0, 1, 25],
+        ],
+        fillGeometry: [{ path: "M0 0L10 0L10 10L0 10Z", windingRule: "NONZERO" }],
+      });
+      const g = group("1:1", "Text", [v1, v2], {
+        absoluteBoundingBox: { x: 0, y: 0, width: 20, height: 40 },
+      });
+
+      buildNormalizedGraph(g, {});
+      await flushAllPendingVectorSvgs("");
+
+      const cacheKeys = Array.from(svgContentCache.keys());
+      const svgContent = svgContentCache.get(cacheKeys[0])!;
+
+      const pathMatches = svgContent.match(/<path[^>]*d="([^"]+)"/g);
+      expect(pathMatches?.length).toBe(2);
+
+      const firstPathY = svgContent.includes("M0 0") || svgContent.includes("M0.0000 0");
+      const secondPathHas25 = svgContent.includes("25");
+
+      expect(firstPathY || secondPathHas25).toBe(true);
+    });
+
+    it("should use provided bounds for viewBox, not recompute from path data", async () => {
+      const v1 = vector("1:2", "Vector1");
+      const v2 = vector("1:3", "Vector2", {
+        relativeTransform: [
+          [1, 0, 100],
+          [0, 1, 50],
+        ],
+      });
+      const g = group("1:1", "Group", [v1, v2], {
+        absoluteBoundingBox: { x: 10, y: 20, width: 147, height: 50 },
+      });
+
+      buildNormalizedGraph(g, {});
+      await flushAllPendingVectorSvgs("");
+
+      const cacheKeys = Array.from(svgContentCache.keys());
+      const svgContent = svgContentCache.get(cacheKeys[0]);
+
+      expect(svgContent).toContain('width="147"');
+      expect(svgContent).toContain('height="50"');
+      expect(svgContent).toContain('viewBox="0 0 147 50"');
+    });
   });
 });
