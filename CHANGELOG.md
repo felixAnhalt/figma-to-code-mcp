@@ -1,5 +1,12 @@
 # tmegit-figma-to-code-mcp
 
+## [0.24.1](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.24.0...v0.24.1) (2026-04-06)
+
+
+### Bug Fixes
+
+* **refactors:** refactor lot's of jumbled up code ([#38](https://github.com/felixAnhalt/figma-to-code-mcp/issues/38)) ([b66697c](https://github.com/felixAnhalt/figma-to-code-mcp/commit/b66697c5848a0dfac653a9f4502ac3d8eb08cdfa))
+
 ## [0.24.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.23.0...v0.24.0) (2026-04-05)
 
 
