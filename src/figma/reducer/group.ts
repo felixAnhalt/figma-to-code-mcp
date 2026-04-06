@@ -85,7 +85,11 @@ export function extractVectorEntriesFromGroupChildren(
   const entries: SvgPathEntry[] = [];
 
   for (const group of groups) {
+    const groupTransform = parseRelativeTransform(
+      group.relativeTransform as number[][] | undefined,
+    );
     const groupChildren = group.children ?? [];
+
     for (const child of groupChildren) {
       if ((child as FigmaRawNode).isMask === true) continue;
       const childPaths = extractVectorPaths(child as FigmaRawNode);
@@ -101,8 +105,15 @@ export function extractVectorEntriesFromGroupChildren(
       );
 
       let finalTransform: [number, number, number, number, number, number] | undefined;
+
       if (childTransform) {
-        finalTransform = childTransform;
+        if (groupTransform) {
+          finalTransform = combineTransforms(groupTransform, childTransform);
+        } else {
+          finalTransform = childTransform;
+        }
+      } else if (groupTransform) {
+        finalTransform = [1, 0, 0, 1, groupTransform[4], groupTransform[5]];
       } else if (offset.x !== 0 || offset.y !== 0) {
         finalTransform = [1, 0, 0, 1, offset.x, offset.y];
       }
@@ -112,4 +123,18 @@ export function extractVectorEntriesFromGroupChildren(
   }
 
   return entries;
+}
+
+function combineTransforms(
+  a: [number, number, number, number, number, number],
+  b: [number, number, number, number, number, number],
+): [number, number, number, number, number, number] {
+  return [
+    a[0] * b[0] + a[2] * b[1],
+    a[1] * b[0] + a[3] * b[1],
+    a[0] * b[2] + a[2] * b[3],
+    a[1] * b[2] + a[3] * b[3],
+    a[0] * b[4] + a[2] * b[5] + a[4],
+    a[1] * b[4] + a[3] * b[5] + a[5],
+  ];
 }
