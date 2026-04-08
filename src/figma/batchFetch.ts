@@ -29,6 +29,7 @@ export async function fetchNodesBatch(
     });
 
     if (!response.ok) {
+      console.error(`Promblems fetching node ${fileKey} ${ids}`);
       throw new Error(`Figma API error: ${response.status} ${response.statusText}`);
     }
 

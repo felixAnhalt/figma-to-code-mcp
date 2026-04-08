@@ -79,6 +79,7 @@ export async function enrichDefinitions(
       fetchNodesBatch(libFileKey, [...nodeIds], authHeaders)
         .then((result) => ({ libFileKey, result }))
         .catch((err) => {
+          Logger.error(`nodeIds`, nodeIds, err);
           Logger.warn(
             `[enrichDefinitions] Skipping node tree fetch for ${libFileKey}: ${err instanceof Error ? err.message : err}`,
           );
