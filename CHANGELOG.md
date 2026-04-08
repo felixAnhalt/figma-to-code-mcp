@@ -1,5 +1,12 @@
 # tmegit-figma-to-code-mcp
 
+## [0.25.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.24.2...v0.25.0) (2026-04-08)
+
+
+### Features
+
+* **comments:** 0 - add comments fetching and transformation functionality ([#42](https://github.com/felixAnhalt/figma-to-code-mcp/issues/42)) ([d102c33](https://github.com/felixAnhalt/figma-to-code-mcp/commit/d102c337ab80ecf03f6e2f6d86dbd720014a2414))
+
 ## [0.24.2](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.24.1...v0.24.2) (2026-04-06)
 
 
