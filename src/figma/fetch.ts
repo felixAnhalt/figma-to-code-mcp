@@ -3,6 +3,36 @@ import { safeFetch } from "./rateLimit";
 import type { RichComponentMeta } from "./index";
 import { Logger } from "~/utils/logger";
 
+export interface FigmaComment {
+  id: string;
+  uuid: string;
+  file_key: string;
+  parent_id: string;
+  user: {
+    handle: string;
+    img_url: string;
+    id: string;
+  };
+  created_at: string;
+  resolved_at: string | null;
+  message: string;
+  reactions: Array<{
+    emoji: string;
+    created_at: string;
+    user: {
+      id: string;
+      handle: string;
+      img_url: string;
+    };
+  }>;
+  client_meta: {
+    node_id: string;
+    node_offset: { x: number; y: number };
+    stable_path: string[];
+  } | null;
+  order_id: string | null;
+}
+
 export async function fetchStyles(
   fileKey: string,
   authHeaders: Record<string, string>,
@@ -84,4 +114,22 @@ export async function fetchVariables(
 
   const json = await res.json();
   return json as GetLocalVariablesResponse;
+}
+
+export async function fetchComments(
+  fileKey: string,
+  authHeaders: Record<string, string>,
+): Promise<FigmaComment[]> {
+  const url = `https://api.figma.com/v1/files/${fileKey}/comments`;
+  const res = await safeFetch(url, {
+    headers: authHeaders,
+  });
+
+  if (!res.ok) {
+    Logger.warn(`Failed to fetch comments: ${res.status} ${res.statusText}`);
+    return [];
+  }
+
+  const json = (await res.json()) as { comments: FigmaComment[] };
+  return json.comments ?? [];
 }

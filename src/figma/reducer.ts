@@ -15,6 +15,7 @@ import { extractTextStyleFromNode } from "./reducer/text";
 import { processPaint } from "./reducer/paint";
 import { addPendingVectorWrite, flushAllPendingVectorSvgs } from "./reducer/flush";
 import { FigmaRawNode, FigmaRawPaint } from "~/figma/reducer/types";
+import type { NodeCommentsMap } from "./transform/comments";
 
 export { parseVariantProps, flushAllPendingVectorSvgs };
 
@@ -24,6 +25,7 @@ export function buildNormalizedGraph(
   variableContext?: VariableResolutionContext | null,
   componentMap: Record<string, unknown> = {},
   fileKey = "",
+  commentsMap: NodeCommentsMap = {},
 ): MCPResponse & { flushVectorSvgs: () => Promise<void> } {
   const definitions: Record<string, ComponentDefinition> = {};
 
@@ -80,6 +82,12 @@ export function buildNormalizedGraph(
     // ── Interactions ───────────────────────────────────────────────────────
     const extracted = extractInteractions(node as { interactions?: unknown });
     if (extracted) v3.interactions = extracted;
+
+    // ── Comments ───────────────────────────────────────────────────────────────
+    const nodeId = node.id;
+    if (nodeId && commentsMap[nodeId]) {
+      v3.comments = commentsMap[nodeId];
+    }
 
     // ── Component reference (INSTANCE nodes) ───────────────────────────────
     if (node.type === "INSTANCE" && node.componentId) {

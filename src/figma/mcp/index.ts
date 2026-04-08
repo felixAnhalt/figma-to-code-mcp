@@ -1,13 +1,14 @@
 import { fetchNodesBatch } from "../batchFetch";
 import { buildNormalizedGraph, flushAllPendingVectorSvgs } from "../reducer";
 import { buildResolutionContext } from "../variableResolver";
-import { fetchVariables } from "../fetch";
+import { fetchVariables, fetchComments } from "../fetch";
 import { getCache, setCache } from "../cache";
 import { Logger } from "~/utils/logger";
 import type { RichComponentMeta, MCPOptions } from "./types";
 import type { MCPResponse } from "../types";
 import { buildRichComponentMap } from "./componentMap";
 import { enrichDefinitions } from "./enrich";
+import { transformComments, type NodeCommentsMap } from "../transform/comments";
 
 export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse> {
   const {
@@ -71,6 +72,12 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
     }
   }
 
+  Logger.log("Fetching comments...");
+  const rawComments = await fetchComments(fileKey, authHeaders);
+  const commentsMap: NodeCommentsMap = transformComments(rawComments);
+  const nodesWithComments = Object.keys(commentsMap).length;
+  Logger.log(`[Comments] Found ${nodesWithComments} nodes with comments`);
+
   // flushVectorSvgs is intentionally unused - actual flushing happens via flushAllPendingVectorSvgs() below
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { flushVectorSvgs, ...normalized } = buildNormalizedGraph(
@@ -79,6 +86,7 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
     variableContext,
     componentMap,
     fileKey,
+    commentsMap,
   );
 
   if (normalized.definitions && Object.keys(normalized.definitions).length > 0) {

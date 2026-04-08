@@ -128,6 +128,20 @@ export type V3Node = {
    * Combine with svgAssetsFolder at the root level to get the full path.
    */
   svgPathInAssetFolder?: string;
+
+  /** Comments attached to this node (unresolved only). */
+  comments?: Comment[];
+};
+
+export type CommentReply = {
+  message: string;
+  createdAt: string;
+};
+
+export type Comment = {
+  message: string;
+  createdAt: string;
+  replies?: CommentReply[];
 };
 
 /**
