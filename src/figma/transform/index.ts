@@ -1,0 +1,1 @@
+export { transformToDialect } from "./cssDialect";

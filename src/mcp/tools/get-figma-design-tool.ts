@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { FigmaService } from "~/services/figma";
 import { generateMCPResponse, fetchStyles, extractTokens } from "~/figma";
+import { transformToDialect } from "~/figma/transform/cssDialect";
 import yaml from "js-yaml";
 import { Logger, writeLogs } from "~/utils/logger";
 import { tmpdir } from "node:os";
@@ -28,6 +29,12 @@ const parameters = {
     .describe(
       "Whether to resolve variable references to their actual values. Set to false if already fetched once.",
     ),
+  cssDialect: z
+    .enum(["plain", "tailwind"])
+    .optional()
+    .describe(
+      "CSS output dialect: 'plain' for YAML/JSON (default), 'tailwind' for Tailwind CSS class strings.",
+    ),
 };
 
 const parametersSchema = z.object(parameters);
@@ -48,7 +55,12 @@ async function getFigmaDesign(
   svgOutputDir?: string,
 ) {
   try {
-    const { fileKey, nodeId: rawNodeId, resolveVariables } = parametersSchema.parse(params);
+    const {
+      fileKey,
+      nodeId: rawNodeId,
+      resolveVariables,
+      cssDialect,
+    } = parametersSchema.parse(params);
 
     // Use provided svgOutputDir or default to temp directory
     const outputDir = svgOutputDir || join(tmpdir(), "figma-mcp-svg-files");
@@ -87,19 +99,28 @@ async function getFigmaDesign(
       `Successfully extracted design tree${tokenizedResponse.componentSets ? `, ${Object.keys(tokenizedResponse.componentSets).length} component sets` : ""}${tokenizedResponse.tokens ? `, ${Object.values(tokenizedResponse.tokens).reduce((n, cat) => n + Object.keys(cat ?? {}).length, 0)} tokens` : ""}`,
     );
 
+    const transformedResponse = transformToDialect(tokenizedResponse, cssDialect ?? "plain");
     Logger.log(`Generating ${outputFormat.toUpperCase()} result`);
 
-    // Move svgAssetsFolder to the end of the response for better readability
-    const svgAssetsFolder = tokenizedResponse.svgAssetsFolder;
-    delete tokenizedResponse.svgAssetsFolder;
+    let formattedResult: string;
+
+    const svgAssetsFolder = transformedResponse.svgAssetsFolder;
+    delete transformedResponse.svgAssetsFolder;
     if (svgAssetsFolder) {
-      tokenizedResponse.svgAssetsFolder = svgAssetsFolder;
+      transformedResponse.svgAssetsFolder = svgAssetsFolder;
     }
 
-    const formattedResult =
-      outputFormat === "json" ? JSON.stringify(tokenizedResponse) : yaml.dump(tokenizedResponse);
+    if (outputFormat === "json") {
+      formattedResult = JSON.stringify(transformedResponse);
+    } else {
+      formattedResult = yaml.dump(transformedResponse);
+    }
 
-    Logger.log("Sending result to client");
+    Logger.log(
+      cssDialect === "tailwind"
+        ? "Sending Tailwind dialect result to client"
+        : "Sending result to client",
+    );
 
     return {
       content: [{ type: "text" as const, text: formattedResult }],

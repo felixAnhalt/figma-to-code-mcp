@@ -131,6 +131,9 @@ export type V3Node = {
 
   /** Comments attached to this node (unresolved only). */
   comments?: Comment[];
+
+  /** Dev Mode annotations on this node. Only the label is included. */
+  annotations?: string[];
 };
 
 export type CommentReply = {

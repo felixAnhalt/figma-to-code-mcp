@@ -89,6 +89,12 @@ export function buildNormalizedGraph(
       v3.comments = commentsMap[nodeId];
     }
 
+    // ── Annotations ───────────────────────────────────────────────────────────
+    const rawAnnotations = node.annotations as Array<{ label: string }> | undefined;
+    if (rawAnnotations && rawAnnotations.length > 0) {
+      v3.annotations = rawAnnotations.map((a) => a.label);
+    }
+
     // ── Component reference (INSTANCE nodes) ───────────────────────────────
     if (node.type === "INSTANCE" && node.componentId) {
       const componentId = node.componentId as string;

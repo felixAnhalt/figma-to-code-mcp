@@ -56,7 +56,7 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
       // 2. Call the actual MCP tool handler — identical code path the LLM hits
       console.log("Calling getFigmaDesign tool handler (same path as the LLM)...");
       const toolResult = await getFigmaDesignTool.handler(
-        { fileKey: figmaFileKey, nodeId, resolveVariables: true },
+        { fileKey: figmaFileKey, nodeId, resolveVariables: true, cssDialect: "tailwind" },
         figmaService,
         "json",
       );
