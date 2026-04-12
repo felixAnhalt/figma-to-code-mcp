@@ -264,45 +264,6 @@ describe("extractTokens — no fallback tokens for unnamed values", () => {
 // ── size shorthand collapse (width + height) ──────────────────────────────────
 
 describe("extractTokens — size shorthand collapse (width + height)", () => {
-  it("collapses width:100% + height:100% into size:100%", () => {
-    const response = makeResponse(
-      makeFrame({
-        children: [makeFrame({ layout: { width: "100%", height: "100%" } })],
-      }),
-    );
-    const result = extractTokens(response);
-    const layout = result.root.children![0].layout!;
-    expect(layout.size).toBe("100%");
-    expect(layout.width).toBeUndefined();
-    expect(layout.height).toBeUndefined();
-  });
-
-  it("collapses width:fit-content + height:fit-content into size:fit-content", () => {
-    const response = makeResponse(
-      makeFrame({
-        children: [makeFrame({ layout: { width: "fit-content", height: "fit-content" } })],
-      }),
-    );
-    const result = extractTokens(response);
-    const layout = result.root.children![0].layout!;
-    expect(layout.size).toBe("fit-content");
-    expect(layout.width).toBeUndefined();
-    expect(layout.height).toBeUndefined();
-  });
-
-  it("collapses width:320px + height:320px into size:320px", () => {
-    const response = makeResponse(
-      makeFrame({
-        children: [makeFrame({ layout: { width: "320px", height: "320px" } })],
-      }),
-    );
-    const result = extractTokens(response);
-    const layout = result.root.children![0].layout!;
-    expect(layout.size).toBe("320px");
-    expect(layout.width).toBeUndefined();
-    expect(layout.height).toBeUndefined();
-  });
-
   it("leaves width:100% + height:fit-content as separate fields (no collapse)", () => {
     const response = makeResponse(
       makeFrame({
@@ -474,7 +435,7 @@ describe("extractTokens — componentSets get token replacement", () => {
     expect(result.componentSets?.Button.variants["1:1"].style?.background).toBe("colors.primary");
   });
 
-  it("collapses sizing in componentSet variant layouts", () => {
+  it("keeps width and height separate in componentSet variant layouts", () => {
     const response: MCPResponse = {
       schema: "v3",
       root: makeFrame(),
@@ -492,9 +453,8 @@ describe("extractTokens — componentSets get token replacement", () => {
     };
     const result = extractTokens(response);
     const variantLayout = result.componentSets?.Button.variants["1:1"].layout;
-    expect(variantLayout?.size).toBe("fit-content");
-    expect(variantLayout?.width).toBeUndefined();
-    expect(variantLayout?.height).toBeUndefined();
+    expect(variantLayout?.width).toBe("fit-content");
+    expect(variantLayout?.height).toBe("fit-content");
   });
 });
 

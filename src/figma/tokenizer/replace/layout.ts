@@ -41,11 +41,5 @@ export function replaceLayoutTokens(
     if (t) l.minHeight = `heights.${t}` as never;
   }
 
-  if (l.width && l.height && l.width === l.height) {
-    l.size = l.width;
-    delete l.width;
-    delete l.height;
-  }
-
   return Object.keys(l).length > 0 ? l : undefined;
 }
