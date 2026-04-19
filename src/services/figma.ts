@@ -4,8 +4,8 @@ import type {
   GetImageFillsResponse,
   GetLocalVariablesResponse,
 } from "@figma/rest-api-spec";
+import { httpClient } from "~/utils/http-client";
 import { Logger, writeLogs } from "~/utils/logger";
-import { fetchWithRetry } from "~/utils/fetch-with-retry";
 
 export type FigmaAuthOptions = {
   figmaApiKey: string;
@@ -40,7 +40,7 @@ export class FigmaService {
       Logger.log(`Calling ${this.baseUrl}${endpoint}`);
       const headers = this.getAuthHeaders();
 
-      return await fetchWithRetry<T & { status?: number }>(`${this.baseUrl}${endpoint}`, {
+      return await httpClient<T & { status?: number }>(`${this.baseUrl}${endpoint}`, {
         headers,
       });
     } catch (error) {

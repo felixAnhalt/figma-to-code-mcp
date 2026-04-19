@@ -1,5 +1,5 @@
 import type { GetLocalVariablesResponse } from "@figma/rest-api-spec";
-import { safeFetch } from "./rateLimit";
+import { httpClient } from "~/utils/http-client";
 import type { RichComponentMeta } from "./index";
 import { Logger } from "~/utils/logger";
 
@@ -38,15 +38,12 @@ export async function fetchStyles(
   authHeaders: Record<string, string>,
 ): Promise<Record<string, unknown>> {
   const url = `https://api.figma.com/v1/files/${fileKey}/styles`;
-  const res = await safeFetch(url, {
+
+  const json = await httpClient<{ meta?: { styles?: Array<{ key: string }> } }>(url, {
     headers: authHeaders,
+    skipCurlFallback: true,
   });
 
-  if (!res.ok) {
-    throw new Error(`Figma API error: ${res.status} ${res.statusText}`);
-  }
-
-  const json = (await res.json()) as { meta?: { styles?: Array<{ key: string }> } };
   const stylesMap: Record<string, unknown> = {};
 
   for (const style of json.meta?.styles ?? []) {
@@ -61,15 +58,8 @@ export async function fetchComponents(
   authHeaders: Record<string, string>,
 ): Promise<Record<string, RichComponentMeta>> {
   const url = `https://api.figma.com/v1/files/${fileKey}/components`;
-  const res = await safeFetch(url, {
-    headers: authHeaders,
-  });
 
-  if (!res.ok) {
-    throw new Error(`Figma API error: ${res.status} ${res.statusText}`);
-  }
-
-  const json = (await res.json()) as {
+  const json = await httpClient<{
     meta?: {
       components?: Array<{
         node_id: string;
@@ -80,7 +70,10 @@ export async function fetchComponents(
         component_set_id?: string;
       }>;
     };
-  };
+  }>(url, {
+    headers: authHeaders,
+    skipCurlFallback: true,
+  });
 
   const componentMap: Record<string, RichComponentMeta> = {};
 
@@ -103,17 +96,17 @@ export async function fetchVariables(
   authHeaders: Record<string, string>,
 ): Promise<GetLocalVariablesResponse | null> {
   const url = `https://api.figma.com/v1/files/${fileKey}/variables/local`;
-  const res = await safeFetch(url, {
-    headers: authHeaders,
-  });
 
-  if (!res.ok) {
-    Logger.warn(`Failed to fetch variables: ${res.status} ${res.statusText}`);
+  try {
+    const json = await httpClient<GetLocalVariablesResponse>(url, {
+      headers: authHeaders,
+      skipCurlFallback: true,
+    });
+    return json;
+  } catch (error) {
+    Logger.warn(`Failed to fetch variables:`, error);
     return null;
   }
-
-  const json = await res.json();
-  return json as GetLocalVariablesResponse;
 }
 
 export async function fetchComments(
@@ -121,15 +114,15 @@ export async function fetchComments(
   authHeaders: Record<string, string>,
 ): Promise<FigmaComment[]> {
   const url = `https://api.figma.com/v1/files/${fileKey}/comments`;
-  const res = await safeFetch(url, {
-    headers: authHeaders,
-  });
 
-  if (!res.ok) {
-    Logger.warn(`Failed to fetch comments: ${res.status} ${res.statusText}`);
+  try {
+    const json = await httpClient<{ comments: FigmaComment[] }>(url, {
+      headers: authHeaders,
+      skipCurlFallback: true,
+    });
+    return json.comments ?? [];
+  } catch (error) {
+    Logger.warn(`Failed to fetch comments:`, error);
     return [];
   }
-
-  const json = (await res.json()) as { comments: FigmaComment[] };
-  return json.comments ?? [];
 }

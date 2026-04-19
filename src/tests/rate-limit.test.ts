@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
-import { safeFetch } from "../figma/rateLimit";
+import { httpClientRaw } from "../utils/http-client";
 
-describe("rateLimit", () => {
+describe("httpClientRaw", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -22,7 +22,9 @@ describe("rateLimit", () => {
         return new Response(JSON.stringify({ ok: true }), { status: 200 });
       });
 
-      const promises = Array.from({ length: 3 }, () => safeFetch("https://api.figma.com/v1/test"));
+      const promises = Array.from({ length: 3 }, () =>
+        httpClientRaw("https://api.figma.com/v1/test"),
+      );
 
       await Promise.all(promises);
 
@@ -37,7 +39,7 @@ describe("rateLimit", () => {
 
       fetchMock.mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }));
 
-      await safeFetch("https://api.figma.com/v1/test");
+      await httpClientRaw("https://api.figma.com/v1/test");
       const elapsed = Date.now() - start;
 
       expect(elapsed).toBeLessThan(150);
@@ -55,7 +57,7 @@ describe("rateLimit", () => {
         return new Response(JSON.stringify({ success: true }), { status: 200 });
       });
 
-      const result = await safeFetch("https://api.figma.com/v1/test");
+      const result = await httpClientRaw("https://api.figma.com/v1/test");
       expect(result.ok).toBe(true);
       expect(fetchMock).toHaveBeenCalledTimes(3);
     });
@@ -71,7 +73,7 @@ describe("rateLimit", () => {
       });
 
       const start = Date.now();
-      await safeFetch("https://api.figma.com/v1/test");
+      await httpClientRaw("https://api.figma.com/v1/test");
       const elapsed = Date.now() - start;
 
       expect(elapsed).toBeGreaterThanOrEqual(45);
@@ -90,7 +92,7 @@ describe("rateLimit", () => {
         return new Response(JSON.stringify({ ok: true }), { status: 200 });
       });
 
-      await safeFetch("https://api.figma.com/v1/test");
+      await httpClientRaw("https://api.figma.com/v1/test");
 
       const delays = [attemptTimes[1] - attemptTimes[0], attemptTimes[2] - attemptTimes[1]];
 
@@ -103,7 +105,7 @@ describe("rateLimit", () => {
         new Response(null, { status: 429, headers: { "Retry-After": "0" } }),
       );
 
-      const result = await safeFetch("https://api.figma.com/v1/test");
+      const result = await httpClientRaw("https://api.figma.com/v1/test");
       expect(result.status).toBe(429);
       expect(fetchMock).toHaveBeenCalledTimes(4);
     });
@@ -113,7 +115,7 @@ describe("rateLimit", () => {
     it("returns response on first success", async () => {
       fetchMock.mockResolvedValue(new Response(JSON.stringify({ data: "test" }), { status: 200 }));
 
-      const result = await safeFetch("https://api.figma.com/v1/test");
+      const result = await httpClientRaw("https://api.figma.com/v1/test");
       expect(result.ok).toBe(true);
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
@@ -121,7 +123,7 @@ describe("rateLimit", () => {
     it("passes headers to fetch", async () => {
       fetchMock.mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }));
 
-      await safeFetch("https://api.figma.com/v1/test", {
+      await httpClientRaw("https://api.figma.com/v1/test", {
         headers: { "X-Custom": "header" },
       });
 
@@ -136,7 +138,7 @@ describe("rateLimit", () => {
     it("passes body to fetch", async () => {
       fetchMock.mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }));
 
-      await safeFetch("https://api.figma.com/v1/test", {
+      await httpClientRaw("https://api.figma.com/v1/test", {
         method: "POST",
         body: JSON.stringify({ key: "value" }),
       });
@@ -155,7 +157,7 @@ describe("rateLimit", () => {
     it("returns response on 404", async () => {
       fetchMock.mockResolvedValue(new Response(null, { status: 404 }));
 
-      const result = await safeFetch("https://api.figma.com/v1/test");
+      const result = await httpClientRaw("https://api.figma.com/v1/test");
       expect(result.status).toBe(404);
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
@@ -163,7 +165,7 @@ describe("rateLimit", () => {
     it("returns response on 500", async () => {
       fetchMock.mockResolvedValue(new Response(null, { status: 500 }));
 
-      const result = await safeFetch("https://api.figma.com/v1/test");
+      const result = await httpClientRaw("https://api.figma.com/v1/test");
       expect(result.status).toBe(500);
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });

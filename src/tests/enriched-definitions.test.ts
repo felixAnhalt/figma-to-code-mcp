@@ -20,8 +20,8 @@ vi.mock("~/figma/batchFetch", () => ({
   fetchNodesBatch: vi.fn(),
 }));
 
-vi.mock("~/figma/rateLimit", () => ({
-  safeFetch: vi.fn(),
+vi.mock("~/utils/http-client", () => ({
+  httpClient: vi.fn(),
 }));
 
 vi.mock("~/figma/cache", () => ({
@@ -31,17 +31,14 @@ vi.mock("~/figma/cache", () => ({
 
 import { generateMCPResponse } from "~/figma/index";
 import { fetchNodesBatch } from "~/figma/batchFetch";
-import { safeFetch } from "~/figma/rateLimit";
+import { httpClient } from "~/utils/http-client";
 
 // ---------------------------------------------------------------------------
 // Fixture helpers
 // ---------------------------------------------------------------------------
 
-function mockSafeFetch(body: unknown) {
-  (safeFetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-    ok: true,
-    json: async () => body,
-  });
+function mockHttpClient(body: unknown) {
+  (httpClient as ReturnType<typeof vi.fn>).mockResolvedValue(body);
 }
 
 /** Returns a minimal raw FRAME node entry as fetchNodesBatch would return it */
@@ -108,7 +105,7 @@ describe("Component definitions — enriched", () => {
       .mockResolvedValueOnce(rootFileResponse("1:1", [inst]))
       .mockResolvedValueOnce({ [compId]: frameNodeEntry(compId, "Button/Primary") });
 
-    mockSafeFetch({ meta: { variables: {} } });
+    mockHttpClient({ meta: { variables: {} } });
 
     const result = await generateMCPResponse({
       fileKey: "designFile",

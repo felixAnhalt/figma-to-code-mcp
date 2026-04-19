@@ -1,5 +1,5 @@
 import type { GetFileNodesResponse } from "@figma/rest-api-spec";
-import { safeFetch } from "./rateLimit";
+import { httpClient } from "~/utils/http-client";
 
 /**
  * Fetches multiple nodes from a Figma file in a single batched request.
@@ -24,20 +24,18 @@ export async function fetchNodesBatch(
     const ids = chunk.join(",");
     const url = `https://api.figma.com/v1/files/${fileKey}/nodes?ids=${ids}&depth=100&geometry=paths`;
 
-    const response = await safeFetch(url, {
-      headers: authHeaders,
-    });
+    try {
+      const data = await httpClient<GetFileNodesResponse>(url, {
+        headers: authHeaders,
+        skipCurlFallback: true,
+      });
 
-    if (!response.ok) {
-      console.error(`Promblems fetching node ${fileKey} ${ids}`);
-      throw new Error(`Figma API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = (await response.json()) as GetFileNodesResponse;
-
-    // Merge results
-    if (data.nodes) {
-      Object.assign(results, data.nodes);
+      if (data.nodes) {
+        Object.assign(results, data.nodes);
+      }
+    } catch (error) {
+      console.error(`Promblems fetching node ${fileKey} ${ids}:`, error);
+      throw error;
     }
   }
 

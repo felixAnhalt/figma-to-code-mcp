@@ -1,4 +1,4 @@
-import { safeFetch } from "../rateLimit";
+import { httpClientRaw } from "~/utils/http-client";
 import type { RichComponentMeta } from "./types";
 
 export async function buildRichComponentMap(
@@ -23,7 +23,7 @@ export async function buildRichComponentMap(
   let libFileKey: string | undefined;
   for (const [, raw] of entries.slice(0, 3)) {
     const resolveUrl = `https://api.figma.com/v1/components/${raw.key}`;
-    const resolveRes = await safeFetch(resolveUrl, { headers: authHeaders });
+    const resolveRes = await httpClientRaw(resolveUrl, { headers: authHeaders });
     if (!resolveRes.ok) continue;
     const resolveJson = (await resolveRes.json()) as { meta?: { file_key?: string } };
     if (resolveJson.meta?.file_key) {
@@ -37,7 +37,7 @@ export async function buildRichComponentMap(
   }
 
   const libComponentsUrl = `https://api.figma.com/v1/files/${libFileKey}/components`;
-  const libCompRes = await safeFetch(libComponentsUrl, { headers: authHeaders });
+  const libCompRes = await httpClientRaw(libComponentsUrl, { headers: authHeaders });
 
   const libCompJson = libCompRes.ok
     ? ((await libCompRes.json()) as {
