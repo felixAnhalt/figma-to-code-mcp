@@ -1,6 +1,6 @@
 export { generateMCPResponse } from "./mcp";
 export { extractTokens } from "./tokenizer";
-export { fetchStyles, fetchComponents, fetchVariables } from "./fetch";
+export { fetchStyles, fetchVariables } from "./fetch";
 
 export type {
   MCPResponse,

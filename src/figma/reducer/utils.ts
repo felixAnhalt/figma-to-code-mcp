@@ -8,10 +8,24 @@ export function formatColor(color: unknown): string | undefined {
   if (!("r" in color)) return undefined;
 
   const c = color as { r: number; g: number; b: number; a: number };
-  const r = Math.round(c.r * 255);
-  const g = Math.round(c.g * 255);
-  const b = Math.round(c.b * 255);
-  return `rgba(${r}, ${g}, ${b}, ${c.a})`;
+  const r = Math.round(c.r * 255)
+    .toString(16)
+    .padStart(2, "0");
+  const g = Math.round(c.g * 255)
+    .toString(16)
+    .padStart(2, "0");
+  const b = Math.round(c.b * 255)
+    .toString(16)
+    .padStart(2, "0");
+
+  if (c.a === 1) {
+    return `#${r}${g}${b}`.toUpperCase();
+  }
+
+  const a = Math.round(c.a * 255)
+    .toString(16)
+    .padStart(2, "0");
+  return `#${r}${g}${b}${a}`.toUpperCase();
 }
 
 export function colorToHex(color: unknown): string | undefined {

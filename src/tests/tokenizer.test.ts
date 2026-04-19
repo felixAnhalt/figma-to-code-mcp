@@ -17,25 +17,23 @@ function makeFrame(overrides: Partial<V3Node> = {}): V3Node {
 describe("normalizeShadowKey", () => {
   it("strips spaces inside rgba() and rounds float alpha", () => {
     const raw = "0px 1px 2px 0px rgba(0, 0, 0, 0.05000000074505806)";
-    expect(normalizeShadowKey(raw)).toBe("0px 1px 2px 0px rgba(0,0,0,0.05)");
+    expect(normalizeShadowKey(raw)).toBe("0px 1px 2px 0px #0000000D");
   });
 
   it("handles multi-shadow strings (comma-separated shadows)", () => {
     const raw =
       "0px 1px 2px -1px rgba(0, 0, 0, 0.10000000149011612), 0px 1px 3px 0px rgba(0, 0, 0, 0.10000000149011612)";
-    expect(normalizeShadowKey(raw)).toBe(
-      "0px 1px 2px -1px rgba(0,0,0,0.1), 0px 1px 3px 0px rgba(0,0,0,0.1)",
-    );
+    expect(normalizeShadowKey(raw)).toBe("0px 1px 2px -1px #0000001A, 0px 1px 3px 0px #0000001A");
   });
 
   it("leaves already-clean shadow strings unchanged", () => {
     const clean = "0px 0px 0px 3px rgba(6,182,212,1)";
-    expect(normalizeShadowKey(clean)).toBe(clean);
+    expect(normalizeShadowKey(clean)).toBe("0px 0px 0px 3px #06B6D4");
   });
 
   it("rounds alpha to 2 significant decimal places", () => {
-    expect(normalizeShadowKey("0px 0px rgba(0, 0, 0, 0.100)")).toBe("0px 0px rgba(0,0,0,0.1)");
-    expect(normalizeShadowKey("0px 0px rgba(255, 0, 0, 1.0)")).toBe("0px 0px rgba(255,0,0,1)");
+    expect(normalizeShadowKey("0px 0px rgba(0, 0, 0, 0.100)")).toBe("0px 0px #0000001A");
+    expect(normalizeShadowKey("0px 0px rgba(255, 0, 0, 1.0)")).toBe("0px 0px #FF0000");
   });
 });
 
@@ -46,8 +44,8 @@ describe("extractTokens — flat string token refs", () => {
     const response = makeResponse(
       makeFrame({
         children: [
-          makeFrame({ style: { background: "rgba(255, 255, 255, 1)" } }),
-          makeFrame({ style: { background: "rgba(255, 255, 255, 1)" } }),
+          makeFrame({ style: { background: "#FFFFFF" } }),
+          makeFrame({ style: { background: "#FFFFFF" } }),
         ],
       }),
     );
@@ -62,8 +60,8 @@ describe("extractTokens — flat string token refs", () => {
     const response = makeResponse(
       makeFrame({
         children: [
-          makeFrame({ style: { border: "rgba(22, 25, 34, 1)" } }),
-          makeFrame({ style: { border: "rgba(22, 25, 34, 1)" } }),
+          makeFrame({ style: { border: "#161922" } }),
+          makeFrame({ style: { border: "#161922" } }),
         ],
       }),
     );
@@ -75,8 +73,8 @@ describe("extractTokens — flat string token refs", () => {
     const response = makeResponse(
       makeFrame({
         children: [
-          { type: "TEXT", style: { color: "rgba(151, 71, 255, 1)" } },
-          { type: "TEXT", style: { color: "rgba(151, 71, 255, 1)" } },
+          { type: "TEXT", style: { color: "#9747FF" } },
+          { type: "TEXT", style: { color: "#9747FF" } },
         ],
       }),
     );
@@ -244,8 +242,8 @@ describe("extractTokens — no fallback tokens for unnamed values", () => {
       makeFrame({
         children: [
           // white appears twice → should get token
-          makeFrame({ style: { background: "rgba(255, 255, 255, 1)" } }),
-          makeFrame({ style: { background: "rgba(255, 255, 255, 1)" } }),
+          makeFrame({ style: { background: "#FFFFFF" } }),
+          makeFrame({ style: { background: "#FFFFFF" } }),
           // unknown color appears twice → should NOT get token
           makeFrame({ style: { background: "rgba(99, 99, 99, 1)" } }),
           makeFrame({ style: { background: "rgba(99, 99, 99, 1)" } }),
@@ -445,8 +443,8 @@ describe("extractTokens — componentSets get token replacement", () => {
       schema: "v3",
       root: makeFrame({
         children: [
-          makeFrame({ style: { background: "rgba(255, 255, 255, 1)" } }),
-          makeFrame({ style: { background: "rgba(255, 255, 255, 1)" } }),
+          makeFrame({ style: { background: "#FFFFFF" } }),
+          makeFrame({ style: { background: "#FFFFFF" } }),
         ],
       }),
       componentSets: {
@@ -454,16 +452,16 @@ describe("extractTokens — componentSets get token replacement", () => {
           name: "Button",
           propKeys: ["variant"],
           base: {
-            style: { background: "rgba(255, 255, 255, 1)" },
+            style: { background: "#FFFFFF" },
           },
           variants: {
             "1:1": {
               props: { variant: "primary" },
-              style: { background: "rgba(151, 71, 255, 1)" },
+              style: { background: "#9747FF" },
             },
             "1:2": {
               props: { variant: "secondary" },
-              style: { background: "rgba(151, 71, 255, 1)" },
+              style: { background: "#9747FF" },
             },
           },
         },

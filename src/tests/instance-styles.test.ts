@@ -34,8 +34,8 @@ describe("Instance and component style rendering (v3)", () => {
 
     const componentNode = findNode(normalized.root, "COMPONENT");
     expect(componentNode).toBeDefined();
-    expect(componentNode.style?.background).toBe("rgba(255, 0, 0, 1)");
-    expect(componentNode.style?.border).toBe("rgba(0, 0, 0, 1)");
+    expect(componentNode.style?.background).toBe("#FF0000");
+    expect(componentNode.style?.border).toBe("#000000");
     expect(componentNode.style?.borderWidth).toBe(2);
     expect(componentNode.style?.radius).toBe(8);
     // Must NOT have old flat top-level properties
@@ -74,7 +74,7 @@ describe("Instance and component style rendering (v3)", () => {
 
     const instanceNode = findNode(normalized.root, "INSTANCE");
     expect(instanceNode).toBeDefined();
-    expect(instanceNode.style?.background).toBe("rgba(0, 255, 0, 1)");
+    expect(instanceNode.style?.background).toBe("#00FF00");
     expect(instanceNode.style?.radius).toBe(4);
     // v3: component field (not componentId)
     expect(instanceNode.component).toBe("1:1");
@@ -124,7 +124,7 @@ describe("Instance and component style rendering (v3)", () => {
     const textNode = findNode(normalized.root, "TEXT");
     expect(textNode).toBeDefined();
     expect(textNode.text).toBe("Hello World");
-    expect(textNode.style?.color).toBe("rgba(0, 0, 0, 1)");
+    expect(textNode.style?.color).toBe("#000000");
     expect(textNode.style?.background).toBeUndefined();
     expect(textNode.style?.font).toBe("Inter");
     expect(textNode.style?.fontSize).toBe(24);

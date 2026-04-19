@@ -10,6 +10,6 @@ export type {
 } from "./figma/types";
 
 // Main API
-export { generateMCPResponse, fetchStyles, fetchComponents } from "./figma";
+export { generateMCPResponse, fetchStyles } from "./figma";
 
 export type { MCPOptions } from "./figma";

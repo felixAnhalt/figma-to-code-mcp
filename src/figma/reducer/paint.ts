@@ -48,7 +48,7 @@ export function processPaint(
       type: paint.type,
       gradientStops: paint.gradientStops?.map((stop) => ({
         position: roundTo(stop.position, 3),
-        color: formatColor(stop.color) ?? "rgba(0, 0, 0, 1)",
+        color: formatColor(stop.color) ?? "#000000",
       })),
     };
   }

@@ -286,7 +286,7 @@ describe("style sub-object", () => {
     const result = buildNormalizedGraph(raw, {});
 
     expect(result.root).not.toHaveProperty("backgroundColor");
-    expect(result.root.style!.background).toBe("rgba(255, 255, 255, 1)");
+    expect(result.root.style!.background).toBe("#FFFFFF");
   });
 
   it("border color and width in style sub-object", () => {
@@ -296,7 +296,7 @@ describe("style sub-object", () => {
     });
     const result = buildNormalizedGraph(raw, {});
 
-    expect(result.root.style!.border).toBe("rgba(0, 0, 0, 1)");
+    expect(result.root.style!.border).toBe("#000000");
     expect(result.root.style!.borderWidth).toBe(2);
   });
 
@@ -320,7 +320,7 @@ describe("style sub-object", () => {
     });
     const result = buildNormalizedGraph(raw, {});
     expect(result.root.style!.shadow).toBeDefined();
-    expect(result.root.style!.shadow).toContain("rgba(");
+    expect(result.root.style!.shadow).toContain("#");
   });
 
   it("opacity in style sub-object, omitted when 1", () => {
@@ -411,7 +411,7 @@ describe("Variable inlining", () => {
     return ctx;
   }
 
-  it("variable-bound color is inlined as rgba(), not as $ref", () => {
+  it("variable-bound color is inlined as hex, not as $ref", () => {
     const varId = "VariableID:abc/1";
     const raw = frame("1:1", "Root", {
       fills: [
@@ -426,9 +426,9 @@ describe("Variable inlining", () => {
     const ctx = makeContext(varId, { r: 0.1, g: 0.2, b: 0.3, a: 1 });
     const result = buildNormalizedGraph(raw, {}, ctx);
 
-    // Must be an rgba string — not a $ref
+    // Must be a hex string — not a $ref
     expect(typeof result.root.style!.background).toBe("string");
-    expect(result.root.style!.background as string).toMatch(/^rgba\(/);
+    expect(result.root.style!.background as string).toMatch(/^#/);
     expect(result.root.style!.background as string).not.toContain("$");
   });
 
