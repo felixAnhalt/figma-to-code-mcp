@@ -1,5 +1,12 @@
 # tmegit-figma-to-code-mcp
 
+## [0.27.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.26.0...v0.27.0) (2026-04-19)
+
+
+### Features
+
+* **properties:** add component properties extraction and transition handling ([2748c43](https://github.com/felixAnhalt/figma-to-code-mcp/commit/2748c43be7bcf7ae82a7d1e0bf646b876c3eb5c3))
+
 ## [0.26.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.25.0...v0.26.0) (2026-04-19)
 
 
