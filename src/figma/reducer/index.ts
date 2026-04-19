@@ -10,4 +10,4 @@ export * from "./style";
 export * from "./text";
 export * from "./flush";
 
-export { parseVariantProps } from "./node";
+export { parseVariantProps, extractComponentProperties } from "./node";

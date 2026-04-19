@@ -1,4 +1,4 @@
-import type { FigmaRawNode, FigmaRawPaint, FigmaEffect } from "./types";
+import type { FigmaRawNode, FigmaRawPaint, FigmaEffect, ComponentPropertyValue } from "./types";
 
 export function isTransparentWrapper(node: FigmaRawNode): boolean {
   if (node.type === "INSTANCE" || node.type === "COMPONENT") return false;
@@ -87,4 +87,52 @@ export function parseVariantProps(variantName: string): Record<string, string> {
   }
 
   return props;
+}
+
+function cleanPropertyKey(key: string): string {
+  const cleaned = key
+    .replace(/#\d+:[^#]+$/, "")
+    .replace(/^[├└]\s*-?\s*/gi, "")
+    .replace(/─/g, "-")
+    .replace(/\s+/g, "-")
+    .toLowerCase();
+
+  return cleaned.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+export function extractComponentProperties(
+  node: FigmaRawNode,
+): Record<string, string | boolean> | undefined {
+  const rawProps = node.componentProperties as Record<string, ComponentPropertyValue> | undefined;
+  if (!rawProps) return undefined;
+
+  const result: Record<string, string | boolean> = {};
+
+  for (const [key, prop] of Object.entries(rawProps)) {
+    const normalizedKey = cleanPropertyKey(key);
+    if (!normalizedKey) continue;
+
+    switch (prop.type) {
+      case "BOOLEAN":
+        result[normalizedKey] = Boolean(prop.value);
+        break;
+      case "TEXT":
+        continue;
+      case "VARIANT":
+        if (typeof prop.value === "string") {
+          result[normalizedKey] = prop.value.toLowerCase().replace(/\s+/g, "-");
+        }
+        break;
+      case "INSTANCE_SWAP":
+        continue;
+      default:
+        if (typeof prop.value === "string") {
+          result[normalizedKey] = prop.value;
+        } else if (typeof prop.value === "boolean") {
+          result[normalizedKey] = prop.value;
+        }
+    }
+  }
+
+  return Object.keys(result).length > 0 ? result : undefined;
 }

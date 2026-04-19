@@ -28,6 +28,10 @@ const parameters = {
     .describe(
       "Whether to resolve variable references to their actual values. Set to false if already fetched once.",
     ),
+  svgOutputDir: z
+    .string()
+    .optional()
+    .describe("Directory to save SVG assets to. Defaults to system temp directory."),
 };
 
 const parametersSchema = z.object(parameters);

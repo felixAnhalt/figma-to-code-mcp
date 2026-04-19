@@ -79,5 +79,9 @@ export function extractLayoutFromNode(node: FigmaRawNode): Layout | undefined {
 
   if (node.layoutGrow === 1) layout.grow = true;
 
+  if (node.layoutAlign === "STRETCH") {
+    layout.grow = true;
+  }
+
   return Object.keys(layout).length > 0 ? layout : undefined;
 }

@@ -31,12 +31,12 @@ Give [Cursor](https://cursor.sh/) and other AI-powered coding tools access to yo
 
 ## Available Tools
 
-| Tool                 | Description                                    |
-| -------------------- | ---------------------------------------------- |
-| `get_figma_design`   | Fetches CSS-aligned, LLM-optimized design data |
-| `get_image_fills`    | Retrieves image fill URLs from a Figma file    |
-| `render_node_images` | Renders Figma nodes as PNG images              |
-| `read_vector_svg`    | Reads vector node data as SVG                  |
+| Tool                 | Description                                                                        |
+| -------------------- | ---------------------------------------------------------------------------------- |
+| `get_figma_design`   | Fetches CSS-aligned, LLM-optimized design data. Supports SVG export to custom dir. |
+| `get_image_fills`    | Retrieves image fill URLs from a Figma file                                        |
+| `render_node_images` | Renders Figma nodes as PNG images                                                  |
+| `read_vector_svg`    | Reads vector node data as SVG                                                      |
 
 ## Required Scopes
 

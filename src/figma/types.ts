@@ -104,7 +104,7 @@ export type V3Node = {
    * Populated during tree patching in enrichDefinitions.
    * e.g. { variant: "destructive", size: "regular", state: "hover" }
    */
-  props?: Record<string, string>;
+  props?: Record<string, string | boolean>;
 
   /** Flexbox layout and sizing. Present only when any layout property is non-default. */
   layout?: Layout;
@@ -262,7 +262,7 @@ export type ComponentDefinition = {
   /** Parent component set name, e.g. "Link" */
   componentSetName?: string;
   /** Parsed variant props — populated from variantName during enrichment */
-  props?: Record<string, string>;
+  props?: Record<string, string | boolean>;
   layout?: Layout;
   style?: Style;
   children?: V3Node[];
@@ -280,7 +280,7 @@ export type ComponentVariant = {
   description?: string;
   variantName?: string;
   /** Parsed variant props, e.g. { variant: "secondary", size: "large" } */
-  props?: Record<string, string>;
+  props?: Record<string, string | boolean>;
   layout?: Layout;
   style?: Style;
   children?: V3Node[];
@@ -317,7 +317,7 @@ export type ComponentSet = {
     string,
     {
       /** Parsed variant props, e.g. { variant: "primary", size: "regular" } */
-      props?: Record<string, string>;
+      props?: Record<string, string | boolean>;
       description?: string;
       layout?: Layout;
       style?: Style;

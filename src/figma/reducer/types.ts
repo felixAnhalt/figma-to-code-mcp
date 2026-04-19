@@ -6,6 +6,7 @@ export type FigmaRawNode = {
   isMask?: boolean;
   children?: FigmaRawNode[];
   componentId?: string;
+  componentProperties?: Record<string, ComponentPropertyValue>;
   characters?: string;
   relativeTransform?: number[][];
   absoluteBoundingBox?: { x?: number; y?: number; width?: number; height?: number };
@@ -36,6 +37,7 @@ export type FigmaRawNode = {
   minHeight?: number | null;
   maxHeight?: number | null;
   layoutGrow?: number;
+  layoutAlign?: string;
   fontName?: unknown;
   fontSize?: number;
   style?: Record<string, unknown>;
@@ -44,6 +46,11 @@ export type FigmaRawNode = {
   strokeGeometry?: unknown;
   vectorNetwork?: unknown;
   [key: string]: unknown;
+};
+
+export type ComponentPropertyValue = {
+  type: "BOOLEAN" | "TEXT" | "VARIANT" | "INSTANCE_SWAP";
+  value: unknown;
 };
 
 export type FigmaRawPaint = {
@@ -96,4 +103,8 @@ export type Interaction = {
   action: string;
   /** Target node ID, if applicable */
   destination?: string;
+  /** Transition duration in milliseconds (NODE/SMART_ANIMATE actions only) */
+  transitionDuration?: number;
+  /** Transition easing: "EASE_IN", "EASE_OUT", "EASE_IN_AND_OUT", "LINEAR", or raw type */
+  transitionEasing?: string;
 };

@@ -327,7 +327,9 @@ function patchTreeInstances(
 
     if (componentMap[componentId]) {
       const instanceProps = parseVariantProps(componentMap[componentId].name);
-      if (Object.keys(instanceProps).length > 0) node.props = instanceProps;
+      if (Object.keys(instanceProps).length > 0) {
+        node.props = { ...node.props, ...instanceProps };
+      }
     }
   }
 

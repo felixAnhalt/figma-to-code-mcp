@@ -1,6 +1,6 @@
 import type { ComponentDefinition, MCPResponse, V3Node } from "./types";
 import type { VariableResolutionContext } from "./variableResolver";
-import { parseVariantProps, resolveChildren } from "./reducer/node";
+import { parseVariantProps, resolveChildren, extractComponentProperties } from "./reducer/node";
 import { extractInteractions } from "./reducer/interaction";
 import { extractVectorPaths } from "./reducer/vector";
 import {
@@ -52,6 +52,10 @@ export function buildNormalizedGraph(
     if (node.type === "INSTANCE") {
       v3.id = node.id;
     }
+
+    // ── Component properties (INSTANCE nodes) ────────────────────────────────
+    const componentProps = extractComponentProperties(node);
+    if (componentProps) v3.props = componentProps;
 
     // ── Layout ───────────────────────────────────────────────────────────────
     const layout = extractLayoutFromNode(node);

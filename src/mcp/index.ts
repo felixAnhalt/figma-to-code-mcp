@@ -60,7 +60,12 @@ function registerTools(
       annotations: { readOnlyHint: true },
     },
     (params: GetFigmaDesignParams) =>
-      getFigmaDesignTool.handler(params, figmaService, options.outputFormat, options.svgOutputDir),
+      getFigmaDesignTool.handler(
+        params,
+        figmaService,
+        options.outputFormat,
+        params.svgOutputDir || options.svgOutputDir,
+      ),
   );
 
   if (!options.skipImageDownloads) {
