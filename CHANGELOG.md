@@ -1,5 +1,12 @@
 # tmegit-figma-to-code-mcp
 
+## [0.26.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.25.0...v0.26.0) (2026-04-19)
+
+
+### Features
+
+* **colors:** convert color formats from rgba to hex representation ([a641a58](https://github.com/felixAnhalt/figma-to-code-mcp/commit/a641a5849b6df04e74b58cfbd19e738d7e858eed))
+
 ## [0.25.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.24.2...v0.25.0) (2026-04-08)
 
 
