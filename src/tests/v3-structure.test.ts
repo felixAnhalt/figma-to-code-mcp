@@ -407,6 +407,7 @@ describe("Variable inlining", () => {
     const ctx: VariableResolutionContext = {
       variableValues: new Map([[id, color]]),
       activeModes: new Map(),
+      variableNames: new Map(),
     };
     return ctx;
   }

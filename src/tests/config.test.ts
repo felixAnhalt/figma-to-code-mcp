@@ -1,7 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import { getServerConfig } from "../config";
 
 describe("config", () => {
+  beforeAll(() => {
+    // Set a dummy API key for testing (required by getServerConfig validation)
+    process.env.FIGMA_API_KEY = "test-dummy-api-key-123";
+  });
+
   describe("defaults", () => {
     it("has expected default port", () => {
       const config = getServerConfig(true);

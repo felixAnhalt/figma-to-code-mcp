@@ -22,6 +22,16 @@ export interface VariableResolutionContext {
   variableValues: Map<string, VariableValue>;
   /** Map of variable collection ID to active mode ID */
   activeModes: Map<string, string>;
+  /** Map of variable ID to dot-notation token name, e.g. "ref.color.secondary.800" */
+  variableNames: Map<string, string>;
+}
+
+/**
+ * Converts a Figma variable name to dot notation.
+ * e.g. "ref/color/secondary/800" → "ref.color.secondary.800"
+ */
+export function formatVariableName(name: string): string {
+  return name.replace(/\//g, ".");
 }
 
 /**
@@ -42,6 +52,7 @@ export function buildResolutionContext(
 ): VariableResolutionContext {
   const variableValues = new Map<string, VariableValue>();
   const activeModes = new Map<string, string>();
+  const variableNames = new Map<string, string>();
 
   // Extract active mode for each collection (use first mode as default)
   for (const [collectionId, collection] of Object.entries(
@@ -67,6 +78,7 @@ export function buildResolutionContext(
     }
 
     variableValues.set(variableId, value);
+    variableNames.set(variableId, formatVariableName(variable.name));
   }
 
   // Second pass: resolve nested aliases
@@ -80,10 +92,11 @@ export function buildResolutionContext(
     const resolvedValue = resolveVariableAlias(value, variablesResponse, activeModes, new Set());
     if (resolvedValue !== undefined) {
       variableValues.set(variableId, resolvedValue);
+      variableNames.set(variableId, formatVariableName(variable.name));
     }
   }
 
-  return { variableValues, activeModes };
+  return { variableValues, activeModes, variableNames };
 }
 
 /**
@@ -142,12 +155,29 @@ function isVariableAlias(value: unknown): value is VariableAlias {
 }
 
 /**
- * Resolves a single variable reference to its value.
- *
- * @param alias - The variable alias to resolve
- * @param context - Resolution context with variable values
- * @returns The resolved value, or the original alias if it can't be resolved
+ * Merges a secondary resolution context into a primary one (in-place).
+ * Entries from `source` are added to `target` only if the ID is not already present.
  */
+export function mergeResolutionContext(
+  target: VariableResolutionContext,
+  source: VariableResolutionContext,
+): void {
+  for (const [id, value] of source.variableValues) {
+    if (!target.variableValues.has(id)) {
+      target.variableValues.set(id, value);
+    }
+  }
+  for (const [id, name] of source.variableNames) {
+    if (!target.variableNames.has(id)) {
+      target.variableNames.set(id, name);
+    }
+  }
+  for (const [id, modeId] of source.activeModes) {
+    if (!target.activeModes.has(id)) {
+      target.activeModes.set(id, modeId);
+    }
+  }
+}
 export function resolveVariable(
   alias: VariableAlias,
   context: VariableResolutionContext,

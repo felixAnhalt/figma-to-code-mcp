@@ -1,7 +1,8 @@
-import type { Style } from "../types";
+import type { Style, StyleVarRefs } from "../types";
 import type { FigmaRawNode, FigmaRawPaint, FigmaEffect } from "./types";
 import { formatColor, roundTo } from "./utils";
 import { processPaint } from "./paint";
+import { resolveVariableName } from "./paint";
 import type { VariableResolutionContext } from "../variableResolver";
 
 export function extractStyleFromNode(
@@ -9,10 +10,17 @@ export function extractStyleFromNode(
   variableContext: VariableResolutionContext | null | undefined,
 ): Style | undefined {
   const style: Style = {};
+  const varRefs: StyleVarRefs = {};
 
   const fills = node.fills as FigmaRawPaint[] | undefined;
   if (fills && fills.length > 0) {
-    const processed = processPaint(fills[0], variableContext);
+    const processed = processPaint(fills[0], variableContext, (name) => {
+      if (node.type === "TEXT") {
+        varRefs.color = name;
+      } else {
+        varRefs.background = name;
+      }
+    });
     if (node.type === "TEXT") {
       if (typeof processed === "string") style.color = processed;
     } else {
@@ -23,10 +31,19 @@ export function extractStyleFromNode(
 
   const strokes = node.strokes as FigmaRawPaint[] | undefined;
   if (strokes && strokes.length > 0) {
-    const processed = processPaint(strokes[0], variableContext);
+    const processed = processPaint(strokes[0], variableContext, (name) => {
+      varRefs.border = name;
+    });
     if (typeof processed === "string") style.border = processed;
     if (node.strokeWeight !== undefined && node.strokeWeight !== 0) {
       style.borderWidth = node.strokeWeight as number;
+      // Check for boundVariables on strokeWeight
+      const boundVars = node.boundVariables as Record<string, unknown> | undefined;
+      const boundStrokeWeight = boundVars?.strokeWeight;
+      if (boundStrokeWeight) {
+        const name = resolveVariableName(boundStrokeWeight, variableContext);
+        if (name) varRefs.borderWidth = name;
+      }
     }
   }
 
@@ -40,6 +57,13 @@ export function extractStyleFromNode(
     }
   } else if (node.cornerRadius !== undefined && node.cornerRadius !== 0) {
     style.radius = node.cornerRadius as number;
+    // Check for boundVariables on cornerRadius
+    const boundVars = node.boundVariables as Record<string, unknown> | undefined;
+    const boundCornerRadius = boundVars?.cornerRadius;
+    if (boundCornerRadius) {
+      const name = resolveVariableName(boundCornerRadius, variableContext);
+      if (name) varRefs.radius = name;
+    }
   }
 
   const effects = node.effects as FigmaEffect[] | undefined;
@@ -74,6 +98,10 @@ export function extractStyleFromNode(
 
   if (node.blendMode && node.blendMode !== "NORMAL" && node.blendMode !== "PASS_THROUGH") {
     style.blend = node.blendMode as string;
+  }
+
+  if (Object.keys(varRefs).length > 0) {
+    style._varRefs = varRefs;
   }
 
   return Object.keys(style).length > 0 ? style : undefined;
