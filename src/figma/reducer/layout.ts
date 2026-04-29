@@ -1,9 +1,17 @@
-import type { Layout } from "../types";
+import type { Layout, LayoutVarRefs } from "../types";
 import type { FigmaRawNode } from "./types";
 import { mapAlignItems, mapJustifyContent, roundTo } from "./utils";
+import { resolveVariableName } from "./paint";
+import type { VariableResolutionContext } from "../variableResolver";
 
-export function extractLayoutFromNode(node: FigmaRawNode): Layout | undefined {
+export function extractLayoutFromNode(
+  node: FigmaRawNode,
+  variableContext?: VariableResolutionContext | null,
+): Layout | undefined {
   const layout: Layout = {};
+  const varRefs: LayoutVarRefs = {};
+
+  const boundVars = node.boundVariables as Record<string, unknown> | undefined;
 
   if (node.layoutMode) {
     layout.direction = node.layoutMode === "HORIZONTAL" ? "row" : "column";
@@ -22,7 +30,14 @@ export function extractLayoutFromNode(node: FigmaRawNode): Layout | undefined {
       node.itemSpacing !== undefined && node.itemSpacing !== 0
         ? (node.itemSpacing as number)
         : undefined;
-    if (gap !== undefined) layout.gap = gap;
+    if (gap !== undefined) {
+      layout.gap = gap;
+      const boundGap = boundVars?.itemSpacing;
+      if (boundGap) {
+        const name = resolveVariableName(boundGap, variableContext);
+        if (name) varRefs.gap = name;
+      }
+    }
 
     const paddingLeft = (node.paddingLeft as number | undefined) ?? 0;
     const paddingRight = (node.paddingRight as number | undefined) ?? 0;
@@ -44,6 +59,20 @@ export function extractLayoutFromNode(node: FigmaRawNode): Layout | undefined {
           bottom: paddingBottom,
           left: paddingLeft,
         };
+      }
+
+      // Collect padding var refs — only apply a unified token if all four sides
+      // are bound to the same variable (clean variant per spec)
+      const nameTop = resolveVariableName(boundVars?.paddingTop, variableContext);
+      const nameRight = resolveVariableName(boundVars?.paddingRight, variableContext);
+      const nameBottom = resolveVariableName(boundVars?.paddingBottom, variableContext);
+      const nameLeft = resolveVariableName(boundVars?.paddingLeft, variableContext);
+
+      if (nameTop && nameTop === nameRight && nameTop === nameBottom && nameTop === nameLeft) {
+        varRefs.paddingTop = nameTop;
+        varRefs.paddingRight = nameTop;
+        varRefs.paddingBottom = nameTop;
+        varRefs.paddingLeft = nameTop;
       }
     }
 
@@ -81,6 +110,10 @@ export function extractLayoutFromNode(node: FigmaRawNode): Layout | undefined {
 
   if (node.layoutAlign === "STRETCH") {
     layout.grow = true;
+  }
+
+  if (Object.keys(varRefs).length > 0) {
+    layout._varRefs = varRefs;
   }
 
   return Object.keys(layout).length > 0 ? layout : undefined;

@@ -58,7 +58,7 @@ export function buildNormalizedGraph(
     if (componentProps) v3.props = componentProps;
 
     // ── Layout ───────────────────────────────────────────────────────────────
-    const layout = extractLayoutFromNode(node);
+    const layout = extractLayoutFromNode(node, variableContext);
     if (layout) v3.layout = layout;
 
     // ── Style ────────────────────────────────────────────────────────────────

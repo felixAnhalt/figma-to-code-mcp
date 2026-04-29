@@ -32,11 +32,16 @@ export function countFrequencies(response: MCPResponse): {
   function countStyle(style: Style | undefined): void {
     if (!style) return;
 
-    if (typeof style.background === "string") increment(colors, style.background);
-    if (typeof style.border === "string") increment(colors, style.border);
-    if (typeof style.color === "string") increment(colors, style.color);
+    // Skip frequency counting for fields that already have a Figma variable name —
+    // those will be registered directly as tokens by the tokenizer, not via frequency.
+    if (typeof style.background === "string" && !style._varRefs?.background)
+      increment(colors, style.background);
+    if (typeof style.border === "string" && !style._varRefs?.border)
+      increment(colors, style.border);
+    if (typeof style.color === "string" && !style._varRefs?.color) increment(colors, style.color);
     if (typeof style.shadow === "string") increment(shadows, normalizeShadowKey(style.shadow));
-    if (typeof style.radius === "number") increment(radii, String(style.radius));
+    if (typeof style.radius === "number" && !style._varRefs?.radius)
+      increment(radii, String(style.radius));
 
     const typoKey = buildTypographyKey(style);
     if (typoKey) increment(typographies, typoKey);
@@ -45,19 +50,33 @@ export function countFrequencies(response: MCPResponse): {
   function countLayout(layout: Layout | undefined): void {
     if (!layout) return;
 
-    if (typeof layout.gap === "number") increment(spacings, String(layout.gap));
+    if (typeof layout.gap === "number" && !layout._varRefs?.gap)
+      increment(spacings, String(layout.gap));
 
     if (typeof layout.padding === "number") {
-      increment(spacings, String(layout.padding));
+      // Skip if all four padding sides are var-bound (unified token case)
+      const allBound =
+        layout._varRefs?.paddingTop &&
+        layout._varRefs.paddingTop === layout._varRefs.paddingRight &&
+        layout._varRefs.paddingTop === layout._varRefs.paddingBottom &&
+        layout._varRefs.paddingTop === layout._varRefs.paddingLeft;
+      if (!allBound) increment(spacings, String(layout.padding));
     } else if (Array.isArray(layout.padding)) {
       const [v, h] = layout.padding;
       increment(paddingCombos, `${v},${h}`);
     } else if (layout.padding && typeof layout.padding === "object") {
       const p = layout.padding as { top: number; right: number; bottom: number; left: number };
-      increment(spacings, String(p.top));
-      increment(spacings, String(p.right));
-      increment(spacings, String(p.bottom));
-      increment(spacings, String(p.left));
+      const allBound =
+        layout._varRefs?.paddingTop &&
+        layout._varRefs.paddingTop === layout._varRefs.paddingRight &&
+        layout._varRefs.paddingTop === layout._varRefs.paddingBottom &&
+        layout._varRefs.paddingTop === layout._varRefs.paddingLeft;
+      if (!allBound) {
+        increment(spacings, String(p.top));
+        increment(spacings, String(p.right));
+        increment(spacings, String(p.bottom));
+        increment(spacings, String(p.left));
+      }
     }
 
     if (typeof layout.minHeight === "string" && layout.minHeight.endsWith("px")) {

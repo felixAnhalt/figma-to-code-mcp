@@ -145,6 +145,24 @@ export type Comment = {
 };
 
 /**
+ * Internal sidecar for Figma variable name references on a Layout node.
+ * Populated during reduction, stripped by the tokenizer before final output.
+ * Keys match the Layout fields they annotate (gap, paddingTop, etc.)
+ */
+export type LayoutVarRefs = Partial<
+  Record<"gap" | "paddingTop" | "paddingRight" | "paddingBottom" | "paddingLeft", string>
+>;
+
+/**
+ * Internal sidecar for Figma variable name references on a Style node.
+ * Populated during reduction, stripped by the tokenizer before final output.
+ * Keys match the Style fields they annotate (background, border, color, radius, borderWidth).
+ */
+export type StyleVarRefs = Partial<
+  Record<"background" | "border" | "color" | "radius" | "borderWidth", string>
+>;
+
+/**
  * Flexbox layout and sizing properties, grouped separately from visual style
  * so an LLM can reason about structure and decoration independently.
  * After tokenization, padding and gap values may be replaced with TokenRef strings.
@@ -195,6 +213,11 @@ export type Layout = {
   size?: string | TokenRef;
   /** flex-grow: 1 — node stretches to fill available space in parent's main axis */
   grow?: boolean;
+  /**
+   * Internal: Figma variable name references for layout fields.
+   * Stripped by tokenizer before final output. Never present in responses.
+   */
+  _varRefs?: LayoutVarRefs;
 };
 
 /**
@@ -233,6 +256,11 @@ export type Style = {
   textTransform?: string;
   /** Typography token reference replacing font/size/weight/lineHeight as a group */
   typography?: TokenRef;
+  /**
+   * Internal: Figma variable name references for style fields.
+   * Stripped by tokenizer before final output. Never present in responses.
+   */
+  _varRefs?: StyleVarRefs;
 };
 
 export type Paint = {

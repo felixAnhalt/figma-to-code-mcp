@@ -513,3 +513,116 @@ describe("extractTokens — no tokens when nothing repeats", () => {
     expect(result.tokens).toBeUndefined();
   });
 });
+
+// ── Figma variable token refs ─────────────────────────────────────────────────
+
+describe("extractTokens — Figma variable token refs from _varRefs", () => {
+  it("uses Figma variable name as token for a color bound to a variable", () => {
+    const response = makeResponse(
+      makeFrame({
+        children: [
+          makeFrame({
+            style: { background: "#99121C", _varRefs: { background: "ref.color.secondary.800" } },
+          }),
+        ],
+      }),
+    );
+    const result = extractTokens(response);
+    expect(result.root.children![0].style?.background).toBe("colors.ref.color.secondary.800");
+    expect(result.tokens?.colors?.["ref.color.secondary.800"]).toBe("#99121C");
+  });
+
+  it("Figma variable name takes priority over an invented semantic name for same hex", () => {
+    // #FFFFFF is in COLOR_SEMANTIC_NAMES as "white", but if a node has a Figma var ref
+    // the Figma name should win for that node, and white should NOT be added separately
+    // (since frequency counting is skipped for var-bound values)
+    const response = makeResponse(
+      makeFrame({
+        children: [
+          makeFrame({
+            style: { background: "#FFFFFF", _varRefs: { background: "colors.base.white" } },
+          }),
+        ],
+      }),
+    );
+    const result = extractTokens(response);
+    expect(result.root.children![0].style?.background).toBe("colors.colors.base.white");
+    expect(result.tokens?.colors?.["colors.base.white"]).toBe("#FFFFFF");
+    // The invented "white" token should NOT be created (value appeared only once and was skipped)
+    expect(result.tokens?.colors?.["white"]).toBeUndefined();
+  });
+
+  it("uses Figma variable name for gap bound to a variable", () => {
+    const response = makeResponse(
+      makeFrame({
+        children: [makeFrame({ layout: { gap: 16, _varRefs: { gap: "spacing.3xl" } } })],
+      }),
+    );
+    const result = extractTokens(response);
+    expect(result.root.children![0].layout?.gap).toBe("spacing.spacing.3xl");
+    expect(result.tokens?.spacing?.["spacing.3xl"]).toBe(16);
+  });
+
+  it("uses Figma variable name for radius bound to a variable", () => {
+    const response = makeResponse(
+      makeFrame({
+        children: [makeFrame({ style: { radius: 8, _varRefs: { radius: "radius.md" } } })],
+      }),
+    );
+    const result = extractTokens(response);
+    expect(result.root.children![0].style?.radius).toBe("radius.radius.md");
+    expect(result.tokens?.radius?.["radius.md"]).toBe(8);
+  });
+
+  it("falls back to invented name for unbound color used 2+ times", () => {
+    // #FFFFFF appears twice with no _varRefs — should still get 'colors.white'
+    const response = makeResponse(
+      makeFrame({
+        children: [
+          makeFrame({ style: { background: "#FFFFFF" } }),
+          makeFrame({ style: { background: "#FFFFFF" } }),
+        ],
+      }),
+    );
+    const result = extractTokens(response);
+    expect(result.root.children![0].style?.background).toBe("colors.white");
+    expect(result.tokens?.colors?.["white"]).toBe("#FFFFFF");
+  });
+
+  it("strips _varRefs from final output — never present in response", () => {
+    const response = makeResponse(
+      makeFrame({
+        children: [
+          makeFrame({
+            style: { background: "#99121C", _varRefs: { background: "ref.color.primary" } },
+          }),
+          makeFrame({ layout: { gap: 8, _varRefs: { gap: "spacing.sm" } } }),
+        ],
+      }),
+    );
+    const result = extractTokens(response);
+    const json = JSON.stringify(result);
+    expect(json).not.toContain("_varRefs");
+  });
+
+  it("first-encountered Figma variable name wins when two nodes bind same hex to different names", () => {
+    const response = makeResponse(
+      makeFrame({
+        children: [
+          makeFrame({
+            style: { background: "#FF0000", _varRefs: { background: "ref.color.danger" } },
+          }),
+          makeFrame({
+            style: { background: "#FF0000", _varRefs: { background: "ref.color.error" } },
+          }),
+        ],
+      }),
+    );
+    const result = extractTokens(response);
+    // Both should get the first-encountered token name
+    expect(result.root.children![0].style?.background).toBe("colors.ref.color.danger");
+    expect(result.root.children![1].style?.background).toBe("colors.ref.color.danger");
+    expect(result.tokens?.colors?.["ref.color.danger"]).toBe("#FF0000");
+    expect(result.tokens?.colors?.["ref.color.error"]).toBeUndefined();
+  });
+});
