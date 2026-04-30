@@ -1,14 +1,16 @@
 import { fetchNodesBatch } from "../batchFetch";
 import { buildNormalizedGraph, flushAllPendingVectorSvgs } from "../reducer";
-import { buildResolutionContext } from "../variableResolver";
+import { buildResolutionContext, mergeResolutionContext } from "../variableResolver";
 import { fetchVariables, fetchComments } from "../fetch";
 import { getCache, setCache } from "../cache";
 import { Logger } from "~/utils/logger";
 import type { RichComponentMeta, MCPOptions } from "./types";
-import type { MCPResponse } from "../types";
+import type { MCPResponse, VariableResolutionReport } from "../types";
 import { buildRichComponentMap } from "./componentMap";
 import { enrichDefinitions } from "./enrich";
 import { transformComments, type NodeCommentsMap } from "../transform/comments";
+
+const MAX_UNRESOLVED_VARIABLE_SAMPLE_SIZE = 10;
 
 export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse> {
   const {
@@ -19,6 +21,7 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
     cacheTTL = 5 * 60 * 1000,
     resolveVariables = true,
     svgOutputDir,
+    preloadedVariableContext = null,
   } = opts;
 
   const cacheKey = `MCP:${fileKey}:${rootNodeId}`;
@@ -70,6 +73,21 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
     } catch (error) {
       Logger.warn(`Failed to fetch variables for ${fileKey}:`, error);
     }
+
+    // Merge preloaded library context — file-local entries win, library fills gaps
+    if (preloadedVariableContext) {
+      if (variableContext) {
+        mergeResolutionContext(variableContext, preloadedVariableContext);
+        Logger.log(
+          `[Variable Resolution] Merged preloaded library context (${preloadedVariableContext.variableValues.size} entries)`,
+        );
+      } else {
+        variableContext = preloadedVariableContext;
+        Logger.log(
+          `[Variable Resolution] Using preloaded library context (${preloadedVariableContext.variableValues.size} entries)`,
+        );
+      }
+    }
   }
 
   Logger.log("Fetching comments...");
@@ -99,6 +117,14 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
     );
   }
 
+  const resolutionReport = buildVariableResolutionReport(normalized);
+  if (resolutionReport.unresolvedVariableAliasCount > 0) {
+    normalized.resolutionReport = resolutionReport;
+    Logger.warn(
+      `[Variable Resolution] Unresolved aliases: ${resolutionReport.unresolvedVariableAliasCount} (sample: ${resolutionReport.unresolvedVariableAliasIds.join(", ")})`,
+    );
+  }
+
   const outputDir = svgOutputDir || "";
   await flushAllPendingVectorSvgs(outputDir);
 
@@ -109,6 +135,41 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
   setCache(cacheKey, normalized, cacheTTL);
 
   return normalized;
+}
+
+function buildVariableResolutionReport(response: MCPResponse): VariableResolutionReport {
+  const sampleIds = new Set<string>();
+  const unresolvedCount = collectVariableAliasCount(response, sampleIds);
+  return {
+    unresolvedVariableAliasCount: unresolvedCount,
+    unresolvedVariableAliasIds: [...sampleIds].slice(0, MAX_UNRESOLVED_VARIABLE_SAMPLE_SIZE),
+  };
+}
+
+function collectVariableAliasCount(value: unknown, sampleIds: Set<string>): number {
+  if (Array.isArray(value)) {
+    let count = 0;
+    for (const item of value) {
+      count += collectVariableAliasCount(item, sampleIds);
+    }
+    return count;
+  }
+
+  if (!value || typeof value !== "object") return 0;
+
+  const record = value as Record<string, unknown>;
+  if (record.type === "VARIABLE_ALIAS" && typeof record.id === "string") {
+    if (sampleIds.size < MAX_UNRESOLVED_VARIABLE_SAMPLE_SIZE) {
+      sampleIds.add(record.id);
+    }
+    return 1;
+  }
+
+  let count = 0;
+  for (const child of Object.values(record)) {
+    count += collectVariableAliasCount(child, sampleIds);
+  }
+  return count;
 }
 
 export type { RichComponentMeta, MCPOptions } from "./types";

@@ -1,9 +1,12 @@
 import { config as loadEnv } from "dotenv";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import { resolve } from "path";
+import { resolve, join } from "path";
 import { tmpdir } from "node:os";
 import type { FigmaAuthOptions } from "./services/figma";
+
+const DEFAULT_LIBRARY_CACHE_PATH = join(tmpdir(), "figma-mcp-library-cache.json");
+const DEFAULT_LIBRARY_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 interface ServerConfig {
   auth: FigmaAuthOptions;
@@ -12,6 +15,10 @@ interface ServerConfig {
   outputFormat: "yaml" | "json";
   skipImageDownloads?: boolean;
   svgOutputDir: string;
+  libraryFileKeys: string[];
+  libraryCachePath: string;
+  libraryCacheTtlMs: number;
+  forceRefreshLibraryCache: boolean;
   configSources: {
     figmaApiKey: "cli" | "env";
     figmaOAuthToken: "cli" | "env" | "none";
@@ -21,6 +28,10 @@ interface ServerConfig {
     envFile: "cli" | "default";
     skipImageDownloads?: "cli" | "env" | "default";
     svgOutputDir: "cli" | "env" | "default";
+    libraryFileKeys: "cli" | "env" | "default";
+    libraryCachePath: "cli" | "env" | "default";
+    libraryCacheTtlMs: "env" | "default";
+    forceRefreshLibraryCache: "env" | "default";
   };
 }
 
@@ -38,6 +49,8 @@ interface CliArgs {
   json?: boolean;
   "skip-image-downloads"?: boolean;
   "svg-output-dir"?: string;
+  "library-file-keys"?: string;
+  "library-cache-path"?: string;
 }
 
 export function getServerConfig(isStdioMode: boolean): ServerConfig {
@@ -78,6 +91,15 @@ export function getServerConfig(isStdioMode: boolean): ServerConfig {
         type: "string",
         description: "Directory to save SVG asset files (default: system temp folder)",
       },
+      "library-file-keys": {
+        type: "string",
+        description:
+          "Comma-separated Figma library file keys to prefetch variables from at startup (e.g. abc123,def456)",
+      },
+      "library-cache-path": {
+        type: "string",
+        description: "Path to the library variable cache file (default: system temp folder)",
+      },
     })
     .help()
     .version(process.env.NPM_PACKAGE_VERSION ?? "unknown")
@@ -110,6 +132,10 @@ export function getServerConfig(isStdioMode: boolean): ServerConfig {
     outputFormat: "yaml",
     skipImageDownloads: false,
     svgOutputDir: "",
+    libraryFileKeys: [],
+    libraryCachePath: DEFAULT_LIBRARY_CACHE_PATH,
+    libraryCacheTtlMs: DEFAULT_LIBRARY_CACHE_TTL_MS,
+    forceRefreshLibraryCache: false,
     configSources: {
       figmaApiKey: "env",
       figmaOAuthToken: "none",
@@ -119,6 +145,10 @@ export function getServerConfig(isStdioMode: boolean): ServerConfig {
       envFile: envFileSource,
       skipImageDownloads: "default",
       svgOutputDir: "default",
+      libraryFileKeys: "default",
+      libraryCachePath: "default",
+      libraryCacheTtlMs: "default",
+      forceRefreshLibraryCache: "default",
     },
   };
 
@@ -197,6 +227,44 @@ export function getServerConfig(isStdioMode: boolean): ServerConfig {
     config.svgOutputDir = resolve(tmpdir(), "figma-mcp-svg-files");
   }
 
+  // Handle libraryFileKeys (comma-separated Figma file keys for variable prefetch)
+  if (argv["library-file-keys"]) {
+    config.libraryFileKeys = argv["library-file-keys"]
+      .split(",")
+      .map((k) => k.trim())
+      .filter(Boolean);
+    config.configSources.libraryFileKeys = "cli";
+  } else if (process.env.FIGMA_LIBRARY_VARIABLE_PREFETCH_FILE_KEYS) {
+    config.libraryFileKeys = process.env.FIGMA_LIBRARY_VARIABLE_PREFETCH_FILE_KEYS.split(",")
+      .map((k) => k.trim())
+      .filter(Boolean);
+    config.configSources.libraryFileKeys = "env";
+  }
+
+  // Handle libraryCachePath
+  if (argv["library-cache-path"]) {
+    config.libraryCachePath = resolve(argv["library-cache-path"]);
+    config.configSources.libraryCachePath = "cli";
+  } else if (process.env.FIGMA_MCP_CACHE_PATH) {
+    config.libraryCachePath = resolve(process.env.FIGMA_MCP_CACHE_PATH);
+    config.configSources.libraryCachePath = "env";
+  }
+
+  // Handle libraryCacheTtlMs (FIGMA_MCP_CACHE_TTL_MS, in milliseconds)
+  if (process.env.FIGMA_MCP_CACHE_TTL_MS) {
+    const parsed = parseInt(process.env.FIGMA_MCP_CACHE_TTL_MS, 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      config.libraryCacheTtlMs = parsed;
+      config.configSources.libraryCacheTtlMs = "env";
+    }
+  }
+
+  // Handle forceRefreshLibraryCache (presence of FIGMA_MCP_REFRESH_CACHE triggers refresh)
+  if (process.env.FIGMA_MCP_REFRESH_CACHE) {
+    config.forceRefreshLibraryCache = true;
+    config.configSources.forceRefreshLibraryCache = "env";
+  }
+
   // Validate configuration
   if (!auth.figmaApiKey && !auth.figmaOAuthToken) {
     console.error(
@@ -231,6 +299,20 @@ export function getServerConfig(isStdioMode: boolean): ServerConfig {
     console.log(
       `- FIGMA_SVG_OUTPUT_DIR: ${config.svgOutputDir} (source: ${config.configSources.svgOutputDir})`,
     );
+    if (config.libraryFileKeys.length > 0) {
+      console.log(
+        `- FIGMA_LIBRARY_VARIABLE_PREFETCH_FILE_KEYS: ${config.libraryFileKeys.join(", ")} (source: ${config.configSources.libraryFileKeys})`,
+      );
+      console.log(
+        `- FIGMA_MCP_CACHE_PATH: ${config.libraryCachePath} (source: ${config.configSources.libraryCachePath})`,
+      );
+      console.log(
+        `- FIGMA_MCP_CACHE_TTL_MS: ${config.libraryCacheTtlMs}ms (source: ${config.configSources.libraryCacheTtlMs})`,
+      );
+      if (config.forceRefreshLibraryCache) {
+        console.log(`- FIGMA_MCP_REFRESH_CACHE: set — cache will be force-refreshed`);
+      }
+    }
     console.log(); // Empty line for better readability
   }
 

@@ -42,3 +42,4 @@ Thumbs.db
 .mcpregistry*
 
 src/tests/resources
+cache
