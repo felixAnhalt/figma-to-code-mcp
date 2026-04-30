@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { FigmaService } from "~/services/figma";
+import type { FigmaService } from "~/services/figmaConnector";
 import { generateMCPResponse, fetchStyles, extractTokens } from "~/figma";
 import yaml from "js-yaml";
 import { Logger, writeLogs } from "~/utils/logger";

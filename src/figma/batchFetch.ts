@@ -1,5 +1,5 @@
 import type { GetFileNodesResponse } from "@figma/rest-api-spec";
-import { httpClient } from "~/utils/http-client";
+import { httpClient } from "~/utils/httpClient";
 
 /**
  * Fetches multiple nodes from a Figma file in a single batched request.

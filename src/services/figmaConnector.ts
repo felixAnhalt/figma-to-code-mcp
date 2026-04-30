@@ -4,7 +4,7 @@ import type {
   GetImageFillsResponse,
   GetLocalVariablesResponse,
 } from "@figma/rest-api-spec";
-import { httpClient } from "~/utils/http-client";
+import { httpClient } from "~/utils/httpClient";
 import { Logger, writeLogs } from "~/utils/logger";
 
 export type FigmaAuthOptions = {

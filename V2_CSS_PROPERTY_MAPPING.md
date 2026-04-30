@@ -220,7 +220,7 @@ The following properties were **added in v2** (beyond basic CSS mapping):
 
 All CSS properties are covered by tests:
 
-- Basic properties: `src/tests/output-validation.test.ts`
-- New properties: `src/tests/new-css-properties.test.ts` (13 tests)
+- Basic properties: `src/tests/outputValidation.test.ts`
+- New properties: `src/tests/newCssProperties.test.ts` (13 tests)
 - Integration: `src/tests/final-benchmark.test.ts`
-- Live data: `src/tests/live-optimization.test.ts` (99.5% reduction)
+- Live data: `src/tests/liveOptimization.test.ts` (99.5% reduction)

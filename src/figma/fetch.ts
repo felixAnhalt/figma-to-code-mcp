@@ -1,5 +1,5 @@
 import type { GetLocalVariablesResponse } from "@figma/rest-api-spec";
-import { httpClient } from "~/utils/http-client";
+import { httpClient } from "~/utils/httpClient";
 import type { RichComponentMeta } from "./index";
 import { Logger } from "~/utils/logger";
 

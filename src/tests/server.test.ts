@@ -4,7 +4,7 @@ import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse";
 import { createServer } from "../mcp";
 import { startHttpServer, stopHttpServer } from "../server";
 import type { AddressInfo } from "net";
-import type { FigmaAuthOptions } from "../services/figma";
+import type { FigmaAuthOptions } from "../services/figmaConnector";
 
 const dummyAuth: FigmaAuthOptions = {
   figmaApiKey: "test-key-not-used",
