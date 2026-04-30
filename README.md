@@ -133,6 +133,18 @@ Notes:
 - The library cache is used only when library file keys are configured.
 - `FIGMA_MCP_REFRESH_CACHE` forces a re-fetch on startup even if a cache file exists.
 
+Example `.env`:
+
+```env
+FIGMA_API_KEY=your_figma_pat
+# prefetch variables (tokens etc) from specific library files on startup to avoid T2 calls during design fetch
+FIGMA_LIBRARY_VARIABLE_PREFETCH_FILE_KEYS=abc123,def456
+FIGMA_MCP_CACHE_PATH=./cache
+FIGMA_MCP_CACHE_TTL_MS=604800000
+# Uncomment to force cache refresh on next startup
+# FIGMA_MCP_REFRESH_CACHE=1
+```
+
 ## API Calls & Rate Limits
 
 One execution of `get_figma_design` makes the following API calls:
