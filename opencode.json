@@ -4,12 +4,22 @@
     "README.md",
     ".opencode/rules/typescript.md",
     ".opencode/rules/error-handling.md",
-    ".opencode/rules/testing.md",
-    "https://developers.figma.com/docs/rest-api/"
+    ".opencode/rules/testing.md"
   ],
   "permission": {
     "edit": "allow",
-    "bash": "allow",
+    "bash": {
+      "*": "allow",
+      "git push*": "ask",
+      "git reset*": "ask",
+      "git rebase*": "ask",
+      "git commit --amend*": "ask",
+      "rm -*": "ask",
+      "npm publish*": "ask",
+      "pnpm publish*": "ask",
+      "gh pr create*": "ask",
+      "gh pr merge*": "ask"
+    },
     "webfetch": "allow",
     "skill": "allow",
     "question": "allow",

@@ -115,22 +115,32 @@ When a change touches multiple concerns, split into separate commits or PRs.
 
 This project ships custom OpenCode subagents in `.opencode/agents/`. Delegate to them when appropriate:
 
-| Agent                  | When to invoke                                                                                                             |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `@architect`           | New feature needs placement advice or you're unsure which module owns the change. Invoke BEFORE writing code.              |
-| `@code-reviewer`       | After completing a significant change. It reads the diff and checks against project conventions.                           |
-| `@figma-domain-expert` | Questions about Figma API behavior, rate limits, token extraction, SVG generation, or the data pipeline. Read-only.        |
-| `@test-writer`         | Need to write or update tests. It knows vitest setup, file placement, seam injection patterns, and integration test gates. |
+| Agent                        | When to invoke                                                                                                                                                                |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@architect`                 | New feature needs placement advice or you're unsure which module owns the change. Invoke BEFORE writing code.                                                                 |
+| `@code-reviewer`             | After completing a significant change. It reads the diff and checks against project conventions.                                                                              |
+| `@figma-domain-expert`       | Questions about Figma API behavior, rate limits, token extraction, SVG generation, or the data pipeline. Read-only.                                                           |
+| `@test-writer`               | Need to write or update tests. It knows vitest setup, file placement, seam injection patterns, and integration test gates.                                                    |
+| `@refactorer`                | Scout for structural issues (SoC violations, dead code, duplication, magic values, oversized methods) and report them as prioritized opportunities. Does NOT execute changes. |
+| `@api-consolidator` (hidden) | Move Figma API calls from scattered files back into `FigmaService`. Invoked programmatically, not in `@` menu.                                                                |
 
 **Primary agents:** Tab-cycle between **Build** (full access) and **Plan** (read-only, for analysis) during a session.
+
+## Custom Commands
+
+| Command | Description                                                                    |
+| ------- | ------------------------------------------------------------------------------ |
+| `/qa`   | Runs `type-check → lint → test` and reports pass/fail with triage for failures |
+| `/ci`   | Same as `/qa` but with raw shell output shown inline                           |
 
 ## Skills (Lazy-loaded Domain Knowledge)
 
 Skills in `.opencode/skills/` are loaded on-demand via the `skill` tool. The agent auto-discovers them from their descriptions:
 
-| Skill                    | Covers                                                                                                        |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `figma-token-extraction` | Full tokenizer pipeline: frequency counting → semantic naming → registry → replacement → `_varRefs` stripping |
-| `svg-vector-generation`  | SVG cache, path merging, bounds calc, `figma://vector/` URIs, flush pipeline                                  |
-| `mcp-tool-registration`  | Tool object pattern, Zod schemas, handler conventions, conditional registration                               |
-| `release-process`        | Release-please, npm publish, server.json version sync, CI workflow                                            |
+| Skill                      | Covers                                                                                                        |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `figma-token-extraction`   | Full tokenizer pipeline: frequency counting → semantic naming → registry → replacement → `_varRefs` stripping |
+| `svg-vector-generation`    | SVG cache, path merging, bounds calc, `figma://vector/` URIs, flush pipeline                                  |
+| `mcp-tool-registration`    | Tool object pattern, Zod schemas, handler conventions, conditional registration                               |
+| `release-process`          | Release-please, npm publish, server.json version sync, CI workflow                                            |
+| `figma-rest-api-endpoints` | Figma REST API v1 reference — all endpoints, tiers, auth, rate limits, geometry params                        |
