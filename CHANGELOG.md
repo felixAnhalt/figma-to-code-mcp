@@ -1,5 +1,12 @@
 # tmegit-figma-to-code-mcp
 
+## [0.28.1](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.28.0...v0.28.1) (2026-04-30)
+
+
+### Bug Fixes
+
+* **release:** retrigger release ([63f22fe](https://github.com/felixAnhalt/figma-to-code-mcp/commit/63f22feec7cfa4334fa9b2c50e427b9341978eb7))
+
 ## [0.28.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.27.0...v0.28.0) (2026-04-29)
 
 
