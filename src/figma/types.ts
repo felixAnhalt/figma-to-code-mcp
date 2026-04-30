@@ -240,7 +240,7 @@ export type Style = {
   background?: string | Paint[];
   /** Stroke color as rgba() or TokenRef string */
   border?: string;
-  borderWidth?: number;
+  borderWidth?: number | TokenRef;
   /** Single radius or [topLeft, topRight, bottomRight, bottomLeft] or TokenRef string */
   radius?: number | number[] | TokenRef;
   /** CSS box-shadow string or TokenRef string */

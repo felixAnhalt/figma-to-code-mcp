@@ -21,9 +21,9 @@ import { replaceNodeTokens, replaceComponentSetTokens } from "./replace";
 // ── Figma variable ref collection ─────────────────────────────────────────────
 
 type FigmaVarMaps = {
-  colorsByHex: Map<string, string>;
-  spacingsByValue: Map<string, string>;
-  radiiByValue: Map<string, string>;
+  colorsByName: Map<string, string>;
+  spacingsByName: Map<string, number>;
+  radiiByName: Map<string, number>;
 };
 
 /**
@@ -32,30 +32,29 @@ type FigmaVarMaps = {
  * First-encountered name wins if two variables resolve to the same raw value.
  */
 function collectFigmaVarRefs(response: MCPResponse): FigmaVarMaps {
-  const colorsByHex = new Map<string, string>();
-  const spacingsByValue = new Map<string, string>();
-  const radiiByValue = new Map<string, string>();
+  const colorsByName = new Map<string, string>();
+  const spacingsByName = new Map<string, number>();
+  const radiiByName = new Map<string, number>();
 
   function collectStyle(style: Style | undefined): void {
     if (!style?._varRefs) return;
     const refs = style._varRefs;
 
     if (refs.background && typeof style.background === "string") {
-      if (!colorsByHex.has(style.background)) colorsByHex.set(style.background, refs.background);
+      if (!colorsByName.has(refs.background)) colorsByName.set(refs.background, style.background);
     }
     if (refs.border && typeof style.border === "string") {
-      if (!colorsByHex.has(style.border)) colorsByHex.set(style.border, refs.border);
+      if (!colorsByName.has(refs.border)) colorsByName.set(refs.border, style.border);
     }
     if (refs.color && typeof style.color === "string") {
-      if (!colorsByHex.has(style.color)) colorsByHex.set(style.color, refs.color);
+      if (!colorsByName.has(refs.color)) colorsByName.set(refs.color, style.color);
     }
     if (refs.radius && typeof style.radius === "number") {
-      const key = String(style.radius);
-      if (!radiiByValue.has(key)) radiiByValue.set(key, refs.radius);
+      if (!radiiByName.has(refs.radius)) radiiByName.set(refs.radius, style.radius);
     }
     if (refs.borderWidth && typeof style.borderWidth === "number") {
-      const key = String(style.borderWidth);
-      if (!spacingsByValue.has(key)) spacingsByValue.set(key, refs.borderWidth);
+      if (!spacingsByName.has(refs.borderWidth))
+        spacingsByName.set(refs.borderWidth, style.borderWidth);
     }
   }
 
@@ -64,8 +63,7 @@ function collectFigmaVarRefs(response: MCPResponse): FigmaVarMaps {
     const refs = layout._varRefs;
 
     if (refs.gap && typeof layout.gap === "number") {
-      const key = String(layout.gap);
-      if (!spacingsByValue.has(key)) spacingsByValue.set(key, refs.gap);
+      if (!spacingsByName.has(refs.gap)) spacingsByName.set(refs.gap, layout.gap);
     }
 
     // Unified padding token: all four sides same variable name
@@ -76,8 +74,8 @@ function collectFigmaVarRefs(response: MCPResponse): FigmaVarMaps {
       refs.paddingTop === refs.paddingLeft
     ) {
       if (typeof layout.padding === "number") {
-        const key = String(layout.padding);
-        if (!spacingsByValue.has(key)) spacingsByValue.set(key, refs.paddingTop);
+        if (!spacingsByName.has(refs.paddingTop))
+          spacingsByName.set(refs.paddingTop, layout.padding);
       }
     }
   }
@@ -101,7 +99,7 @@ function collectFigmaVarRefs(response: MCPResponse): FigmaVarMaps {
     }
   }
 
-  return { colorsByHex, spacingsByValue, radiiByValue };
+  return { colorsByName, spacingsByName, radiiByName };
 }
 
 // ── _varRefs stripping ────────────────────────────────────────────────────────
@@ -178,7 +176,7 @@ function stripVarRefsFromResponse(response: MCPResponse): MCPResponse {
 
 export function extractTokens(response: MCPResponse): MCPResponse {
   // Step 1: collect Figma variable name refs from _varRefs sidecars
-  const { colorsByHex, spacingsByValue, radiiByValue } = collectFigmaVarRefs(response);
+  const { colorsByName, spacingsByName, radiiByName } = collectFigmaVarRefs(response);
 
   // Step 2: count frequencies (var-bound values are skipped inside countFrequencies)
   const { colors, spacings, radii, shadows, typographies, paddingCombos, heights } =
@@ -220,41 +218,30 @@ export function extractTokens(response: MCPResponse): MCPResponse {
   const { tokensByRaw: typographiesByRaw, registry: typographyRegistry } =
     buildSemanticTokenRegistry(typographies, typographySemanticNames, parseTypographyKey);
 
-  // Step 4: merge Figma variable refs into the raw→tokenName lookup maps
-  // Figma variable names take priority over invented semantic names (no overwrite if already set)
-  for (const [hex, varName] of colorsByHex) {
-    if (!colorsByRaw.has(hex)) colorsByRaw.set(hex, varName);
-  }
-  for (const [val, varName] of spacingsByValue) {
-    if (!spacingsByRaw.has(val)) spacingsByRaw.set(val, varName);
-  }
-  for (const [val, varName] of radiiByValue) {
-    if (!radiiByRaw.has(val)) radiiByRaw.set(val, varName);
-  }
-
-  // Step 5: build the tokens registry including Figma variable entries
+  // Step 4: build the tokens registry including every Figma variable entry.
+  // Multiple Figma variables may resolve to the same raw value; keep them distinct.
   const tokens: DesignTokens = {};
 
-  if (Object.keys(colorRegistry).length > 0 || colorsByHex.size > 0) {
+  if (Object.keys(colorRegistry).length > 0 || colorsByName.size > 0) {
     const merged: Record<string, string> = { ...colorRegistry };
-    for (const [hex, varName] of colorsByHex) {
-      if (!merged[varName]) merged[varName] = hex;
+    for (const [varName, hex] of colorsByName) {
+      merged[varName] = hex;
     }
     if (Object.keys(merged).length > 0) tokens.colors = merged;
   }
 
-  if (Object.keys(spacingRegistry).length > 0 || spacingsByValue.size > 0) {
+  if (Object.keys(spacingRegistry).length > 0 || spacingsByName.size > 0) {
     const merged: Record<string, number> = { ...spacingRegistry };
-    for (const [val, varName] of spacingsByValue) {
-      if (!(varName in merged)) merged[varName] = Number(val);
+    for (const [varName, val] of spacingsByName) {
+      merged[varName] = val;
     }
     if (Object.keys(merged).length > 0) tokens.spacing = merged;
   }
 
-  if (Object.keys(radiusRegistry).length > 0 || radiiByValue.size > 0) {
+  if (Object.keys(radiusRegistry).length > 0 || radiiByName.size > 0) {
     const merged: Record<string, number> = { ...radiusRegistry };
-    for (const [val, varName] of radiiByValue) {
-      if (!(varName in merged)) merged[varName] = Number(val);
+    for (const [varName, val] of radiiByName) {
+      merged[varName] = val;
     }
     if (Object.keys(merged).length > 0) tokens.radius = merged;
   }

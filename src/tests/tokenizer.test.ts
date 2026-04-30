@@ -605,7 +605,7 @@ describe("extractTokens — Figma variable token refs from _varRefs", () => {
     expect(json).not.toContain("_varRefs");
   });
 
-  it("first-encountered Figma variable name wins when two nodes bind same hex to different names", () => {
+  it("keeps distinct Figma variable tokens when two nodes bind same hex to different names", () => {
     const response = makeResponse(
       makeFrame({
         children: [
@@ -619,10 +619,9 @@ describe("extractTokens — Figma variable token refs from _varRefs", () => {
       }),
     );
     const result = extractTokens(response);
-    // Both should get the first-encountered token name
     expect(result.root.children![0].style?.background).toBe("colors.ref.color.danger");
-    expect(result.root.children![1].style?.background).toBe("colors.ref.color.danger");
+    expect(result.root.children![1].style?.background).toBe("colors.ref.color.error");
     expect(result.tokens?.colors?.["ref.color.danger"]).toBe("#FF0000");
-    expect(result.tokens?.colors?.["ref.color.error"]).toBeUndefined();
+    expect(result.tokens?.colors?.["ref.color.error"]).toBe("#FF0000");
   });
 });

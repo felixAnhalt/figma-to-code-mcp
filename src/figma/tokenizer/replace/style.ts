@@ -13,15 +13,15 @@ export function replaceStyleTokens(
   const s = { ...style };
 
   if (typeof s.background === "string") {
-    const t = colorsByRaw.get(s.background);
+    const t = style._varRefs?.background ?? colorsByRaw.get(s.background);
     if (t) s.background = `colors.${t}`;
   }
   if (typeof s.border === "string") {
-    const t = colorsByRaw.get(s.border);
+    const t = style._varRefs?.border ?? colorsByRaw.get(s.border);
     if (t) s.border = `colors.${t}`;
   }
   if (typeof s.color === "string") {
-    const t = colorsByRaw.get(s.color);
+    const t = style._varRefs?.color ?? colorsByRaw.get(s.color);
     if (t) s.color = `colors.${t}`;
   }
   if (typeof s.shadow === "string") {
@@ -30,8 +30,11 @@ export function replaceStyleTokens(
     if (t) s.shadow = `shadows.${t}`;
   }
   if (typeof s.radius === "number") {
-    const t = radiiByRaw.get(String(s.radius));
+    const t = style._varRefs?.radius ?? radiiByRaw.get(String(s.radius));
     if (t) s.radius = `radius.${t}` as never;
+  }
+  if (typeof s.borderWidth === "number" && style._varRefs?.borderWidth) {
+    s.borderWidth = `spacing.${style._varRefs.borderWidth}` as never;
   }
 
   const typoKey = buildTypographyKey(style);
