@@ -39,7 +39,7 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
           libraryCacheOptions: libraryCachePath
             ? {
                 cachePath: libraryCachePath,
-                ttlMs: Number(process.env.FIGMA_MCP_CACHE_TTL_MS || 24 * 60 * 60 * 1000),
+                ttlMs: Number(process.env.FIGMA_MCP_CACHE_TTL_MS || 7 * 24 * 60 * 60 * 1000),
                 forceRefresh,
               }
             : undefined,

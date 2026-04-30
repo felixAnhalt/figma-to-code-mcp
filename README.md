@@ -108,6 +108,31 @@ The `tmegit-figma-to-code-mcp` server can be configured by adding the following 
 
 Or you can set `FIGMA_API_KEY` and `PORT` in the `env` field.
 
+## Configuration
+
+The server reads configuration from CLI flags and environment variables. If both are set, the CLI flag wins.
+
+| Option                     | CLI                      | Env                                         | Default         |
+| -------------------------- | ------------------------ | ------------------------------------------- | --------------- |
+| Figma API key              | `--figma-api-key`        | `FIGMA_API_KEY`                             | required        |
+| Figma OAuth token          | `--figma-oauth-token`    | `FIGMA_OAUTH_TOKEN`                         | unset           |
+| Port                       | `--port`                 | `FIGMA_TO_CODE_MCP_PORT` or `PORT`          | `3333`          |
+| Host                       | `--host`                 | `FIGMA_TO_CODE_MCP_HOST`                    | `127.0.0.1`     |
+| Output format              | `--json`                 | `OUTPUT_FORMAT`                             | `yaml`          |
+| Skip image tools           | `--skip-image-downloads` | `SKIP_IMAGE_DOWNLOADS=true`                 | `false`         |
+| SVG output dir             | `--svg-output-dir`       | `FIGMA_SVG_OUTPUT_DIR`                      | temp dir        |
+| Prefetch library variables | `--library-file-keys`    | `FIGMA_LIBRARY_VARIABLE_PREFETCH_FILE_KEYS` | unset           |
+| Cache path                 | `--library-cache-path`   | `FIGMA_MCP_CACHE_PATH`                      | temp cache file |
+| Cache TTL                  | `n/a`                    | `FIGMA_MCP_CACHE_TTL_MS`                    | `7 days`        |
+| Force cache refresh        | `n/a`                    | `FIGMA_MCP_REFRESH_CACHE`                   | off             |
+
+Notes:
+
+- `--library-file-keys` and `FIGMA_LIBRARY_VARIABLE_PREFETCH_FILE_KEYS` are comma-separated Figma library file keys.
+- `FIGMA_MCP_CACHE_PATH` may point to either a file or a directory. If it is a directory, the cache file is stored as `figma-mcp-library-cache.json` inside it.
+- The library cache is used only when library file keys are configured.
+- `FIGMA_MCP_REFRESH_CACHE` forces a re-fetch on startup even if a cache file exists.
+
 ## API Calls & Rate Limits
 
 One execution of `get_figma_design` makes the following API calls:
