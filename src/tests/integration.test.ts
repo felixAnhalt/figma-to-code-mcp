@@ -20,7 +20,7 @@ describeOrSkip("Figma MCP Server Tests", () => {
     figmaApiKey = process.env.FIGMA_API_KEY || "";
     figmaFileKey = process.env.FIGMA_FILE_KEY || "";
 
-    server = createServer({
+    server = await createServer({
       figmaApiKey,
       figmaOAuthToken: "",
       useOAuth: false,

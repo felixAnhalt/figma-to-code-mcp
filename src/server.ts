@@ -25,11 +25,20 @@ export async function startServer(): Promise<void> {
 
   const config = getServerConfig(isStdioMode);
 
-  const server = createServer(config.auth, {
+  const server = await createServer(config.auth, {
     isHTTP: !isStdioMode,
     outputFormat: config.outputFormat,
     skipImageDownloads: config.skipImageDownloads,
     svgOutputDir: config.svgOutputDir,
+    libraryFileKeys: config.libraryFileKeys,
+    libraryCacheOptions:
+      config.libraryFileKeys.length > 0
+        ? {
+            cachePath: config.libraryCachePath,
+            ttlMs: config.libraryCacheTtlMs,
+            forceRefresh: config.forceRefreshLibraryCache,
+          }
+        : undefined,
   });
 
   if (isStdioMode) {

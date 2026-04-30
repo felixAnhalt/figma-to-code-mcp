@@ -1,3 +1,5 @@
+import type { VariableResolutionContext } from "../variableResolver";
+
 export type RichComponentMeta = {
   key: string;
   file_key: string;
@@ -17,4 +19,5 @@ export type MCPOptions = {
   svgOutputDir?: string;
   componentMap?: Record<string, RichComponentMeta>;
   componentSetMap?: Record<string, { name: string }>;
+  preloadedVariableContext?: VariableResolutionContext | null;
 };

@@ -5,6 +5,7 @@ import yaml from "js-yaml";
 import { Logger, writeLogs } from "~/utils/logger";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { VariableResolutionContext } from "~/figma/variableResolver";
 
 const parameters = {
   fileKey: z
@@ -50,6 +51,7 @@ async function getFigmaDesign(
   figmaService: FigmaService,
   outputFormat: "yaml" | "json",
   svgOutputDir?: string,
+  preloadedVariableContext?: VariableResolutionContext | null,
 ) {
   try {
     const { fileKey, nodeId: rawNodeId, resolveVariables } = parametersSchema.parse(params);
@@ -79,6 +81,7 @@ async function getFigmaDesign(
       styleMap,
       resolveVariables,
       svgOutputDir: outputDir,
+      preloadedVariableContext,
     });
 
     // Post-pass: extract design tokens and replace repeated raw values with refs

@@ -1,7 +1,11 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { config } from "dotenv";
-import { getFigmaDesignTool } from "~/mcp/tools/get-figma-design-tool";
+import { createServer } from "~/mcp";
 import { FigmaService } from "~/services/figma";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory";
+import { Client } from "@modelcontextprotocol/sdk/client/index";
+import { CallToolResultSchema } from "@modelcontextprotocol/sdk/types";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp";
 import fs from "fs";
 import path from "path";
 import yaml from "js-yaml";
@@ -14,6 +18,46 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
     const figmaApiKey = process.env.FIGMA_API_KEY || "";
     const figmaFileKey = process.env.FIGMA_FILE_KEY || "";
     const nodeId = process.env.FIGMA_NODE_ID || "";
+    const libraryFileKeys = parseCommaSeparatedEnv(
+      process.env.FIGMA_LIBRARY_VARIABLE_PREFETCH_FILE_KEYS,
+    );
+    const libraryCachePath = process.env.FIGMA_MCP_CACHE_PATH;
+    const forceRefresh = Boolean(process.env.FIGMA_MCP_REFRESH_CACHE);
+
+    let server: McpServer;
+    let client: Client;
+
+    beforeAll(async () => {
+      server = await createServer(
+        {
+          figmaApiKey,
+          figmaOAuthToken: "",
+          useOAuth: false,
+        },
+        {
+          libraryFileKeys,
+          libraryCacheOptions: libraryCachePath
+            ? {
+                cachePath: libraryCachePath,
+                ttlMs: Number(process.env.FIGMA_MCP_CACHE_TTL_MS || 7 * 24 * 60 * 60 * 1000),
+                forceRefresh,
+              }
+            : undefined,
+        },
+      );
+
+      client = new Client({
+        name: "figma-live-opt-test-client",
+        version: "1.0.0",
+      });
+
+      const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+      await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
+    });
+
+    afterAll(async () => {
+      await client.close();
+    });
 
     it("compares raw Figma API response vs optimized v3 MCP response", async () => {
       console.log("\n=== LIVE FIGMA OPTIMIZATION TEST (V3) ===\n");
@@ -24,14 +68,13 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
         throw new Error("FIGMA_API_KEY environment variable is required. Check your .env file.");
       }
 
+      // 1. Fetch and save RAW Figma API response for size comparison
+      console.log("Fetching raw Figma API response...");
       const figmaService = new FigmaService({
         figmaApiKey,
         figmaOAuthToken: "",
         useOAuth: false,
       });
-
-      // 1. Fetch and save RAW Figma API response for size comparison
-      console.log("Fetching raw Figma API response...");
       let rawResponse;
       try {
         rawResponse = await figmaService.getRawFile(figmaFileKey, 4);
@@ -53,17 +96,22 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
         JSON.stringify(rawResponse, null, 2),
       );
 
-      // 2. Call the actual MCP tool handler — identical code path the LLM hits
-      console.log("Calling getFigmaDesign tool handler (same path as the LLM)...");
-      const toolResult = await getFigmaDesignTool.handler(
-        { fileKey: figmaFileKey, nodeId, resolveVariables: true },
-        figmaService,
-        "json",
+      // 2. Call the actual MCP tool via a server connection — identical code path the LLM hits
+      console.log("Calling get_figma_design tool via MCP server...");
+      const toolResult = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "get_figma_design",
+            arguments: { fileKey: figmaFileKey, nodeId, resolveVariables: true },
+          },
+        },
+        CallToolResultSchema,
       );
 
       expect(toolResult.isError).toBeFalsy();
       const resultText = (toolResult.content[0] as { type: "text"; text: string }).text;
-      const mcpResponse = JSON.parse(resultText);
+      const mcpResponse = yaml.load(resultText) as Record<string, unknown>;
 
       const optimizedSize = resultText.length;
       console.log(`✓ Optimized response size: ${optimizedSize.toLocaleString()} bytes\n`);
@@ -103,6 +151,8 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
       expect(mcpResponse).not.toHaveProperty("stylesPayload");
       console.log("✓ No flat nodes/variables/components/paints dicts");
 
+      const componentSets = mcpResponse.componentSets as Record<string, unknown> | undefined;
+
       function countNodes(node: any): number {
         return 1 + (node.children ?? []).reduce((s: number, c: any) => s + countNodes(c), 0);
       }
@@ -118,9 +168,7 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
       const nodeCount = countNodes(mcpResponse.root);
       const instanceNodes = findInstances(mcpResponse.root);
       const textNodes = findTextNodes(mcpResponse.root);
-      const componentSetCount = mcpResponse.componentSets
-        ? Object.keys(mcpResponse.componentSets).length
-        : 0;
+      const componentSetCount = componentSets ? Object.keys(componentSets).length : 0;
 
       console.log(`✓ Total nodes in tree:       ${nodeCount}`);
       console.log(`✓ INSTANCE nodes:            ${instanceNodes.length}`);
@@ -130,7 +178,7 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
       // Verify componentSets shape — definitions must be absent (converted + deleted)
       expect(mcpResponse).not.toHaveProperty("definitions");
       if (componentSetCount > 0) {
-        const firstSet = Object.values(mcpResponse.componentSets)[0];
+        const firstSet = Object.values(componentSets ?? {})[0];
         expect(firstSet).toHaveProperty("name");
         expect(firstSet).toHaveProperty("variants");
         expect(firstSet).toHaveProperty("propKeys");
@@ -173,3 +221,12 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
   },
   900000,
 );
+
+function parseCommaSeparatedEnv(value: string | undefined): string[] {
+  return value
+    ? value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+}

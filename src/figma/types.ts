@@ -77,6 +77,16 @@ export type MCPResponse = {
    * Copy all files from this folder to your project's assets folder.
    */
   svgAssetsFolder?: string;
+  /**
+   * Summary of unresolved variable aliases that could not be inlined.
+   * Present when the response still contains VARIABLE_ALIAS entries.
+   */
+  resolutionReport?: VariableResolutionReport;
+};
+
+export type VariableResolutionReport = {
+  unresolvedVariableAliasCount: number;
+  unresolvedVariableAliasIds: string[];
 };
 
 /**
@@ -230,7 +240,7 @@ export type Style = {
   background?: string | Paint[];
   /** Stroke color as rgba() or TokenRef string */
   border?: string;
-  borderWidth?: number;
+  borderWidth?: number | TokenRef;
   /** Single radius or [topLeft, topRight, bottomRight, bottomLeft] or TokenRef string */
   radius?: number | number[] | TokenRef;
   /** CSS box-shadow string or TokenRef string */

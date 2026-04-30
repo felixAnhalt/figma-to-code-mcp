@@ -10,12 +10,17 @@ export function replaceLayoutTokens(
   const l = { ...layout };
 
   if (typeof l.gap === "number") {
-    const t = spacingsByRaw.get(String(l.gap));
+    const t = layout._varRefs?.gap ?? spacingsByRaw.get(String(l.gap));
     if (t) l.gap = `spacing.${t}` as never;
   }
 
   if (typeof l.padding === "number") {
-    const t = spacingsByRaw.get(String(l.padding));
+    const allBound =
+      layout._varRefs?.paddingTop &&
+      layout._varRefs.paddingTop === layout._varRefs.paddingRight &&
+      layout._varRefs.paddingTop === layout._varRefs.paddingBottom &&
+      layout._varRefs.paddingTop === layout._varRefs.paddingLeft;
+    const t = allBound ? layout._varRefs?.paddingTop : spacingsByRaw.get(String(l.padding));
     if (t) l.padding = `spacing.${t}` as never;
   } else if (Array.isArray(l.padding)) {
     const [v, h] = l.padding;

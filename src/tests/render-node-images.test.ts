@@ -18,7 +18,7 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
     const nodeId = process.env.FIGMA_NODE_ID || "";
 
     beforeAll(async () => {
-      server = createServer({
+      server = await createServer({
         figmaApiKey,
         figmaOAuthToken: "",
         useOAuth: false,
