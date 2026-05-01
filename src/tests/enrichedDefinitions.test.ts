@@ -31,7 +31,7 @@ vi.mock("~/figma/cache", () => ({
 
 import { generateMCPResponse } from "~/figma/index";
 import { fetchNodesBatch } from "~/figma/batchFetch";
-import { httpClient } from "~/utils/http-client";
+import { httpClient } from "~/utils/httpClient";
 
 // ---------------------------------------------------------------------------
 // Fixture helpers
