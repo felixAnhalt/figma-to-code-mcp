@@ -1,5 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { FigmaService, type FigmaAuthOptions } from "~/services/figma";
+import { FigmaService, type FigmaAuthOptions } from "~/services/figmaConnector";
 import { Logger } from "~/utils/logger";
 import {
   getFigmaDesignTool,

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { FigmaService } from "~/services/figma";
+import { FigmaService } from "~/services/figmaConnector";
 import { Logger } from "~/utils/logger";
 
 const parametersSchema = z.object({

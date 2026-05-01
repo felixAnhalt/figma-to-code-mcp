@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { config } from "dotenv";
 import { createServer } from "~/mcp";
-import { FigmaService } from "~/services/figma";
+import { FigmaService } from "~/services/figmaConnector";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory";
 import { Client } from "@modelcontextprotocol/sdk/client/index";
 import { CallToolResultSchema } from "@modelcontextprotocol/sdk/types";

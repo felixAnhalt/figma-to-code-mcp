@@ -1,4 +1,4 @@
-import { httpClientRaw } from "~/utils/http-client";
+import { httpClientRaw } from "~/utils/httpClient";
 import type { RichComponentMeta } from "./types";
 
 export async function buildRichComponentMap(

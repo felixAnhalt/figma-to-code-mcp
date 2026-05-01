@@ -3,7 +3,7 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { resolve, join } from "path";
 import { tmpdir } from "node:os";
-import type { FigmaAuthOptions } from "./services/figma";
+import type { FigmaAuthOptions } from "./services/figmaConnector";
 
 const DEFAULT_LIBRARY_CACHE_PATH = join(tmpdir(), "figma-mcp-library-cache.json");
 const DEFAULT_LIBRARY_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days

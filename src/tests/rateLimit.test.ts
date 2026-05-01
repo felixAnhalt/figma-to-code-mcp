@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
-import { httpClientRaw } from "../utils/http-client";
+import { httpClientRaw } from "../utils/httpClient";
 
 describe("httpClientRaw", () => {
   let fetchMock: ReturnType<typeof vi.fn>;

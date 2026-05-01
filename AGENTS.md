@@ -50,34 +50,15 @@ src/
 └── tests/             # All tests (excluded from TS output)
 ```
 
+(Keep this up-to-date in AGENTS.md when changes occur)
+
 **Key:** `figma/` owns business logic, `mcp/` owns protocol, `services/` owns HTTP, `utils/` is generic.
 
 ---
 
 ## Code Style
 
-### Formatting (Prettier)
-
-Double quotes, semicolons on, trailing commas everywhere, 2-space indent, 100-char line width.
-
-### TypeScript
-
-- **Strict mode:** On. Don't disable or work around strict checks.
-- **Module system:** Pure ESM (`"type": "module"`, `bundler` resolution).
-- **Node built-ins:** Use `node:` prefix: `import { randomUUID } from "node:crypto"`.
-- **Return types:** Inferred (ESLint rule off). Always annotate parameters explicitly.
-- **Type-only imports:** Use `import type` consistently.
-- **Avoid `any`:** Use `unknown` and narrow. Lint warns on `any`.
-- **`as const`:** Use on exported tool config objects to narrow literal types.
-
-### Imports (ordering)
-
-1. Node built-ins (`node:*`)
-2. External packages
-3. Internal aliases (`~/`)
-4. Relative imports (`./`)
-
-Use `~/` for cross-module imports. Use relative imports only within same directory.
+> Detailed conventions (TypeScript, error handling, testing patterns) are loaded from `.opencode/rules/` via `opencode.json`. Below is the quick-reference naming table and non-negotiable structural rules.
 
 ### Naming Conventions
 
@@ -87,29 +68,18 @@ Use `~/` for cross-module imports. Use relative imports only within same directo
 | Types/Interfaces    | `PascalCase`         | `MCPResponse`, `V3Node`                        |
 | Tool objects        | `{verb}Tool`         | `getFigmaDesignTool`                           |
 | MCP tool names      | `snake_case`         | `"get_figma_design"`                           |
-| File names          | `kebab-case`         | `get-figma-design-tool.ts`                     |
+| File names          | `kebab-case`         | `getFigmaDesignTool.ts`                        |
 | Constants           | `UPPER_SNAKE_CASE`   | `const MAX_RETRIES = 3`                        |
 | Methods             | Verbose, descriptive | `extractCurrentTaskDeltas` not `extractDeltas` |
 
-### Error Handling
-
-- Pattern: `error instanceof Error ? error.message : String(error)` — never cast `(error as Error)`.
-- Tool handlers return `{ isError: true, content: [...] }` on failure; never throw.
-- Use `Logger.error(...)` / `Logger.warn(...)` — no raw `console.error` outside `bin.ts`/`config.ts`.
-- Empty `catch {}` only in cleanup paths where failure is acceptable.
-
-### Functions & Constants
+### Non-negotiable
 
 - Max ~20 lines of logic. Extract helpers rather than growing functions.
 - No magic strings/numbers inline. Extract to named constants.
 - No speculative abstractions. Every abstraction must earn its existence.
-
-### Testing
-
-- Test files in `src/tests/` (excluded from TS compilation).
-- Use `it.fails(...)` to document known broken behavior.
-- Prefer seam injection (params) over mocking frameworks.
-- Vitest globals available; explicit imports from `"vitest"` also fine.
+- Errors: never cast `(error as Error)` — use `error instanceof Error ? error.message : String(error)`.
+- Tool handlers: return `{ isError: true, content: [...] }` on failure; never throw.
+- Test files go in `src/tests/`. Prefer seam injection over mocking. Vitest globals are available.
 
 ---
 
@@ -138,3 +108,18 @@ export const myTool = {
 - **Fail Fast:** Validate at boundaries; descriptive errors via Logger
 
 When a change touches multiple concerns, split into separate commits or PRs.
+
+---
+
+## Agents & Delegation
+
+This project ships custom OpenCode subagents in `.opencode/agents/`. Delegate to them when appropriate:
+
+| Agent                        | When to invoke                                                                                                                                                                |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@architect`                 | New feature needs placement advice or you're unsure which module owns the change. Invoke BEFORE writing code.                                                                 |
+| `@code-reviewer`             | After completing a significant change. It reads the diff and checks against project conventions.                                                                              |
+| `@figma-domain-expert`       | Questions about Figma API behavior, rate limits, token extraction, SVG generation, or the data pipeline. Read-only.                                                           |
+| `@test-writer`               | Need to write or update tests. It knows vitest setup, file placement, seam injection patterns, and integration test gates.                                                    |
+| `@refactorer`                | Scout for structural issues (SoC violations, dead code, duplication, magic values, oversized methods) and report them as prioritized opportunities. Does NOT execute changes. |
+| `@api-consolidator` (hidden) | Move Figma API calls from scattered files back into `FigmaService`. Invoked programmatically, not in `@` menu.                                                                |
