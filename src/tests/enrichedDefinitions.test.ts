@@ -20,7 +20,7 @@ vi.mock("~/figma/batchFetch", () => ({
   fetchNodesBatch: vi.fn(),
 }));
 
-vi.mock("~/utils/http-client", () => ({
+vi.mock("~/utils/httpClient", () => ({
   httpClient: vi.fn(),
 }));
 
