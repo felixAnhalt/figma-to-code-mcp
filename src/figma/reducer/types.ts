@@ -55,6 +55,7 @@ export type ComponentPropertyValue = {
 
 export type FigmaRawPaint = {
   type?: string;
+  visible?: boolean;
   color?: { r: number; g: number; b: number; a: number };
   gradientStops?: Array<{
     position: number;

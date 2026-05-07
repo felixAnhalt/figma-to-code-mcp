@@ -12,7 +12,7 @@ export function extractStyleFromNode(
   const style: Style = {};
   const varRefs: StyleVarRefs = {};
 
-  const fills = node.fills as FigmaRawPaint[] | undefined;
+  const fills = (node.fills as FigmaRawPaint[] | undefined)?.filter((f) => f.visible !== false);
   if (fills && fills.length > 0) {
     const processed = processPaint(fills[0], variableContext, (name) => {
       if (node.type === "TEXT") {
@@ -29,7 +29,7 @@ export function extractStyleFromNode(
     }
   }
 
-  const strokes = node.strokes as FigmaRawPaint[] | undefined;
+  const strokes = (node.strokes as FigmaRawPaint[] | undefined)?.filter((s) => s.visible !== false);
   if (strokes && strokes.length > 0) {
     const processed = processPaint(strokes[0], variableContext, (name) => {
       varRefs.border = name;
