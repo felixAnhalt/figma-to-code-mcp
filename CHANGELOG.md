@@ -1,5 +1,12 @@
 # tmegit-figma-to-code-mcp
 
+## [0.28.2](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.28.1...v0.28.2) (2026-05-07)
+
+
+### Bug Fixes
+
+* **reducer:** ignore !visible styles ([3a6efa7](https://github.com/felixAnhalt/figma-to-code-mcp/commit/3a6efa7ba87b5feb2a4d1ce60e8d8b5dc67a84af))
+
 ## [0.28.1](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.28.0...v0.28.1) (2026-04-30)
 
 
