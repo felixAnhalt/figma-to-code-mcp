@@ -1,5 +1,12 @@
 # tmegit-figma-to-code-mcp
 
+## [0.29.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.28.2...v0.29.0) (2026-07-23)
+
+
+### Features
+
+* **annotations:** add support for Figma annotations in MCP response ([#52](https://github.com/felixAnhalt/figma-to-code-mcp/issues/52)) ([7a63724](https://github.com/felixAnhalt/figma-to-code-mcp/commit/7a63724a3920e12c2f2c17ee16b29ad50b7390bc))
+
 ## [0.28.2](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.28.1...v0.28.2) (2026-05-07)
 
 
