@@ -28,6 +28,10 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
     let client: Client;
 
     beforeAll(async () => {
+      if (!figmaApiKey) {
+        throw new Error("FIGMA_API_KEY environment variable is required. Check your .env file.");
+      }
+
       server = await createServer(
         {
           figmaApiKey,
@@ -53,10 +57,12 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
 
       const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
       await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
-    });
+    }, 60000);
 
     afterAll(async () => {
-      await client.close();
+      if (client) {
+        await client.close();
+      }
     });
 
     it("compares raw Figma API response vs optimized v3 MCP response", async () => {
