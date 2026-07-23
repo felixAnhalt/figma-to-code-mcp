@@ -90,6 +90,17 @@ export type VariableResolutionReport = {
 };
 
 /**
+ * Annotation attached to a node for dev mode.
+ * Currently used for developer notes about specific UI elements.
+ */
+export interface FigmaAnnotation {
+  label?: string;
+  labelMarkdown?: string;
+  categoryId?: string;
+  properties?: Array<{ type: string }>;
+}
+
+/**
  * A node in the design tree.
  *
  * Properties are only present when they carry meaningful information —
@@ -141,6 +152,12 @@ export type V3Node = {
 
   /** Comments attached to this node (unresolved only). */
   comments?: Comment[];
+
+  /**
+   * Annotations attached to this node in Figma's Dev Mode.
+   * Undefined if no annotations exist, or empty array if annotations exist but are empty.
+   */
+  annotations?: FigmaAnnotation[];
 };
 
 export type CommentReply = {

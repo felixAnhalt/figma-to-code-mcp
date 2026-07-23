@@ -1,4 +1,4 @@
-import type { ComponentDefinition, MCPResponse, V3Node } from "./types";
+import type { ComponentDefinition, MCPResponse, V3Node, FigmaAnnotation } from "./types";
 import type { VariableResolutionContext } from "./variableResolver";
 import { parseVariantProps, resolveChildren, extractComponentProperties } from "./reducer/node";
 import { extractInteractions } from "./reducer/interaction";
@@ -91,6 +91,32 @@ export function buildNormalizedGraph(
     const nodeId = node.id;
     if (nodeId && commentsMap[nodeId]) {
       v3.comments = commentsMap[nodeId];
+    }
+
+    // ── Annotations ─────────────────────────────────────────────────────────────
+    const rawAnnotations = (node as Record<string, unknown>).annotations;
+    if (Array.isArray(rawAnnotations)) {
+      if (rawAnnotations.length > 0) {
+        const safeAnnotations: FigmaAnnotation[] = rawAnnotations.map((annotation) => {
+          // Preserve all annotation fields, including any future extensions
+          const safe: FigmaAnnotation = {};
+          if (typeof annotation.label !== "undefined") safe.label = annotation.label as string;
+          if (typeof annotation.labelMarkdown !== "undefined")
+            safe.labelMarkdown = annotation.labelMarkdown as string;
+          if (typeof annotation.categoryId !== "undefined")
+            safe.categoryId = annotation.categoryId as string;
+          if (Array.isArray(annotation.properties)) {
+            safe.properties = (annotation.properties as Array<{ type: string }>).map((prop) => ({
+              type: prop.type as string,
+            }));
+          }
+          return safe;
+        });
+        v3.annotations = safeAnnotations;
+      } else {
+        // Preserve empty annotation array
+        v3.annotations = [];
+      }
     }
 
     // ── Component reference (INSTANCE nodes) ───────────────────────────────
