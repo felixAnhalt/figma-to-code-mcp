@@ -1,5 +1,12 @@
-import type { V3Node } from "~/figma";
+import type { V3Node } from "~/figma/types";
 import type { SvgPathEntry, SvgBounds } from "~/figma/svg";
+import {
+  buildSvgContent,
+  buildSvgContentFromEntries,
+  computeBoundsFromPaths,
+  svgContentCache,
+} from "../svg-writer";
+import { getVectorAssetFilename, materializeSvgAssets, type SvgAsset } from "../svg/assets";
 
 export type PendingVectorWriteInput = {
   fileKey: string;
@@ -9,59 +16,34 @@ export type PendingVectorWriteInput = {
   entries?: SvgPathEntry[];
   bounds?: SvgBounds;
 };
-import {
-  buildSvgContentFromEntries,
-  getSvgContentFromCache,
-  svgContentCache,
-  writeMergedVectorSvgToDisk,
-  writeVectorSvg,
-  writeVectorSvgToDisk,
-} from "../svg-writer";
 
-const globalPendingVectorWrites: PendingVectorWriteInput[] = [];
-
-export function getPendingVectorWrites(): PendingVectorWriteInput[] {
-  return globalPendingVectorWrites;
+export function addPendingVectorWrite(
+  write: PendingVectorWriteInput,
+  pendingWrites: PendingVectorWriteInput[],
+): void {
+  write.target.svgPathInAssetFolder = getVectorAssetFilename(write.fileKey, write.nodeId);
+  pendingWrites.push(write);
 }
 
-export function addPendingVectorWrite(write: PendingVectorWriteInput): void {
-  globalPendingVectorWrites.push(write);
+export function prepareVectorAssets(pendingWrites: PendingVectorWriteInput[]): SvgAsset[] {
+  return pendingWrites.splice(0).map(prepareVectorAsset);
 }
 
-export async function flushAllPendingVectorSvgs(outputDir: string): Promise<void> {
-  await Promise.all(
-    globalPendingVectorWrites.map(async ({ fileKey, nodeId, paths, target, entries, bounds }) => {
-      const safeNodeId = nodeId.replace(/[:/\\]/g, "_");
+function prepareVectorAsset(write: PendingVectorWriteInput): SvgAsset {
+  const content = write.entries?.length
+    ? buildSvgContentFromEntries(write.entries, write.bounds)
+    : buildSvgContent(write.paths, computeBoundsFromPaths(write.paths));
+  const filename = getVectorAssetFilename(write.fileKey, write.nodeId);
+  write.target.svgPathInAssetFolder = filename;
+  // Retained for legacy URI readers; request exports never read this mutable cache.
+  svgContentCache.set(filename.slice(0, -".svg".length), content);
+  return { fileKey: write.fileKey, nodeId: write.nodeId, content };
+}
 
-      if (entries && entries.length > 0) {
-        const mergedContent = buildSvgContentFromEntries(entries, bounds);
-        const cacheKey = `${fileKey}_${safeNodeId}`;
-        svgContentCache.set(cacheKey, mergedContent);
-
-        const fileName = `${fileKey}_${safeNodeId}.svg`;
-        (target as V3Node).svgPathInAssetFolder = fileName;
-
-        if (outputDir) {
-          await writeMergedVectorSvgToDisk(outputDir, fileKey, nodeId, entries, bounds);
-        }
-
-        return;
-      }
-
-      const uri = await writeVectorSvg(fileKey, nodeId, paths);
-      if (!uri) return;
-
-      const fileName = `${fileKey}_${safeNodeId}.svg`;
-      (target as V3Node).svgPathInAssetFolder = fileName;
-
-      if (outputDir) {
-        const cacheKey = `${fileKey}_${safeNodeId}`;
-        const content = getSvgContentFromCache(cacheKey);
-        if (!content) return;
-
-        await writeVectorSvgToDisk(outputDir, fileKey, nodeId, content);
-      }
-    }),
-  );
-  globalPendingVectorWrites.length = 0;
+/** Source-level helper: callers must supply the collector owned by their request. */
+export async function flushAllPendingVectorSvgs(
+  outputDir: string,
+  pendingWrites: PendingVectorWriteInput[],
+): Promise<void> {
+  await materializeSvgAssets(prepareVectorAssets(pendingWrites), outputDir);
 }

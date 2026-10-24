@@ -1,5 +1,3 @@
-
-
 <div align="center">
   <h1>Figma To Code MCP</h1>
   <h3>Transform Figma design data into a compact, LLM-friendly format for code generation and UI building.</h3>
@@ -19,10 +17,10 @@
 Figma To Code MCP specializes in **extracting only the information LLMs need to build UIs** while removing Figma-specific metadata that isn't relevant for code generation. The result:
 
 - ✅ **99.5% size reduction** on real Figma files (65 MB → 128 KB)
-- ✅ **CSS-aligned property names** (backgroundColor, flexDirection, etc.) matching LLM training data
+- ✅ **Compact, CSS-mappable fields** (`style.background`, `layout.direction`, `style.fontSize`)
 - ✅ **Complete UI-building data** preserved (layout, styling, text, components)
-- ✅ **Inline styles** - no separate dictionaries to parse
-- ✅ **Omits Figma internals** - no bounding boxes, constraints, or prototype data
+- ✅ **Node-local layout and styles** with reusable values in a shared token registry
+- ✅ **Omits Figma internals** - no bounding boxes or constraint metadata
 - ✅ **Variable resolution** - resolves Figma variables to actual values
 - ✅ **SVG support** - exports vector graphics to disk
 - ✅ **Pattern collapsing** - deduplicates repeating UI patterns
@@ -38,7 +36,10 @@ Give [Cursor](https://cursor.sh/) and other AI-powered coding tools access to yo
 | `get_figma_design`   | Fetches CSS-aligned, LLM-optimized design data. Supports SVG export to custom dir. |
 | `get_image_fills`    | Retrieves image fill URLs from a Figma file                                        |
 | `render_node_images` | Renders Figma nodes as PNG images                                                  |
-| `read_vector_svg`    | Reads vector node data as SVG                                                      |
+
+`get_figma_design` exports SVG assets automatically. Its response contains `svgAssetsFolder` and relative `svgPathInAssetFolder` filenames; combine them to locate each file. Use `svgOutputDir` to export directly to a chosen assets directory. There is no separate registered `read_vector_svg` tool.
+
+With `--skip-image-downloads`, only `get_figma_design` is registered; SVG export remains available.
 
 ## Required Scopes
 
@@ -49,8 +50,11 @@ Create a Figma personal access token with these scopes:
 | `file_content:read`    | Read file nodes, layout, styles            |
 | `library_content:read` | Read published components/styles           |
 | `file_variables:read`  | Read variables (Enterprise only, optional) |
+| `file_comments:read`   | Read comments attached to nodes (optional) |
 
 > **Note:** Variable resolution requires Enterprise plan. Set `resolveVariables: false` if not on Enterprise.
+
+If comment access is unavailable, extraction continues without comments and logs a warning.
 
 ## How it works
 
@@ -61,13 +65,13 @@ Create a Figma personal access token with these scopes:
 
 This MCP server transforms [Figma API](https://www.figma.com/developers/api) data into an LLM-friendly format:
 
-- **CSS property names** (`backgroundColor`, `flexDirection`, `fontSize`) instead of Figma internals
-- **Inline styles** directly in nodes (no separate dictionaries)
+- **Compact layout/style fields** (`layout.direction`, `style.background`, `style.fontSize`) instead of verbose Figma internals
+- **Node-local styles** with repeated values referenced from the `tokens` registry
 - **Flexbox primitives** for layout (no absolute positioning)
 - **Complete UI data** (colors, typography, spacing, effects)
 - **99.5% size reduction** while preserving all UI-critical information
 
-See [`V2_CSS_PROPERTY_MAPPING.md`](./V2_CSS_PROPERTY_MAPPING.md) for complete property mapping details.
+The current response uses schema `v3`. [`V2_CSS_PROPERTY_MAPPING.md`](./V2_CSS_PROPERTY_MAPPING.md) describes the older v2 mapping, not the current response contract.
 
 ## Getting Started
 
@@ -112,6 +116,16 @@ The `tmegit-figma-to-code-mcp` server can be configured by adding the following 
 
 Or you can set `FIGMA_API_KEY` and `PORT` in the `env` field.
 
+### HTTP mode
+
+Omit `--stdio` to serve Streamable HTTP at `/mcp` and legacy SSE at `/sse` with messages posted to `/messages`. Concurrent clients have independent MCP sessions; closing one does not close the others. Library-variable prefetch is shared across sessions using the same configured credentials.
+
+For embedded use, `startHttpServer(host, port, server)` still accepts a server returned by this package's `createServer`. For a custom `McpServer`, pass a per-session factory as the third argument to support concurrent clients; a single external instance remains single-session.
+
+`createServerFactory(auth, options)` prepares shared configuration once. If you add custom tools, register them on every server returned by your factory: registrations added to a single supplied instance are not copied to its generated siblings. Custom asynchronous factories must settle so shutdown can finish cleaning up pending connections.
+
+The default host is `127.0.0.1`. These endpoints do not add client authentication; do not expose them to an untrusted network without an authenticated proxy.
+
 ## Configuration
 
 The server reads configuration from CLI flags and environment variables. If both are set, the CLI flag wins.
@@ -133,7 +147,7 @@ The server reads configuration from CLI flags and environment variables. If both
 Notes:
 
 - `--library-file-keys` and `FIGMA_LIBRARY_VARIABLE_PREFETCH_FILE_KEYS` are comma-separated Figma library file keys.
-- `FIGMA_MCP_CACHE_PATH` may point to either a file or a directory. If it is a directory, the cache file is stored as `figma-mcp-library-cache.json` inside it.
+- `FIGMA_MCP_CACHE_PATH` may point to either a JSON file or a directory. The server adds a credential fingerprint before `.json` to isolate cached library variables, for example `figma-mcp-library-cache.<fingerprint>.json` inside a directory. Existing unscoped cache files are not reused by server startup.
 - The library cache is used only when library file keys are configured.
 - `FIGMA_MCP_REFRESH_CACHE` forces a re-fetch on startup even if a cache file exists.
 
@@ -151,20 +165,22 @@ FIGMA_MCP_CACHE_TTL_MS=604800000
 
 ## API Calls & Rate Limits
 
-One execution of `get_figma_design` makes the following API calls:
+On a design-cache miss, `get_figma_design` can make these API calls:
 
-| Call | Endpoint                                  | Tier | Description                                          |
-| ---- | ----------------------------------------- | ---- | ---------------------------------------------------- |
-| 1    | `GET /v1/files/{fileKey}/nodes`           | T1   | Fetch requested nodes (geometry=paths)               |
-| 2    | `GET /v1/files/{fileKey}/styles`          | T3   | Fetch all styles                                     |
-| 3    | `GET /v1/files/{fileKey}/variables/local` | T2   | Fetch local variables (if resolveVariables=true)     |
-| 4    | `GET /v1/components/{key}`                | T3   | Resolve component key → library file (up to 3 tries) |
-| 5    | `GET /v1/files/{libFileKey}/components`   | T3   | Fetch all components from library                    |
-| 6+   | `GET /v1/files/{libFileKey}/nodes`        | T1   | Fetch component definitions from each library        |
+| Endpoint                                  | Tier | When called                                                 |
+| ----------------------------------------- | ---- | ----------------------------------------------------------- |
+| `GET /v1/files/{fileKey}/nodes`           | T1   | Fetch the requested design node with vector geometry        |
+| `GET /v1/files/{fileKey}/variables/local` | T2   | When `resolveVariables=true`                                |
+| `GET /v1/files/{fileKey}/comments`        | T2   | Attempt to fetch comments; failure is non-fatal             |
+| `GET /v1/components/{key}`                | T3   | Resolve referenced component keys to their source libraries |
+| `GET /v1/files/{libFileKey}/components`   | T3   | Fetch metadata once per resolved library                    |
+| `GET /v1/files/{libFileKey}/nodes`        | T1   | Fetch source component definitions, batched per library     |
 
-Amount of T1 calls: 1 + N (N=number of unique library files)
-Amount of T2 calls: 1 (if resolveVariables=true)
-Amount of T3 calls: 2 + N (styles + component key resolution + N library components)
+Request counts vary with the number of unique component keys, libraries, node batches, and retries. Components from multiple libraries are supported; unavailable library metadata falls back to usable instance data.
+
+Compatible design-cache hits avoid these Figma calls but still export assets into the requested SVG directory. Changing credentials or result-affecting options does not reuse an incompatible design response.
+
+Effective styles are read from node properties, including node-specific overrides. The tool does not make a separate `/styles` request. The library's existing `fetchStyles` export and `styleMap` parameter remain available for compatibility; shared-style names are not currently emitted in the design response.
 
 For Professional plan with Dev/Full seat: **10 req/min** (Tier 1), **25 req/min** (Tier 2), **50 req/min** (Tier 3).
 

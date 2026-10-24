@@ -3,10 +3,75 @@ import { extractFillColor, parseRelativeTransform } from "./utils";
 import type { SvgPathEntry } from "../svg-writer";
 import { extractVectorPaths } from "./vector";
 
+const VECTOR_CONTAINER_TYPES = new Set(["GROUP", "FRAME"]);
+
+export function getVectorMerge(node: FigmaRawNode, children: FigmaRawNode[]) {
+  if (!VECTOR_CONTAINER_TYPES.has(node.type) || node.isMask || children.length < 2) return;
+  if (!(node.children ?? []).every(isSupportedVectorSubtree)) return;
+  const directVectors = children.every((child) => child.type === "VECTOR");
+  const entries = getMergeEntries(node, children, directVectors);
+  if (!entries || entries.length < 2) return;
+  const rawBounds = node.absoluteBoundingBox;
+  const bounds =
+    typeof rawBounds?.width === "number" && typeof rawBounds.height === "number"
+      ? { x: 0, y: 0, width: rawBounds.width, height: rawBounds.height }
+      : undefined;
+  const name = directVectors || node.type === "FRAME" ? children[0].name : node.name;
+  return { entries, bounds, name };
+}
+
+function getMergeEntries(node: FigmaRawNode, children: FigmaRawNode[], directVectors: boolean) {
+  if (directVectors) return extractVectorEntriesFromChildren(children);
+  if (node.type === "GROUP") return extractVectorEntriesFromDeepGroup(node);
+  const groups = children.every(
+    (child) =>
+      child.type === "GROUP" &&
+      (child.children ?? []).every(
+        (nested) => nested.visible === false || nested.type === "VECTOR",
+      ),
+  );
+  if (!groups) return undefined;
+  const bounds = node.absoluteBoundingBox;
+  return extractVectorEntriesFromGroupChildren(children, {
+    x: bounds?.x ?? 0,
+    y: bounds?.y ?? 0,
+  });
+}
+
+function isSupportedVectorSubtree(node: FigmaRawNode): boolean {
+  if (node.visible === false) return true;
+  if (hasUnsupportedMergeProperties(node)) return false;
+  if (node.type === "VECTOR") return extractVectorPaths(node) !== undefined;
+  if (!VECTOR_CONTAINER_TYPES.has(node.type)) return false;
+  const fills = node.fills as FigmaRawPaint[] | undefined;
+  if (fills?.some((fill) => fill.visible !== false && fill.type !== "NONE")) return false;
+  return (node.children ?? []).every(isSupportedVectorSubtree);
+}
+
+function hasUnsupportedMergeProperties(node: FigmaRawNode): boolean {
+  const fills = (node.fills as FigmaRawPaint[] | undefined)?.filter(
+    (fill) => fill.visible !== false,
+  );
+  const strokes = node.strokes as FigmaRawPaint[] | undefined;
+  const effects = node.effects as Array<{ visible?: boolean }> | undefined;
+  return (
+    node.isMask === true ||
+    (node.opacity !== undefined && node.opacity !== 1) ||
+    node.clipsContent === true ||
+    (node.rotation !== undefined && node.rotation !== 0) ||
+    (node.blendMode !== undefined && !["NORMAL", "PASS_THROUGH"].includes(node.blendMode)) ||
+    (fills?.length ?? 0) > 1 ||
+    (fills?.some((fill) => fill.type !== "SOLID") ?? false) ||
+    (strokes?.some((stroke) => stroke.visible !== false) ?? false) ||
+    (effects?.some((effect) => effect.visible !== false) ?? false)
+  );
+}
+
 export function extractVectorEntriesFromChildren(children: FigmaRawNode[]): SvgPathEntry[] {
   const entries: SvgPathEntry[] = [];
 
   for (const child of children) {
+    if (child.visible === false) continue;
     if ((child as FigmaRawNode).isMask) continue;
     const childPaths = extractVectorPaths(child);
     if (!childPaths) continue;
@@ -31,6 +96,7 @@ export function collectVectorsDeep(
   const children = node.children ?? [];
   for (const child of children) {
     const childNode = child as FigmaRawNode;
+    if (childNode.visible === false) continue;
 
     if (childNode.type === "VECTOR") {
       if (childNode.isMask === true) continue;
@@ -85,12 +151,14 @@ export function extractVectorEntriesFromGroupChildren(
   const entries: SvgPathEntry[] = [];
 
   for (const group of groups) {
+    if (group.visible === false) continue;
     const groupTransform = parseRelativeTransform(
       group.relativeTransform as number[][] | undefined,
     );
     const groupChildren = group.children ?? [];
 
     for (const child of groupChildren) {
+      if (child.visible === false) continue;
       if ((child as FigmaRawNode).isMask === true) continue;
       const childPaths = extractVectorPaths(child as FigmaRawNode);
       if (!childPaths) continue;

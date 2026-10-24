@@ -1,6 +1,7 @@
 import type { FigmaRawNode, FigmaRawPaint, FigmaEffect, ComponentPropertyValue } from "./types";
 
 export function isTransparentWrapper(node: FigmaRawNode): boolean {
+  if (node.isMask === true) return false;
   if (node.type === "INSTANCE" || node.type === "COMPONENT") return false;
   if (node.type !== "FRAME" && node.type !== "GROUP") return false;
   if (!node.children || node.children.length !== 1) return false;
@@ -48,7 +49,7 @@ export function resolveChildren(children: FigmaRawNode[]): FigmaRawNode[] {
     if (!child || child.visible === false) continue;
 
     let current: FigmaRawNode | null | undefined = child;
-    while (current && isTransparentWrapper(current)) {
+    while (current && current.visible !== false && isTransparentWrapper(current)) {
       const next: FigmaRawNode | undefined = current.children?.[0];
       if (!next) {
         break;
@@ -56,7 +57,7 @@ export function resolveChildren(children: FigmaRawNode[]): FigmaRawNode[] {
       current = next;
     }
 
-    if (current) {
+    if (current && current.visible !== false) {
       result.push(current);
     }
   }

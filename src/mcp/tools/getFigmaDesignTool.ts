@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { FigmaService } from "~/services/figmaConnector";
-import { generateMCPResponse, fetchStyles, extractTokens } from "~/figma";
+import { generateMCPResponse, extractTokens } from "~/figma";
 import yaml from "js-yaml";
 import { Logger, writeLogs } from "~/utils/logger";
 import { tmpdir } from "node:os";
@@ -66,19 +66,12 @@ async function getFigmaDesign(
 
     const authHeaders = figmaService.getAuthHeaders();
 
-    // Fetch styles (component maps are built internally by generateMCPResponse)
-    Logger.log("Fetching styles...");
-    const styleMap = await fetchStyles(fileKey, authHeaders);
-
-    Logger.log(`Found ${Object.keys(styleMap).length} styles`);
-
     // Generate normalized MCP response — component map resolution happens internally
     Logger.log("Building normalized graph...");
-    let mcpResponse = await generateMCPResponse({
+    const mcpResponse = await generateMCPResponse({
       fileKey,
       authHeaders,
       rootNodeId: nodeId,
-      styleMap,
       resolveVariables,
       svgOutputDir: outputDir,
       preloadedVariableContext,

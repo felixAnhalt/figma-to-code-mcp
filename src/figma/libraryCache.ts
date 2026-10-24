@@ -20,6 +20,7 @@
  *   4. Otherwise → use cached context
  */
 
+import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, extname, join } from "node:path";
 import { Logger } from "~/utils/logger";
@@ -30,6 +31,7 @@ const CACHE_FILE_NAME = "figma-mcp-library-cache.json";
 type SerializedContext = {
   fileKeys: string[];
   fetchedAt: number;
+  credentialScope?: string;
   variableValues: [string, VariableValue][];
   activeModes: [string, string][];
   variableNames: [string, string][];
@@ -39,15 +41,30 @@ export type LibraryCacheOptions = {
   cachePath: string;
   ttlMs: number;
   forceRefresh: boolean;
+  /** Non-secret fingerprint created by scopeLibraryCacheOptions for server-owned caches. */
+  credentialScope?: string;
 };
+
+export function scopeLibraryCacheOptions(
+  options: LibraryCacheOptions,
+  authHeaders: Record<string, string>,
+): LibraryCacheOptions {
+  const credentials = Object.entries(authHeaders).sort(([left], [right]) =>
+    left.localeCompare(right),
+  );
+  const credentialScope = createHash("sha256").update(JSON.stringify(credentials)).digest("hex");
+  return { ...options, credentialScope };
+}
 
 function serializeContext(
   context: VariableResolutionContext,
   fileKeys: string[],
+  credentialScope?: string,
 ): SerializedContext {
   return {
     fileKeys: [...fileKeys].sort(),
     fetchedAt: Date.now(),
+    credentialScope,
     variableValues: [...context.variableValues.entries()],
     activeModes: [...context.activeModes.entries()],
     variableNames: [...context.variableNames.entries()],
@@ -62,9 +79,10 @@ function deserializeContext(serialized: SerializedContext): VariableResolutionCo
   };
 }
 
-function resolveCacheFilePath(cachePath: string): string {
-  if (extname(cachePath) === ".json") return cachePath;
-  return join(cachePath, CACHE_FILE_NAME);
+function resolveCacheFilePath({ cachePath, credentialScope }: LibraryCacheOptions): string {
+  const filePath = extname(cachePath) === ".json" ? cachePath : join(cachePath, CACHE_FILE_NAME);
+  if (!credentialScope) return filePath;
+  return filePath.replace(/\.json$/, `.${credentialScope}.json`);
 }
 
 function isSerializedContext(value: unknown): value is SerializedContext {
@@ -94,7 +112,7 @@ export function readLibraryCache(
   fileKeys: string[],
   opts: LibraryCacheOptions,
 ): VariableResolutionContext | null {
-  const cacheFilePath = resolveCacheFilePath(opts.cachePath);
+  const cacheFilePath = resolveCacheFilePath(opts);
 
   if (opts.forceRefresh) {
     Logger.log("[Library Cache] Force refresh requested — skipping cache read");
@@ -113,6 +131,11 @@ export function readLibraryCache(
     const parsed = JSON.parse(raw) as unknown;
     if (!isSerializedContext(parsed)) {
       Logger.warn("[Library Cache] Cache file has an unexpected shape — will re-fetch");
+      return null;
+    }
+
+    if (opts.credentialScope && parsed.credentialScope !== opts.credentialScope) {
+      Logger.log("[Library Cache] Credential scope changed — cache invalidated");
       return null;
     }
 
@@ -150,9 +173,9 @@ export function writeLibraryCache(
   opts: LibraryCacheOptions,
 ): void {
   try {
-    const cacheFilePath = resolveCacheFilePath(opts.cachePath);
+    const cacheFilePath = resolveCacheFilePath(opts);
     mkdirSync(dirname(cacheFilePath), { recursive: true });
-    const serialized = serializeContext(context, fileKeys);
+    const serialized = serializeContext(context, fileKeys, opts.credentialScope);
     writeFileSync(cacheFilePath, JSON.stringify(serialized, null, 2), "utf-8");
     Logger.log(
       `[Library Cache] Saved ${context.variableValues.size} variables to cache (path: ${cacheFilePath})`,

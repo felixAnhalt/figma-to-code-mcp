@@ -1,5 +1,6 @@
 // Re-export server-related functionality for users who want MCP server capabilities
-export { createServer } from "./mcp/index";
+export { createServer, createServerFactory } from "./mcp/index";
+export type { CreateServerOptions, McpServerFactory } from "./mcp/index";
 export type { FigmaService } from "./services/figmaConnector";
 export { getServerConfig } from "./config";
 export { startServer, startHttpServer, stopHttpServer } from "./server";
