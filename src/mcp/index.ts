@@ -14,6 +14,7 @@ import { buildResolutionContext, mergeResolutionContext } from "~/figma/variable
 import type { VariableResolutionContext } from "~/figma/variableResolver";
 import {
   readLibraryCache,
+  scopeLibraryCacheOptions,
   writeLibraryCache,
   type LibraryCacheOptions,
 } from "~/figma/libraryCache";
@@ -25,13 +26,24 @@ const serverInfo = {
     "Gives AI coding agents access to Figma design data, providing layout, styling, and content information for implementing designs.",
 };
 
-type CreateServerOptions = {
+export type CreateServerOptions = {
   isHTTP?: boolean;
   outputFormat?: "yaml" | "json";
   skipImageDownloads?: boolean;
   svgOutputDir?: string;
   libraryFileKeys?: string[];
   libraryCacheOptions?: LibraryCacheOptions;
+};
+
+export type McpServerFactory = () => McpServer | Promise<McpServer>;
+
+const siblingServerFactories = new WeakMap<McpServer, McpServerFactory>();
+
+type ToolOptions = {
+  outputFormat: "yaml" | "json";
+  skipImageDownloads: boolean;
+  svgOutputDir?: string;
+  preloadedVariableContext?: VariableResolutionContext | null;
 };
 
 async function prefetchLibraryVariables(
@@ -99,49 +111,61 @@ async function prefetchLibraryVariables(
   return merged;
 }
 
-async function createServer(
+export async function createServerFactory(
   authOptions: FigmaAuthOptions,
-  {
-    isHTTP = false,
-    outputFormat = "yaml",
-    skipImageDownloads = false,
-    svgOutputDir,
-    libraryFileKeys = [],
-    libraryCacheOptions,
-  }: CreateServerOptions = {},
-) {
-  const server = new McpServer(serverInfo);
+  options: CreateServerOptions = {},
+): Promise<McpServerFactory> {
   const figmaService = new FigmaService(authOptions);
-
-  const authHeaders = figmaService.getAuthHeaders();
-  const preloadedVariableContext = await prefetchLibraryVariables(
-    libraryFileKeys,
-    authHeaders,
-    libraryCacheOptions,
-  );
-
-  registerTools(server, figmaService, {
-    outputFormat,
-    skipImageDownloads,
-    svgOutputDir,
-    preloadedVariableContext,
-  });
-
-  Logger.isHTTP = isHTTP;
-
-  return server;
+  const toolOptions = await prepareToolOptions(figmaService, options);
+  Logger.isHTTP = options.isHTTP ?? false;
+  const factory = () => {
+    const server = new McpServer(serverInfo);
+    registerTools(server, figmaService, toolOptions);
+    siblingServerFactories.set(server, factory);
+    return server;
+  };
+  return factory;
 }
 
-function registerTools(
-  server: McpServer,
-  figmaService: FigmaService,
-  options: {
-    outputFormat: "yaml" | "json";
-    skipImageDownloads: boolean;
-    svgOutputDir?: string;
-    preloadedVariableContext?: VariableResolutionContext | null;
-  },
-): void {
+async function prepareToolOptions(figmaService: FigmaService, options: CreateServerOptions) {
+  const authHeaders = figmaService.getAuthHeaders();
+  const preloadedVariableContext = await prefetchLibraryVariables(
+    options.libraryFileKeys ?? [],
+    authHeaders,
+    options.libraryCacheOptions
+      ? scopeLibraryCacheOptions(options.libraryCacheOptions, authHeaders)
+      : undefined,
+  );
+  return {
+    outputFormat: options.outputFormat ?? "yaml",
+    skipImageDownloads: options.skipImageDownloads ?? false,
+    svgOutputDir: options.svgOutputDir,
+    preloadedVariableContext,
+  };
+}
+
+export async function createServer(
+  authOptions: FigmaAuthOptions,
+  options: CreateServerOptions = {},
+) {
+  const factory = await createServerFactory(authOptions, options);
+  return factory();
+}
+
+export function getSiblingServerFactory(server: McpServer) {
+  return siblingServerFactories.get(server);
+}
+
+function copyVariableContext(context?: VariableResolutionContext | null) {
+  if (!context) return context;
+  return {
+    variableValues: new Map(context.variableValues),
+    variableNames: new Map(context.variableNames),
+    activeModes: new Map(context.activeModes),
+  };
+}
+
+function registerTools(server: McpServer, figmaService: FigmaService, options: ToolOptions): void {
   server.registerTool(
     getFigmaDesignTool.name,
     {
@@ -151,13 +175,12 @@ function registerTools(
       annotations: { readOnlyHint: true },
     },
     (params: GetFigmaDesignParams) =>
-      getFigmaDesignTool.handler(
-        params,
-        figmaService,
-        options.outputFormat,
-        params.svgOutputDir || options.svgOutputDir,
-        options.preloadedVariableContext,
-      ),
+      getFigmaDesignTool.handler(params, figmaService, {
+        outputFormat: options.outputFormat,
+        svgOutputDir: params.svgOutputDir || options.svgOutputDir,
+        preloadedVariableContext: copyVariableContext(options.preloadedVariableContext),
+        renderImage: !options.skipImageDownloads,
+      }),
   );
 
   if (!options.skipImageDownloads) {
@@ -184,5 +207,3 @@ function registerTools(
     );
   }
 }
-
-export { createServer };

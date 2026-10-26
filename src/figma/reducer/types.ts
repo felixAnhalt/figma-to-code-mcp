@@ -8,11 +8,14 @@ export type FigmaRawNode = {
   componentId?: string;
   componentProperties?: Record<string, ComponentPropertyValue>;
   characters?: string;
+  characterStyleOverrides?: number[];
+  styleOverrideTable?: Record<string, Record<string, unknown>>;
   relativeTransform?: number[][];
   absoluteBoundingBox?: { x?: number; y?: number; width?: number; height?: number };
   fills?: unknown;
   strokes?: unknown;
   strokeWeight?: number;
+  individualStrokeWeights?: { top: number; right: number; bottom: number; left: number };
   rectangleCornerRadii?: number[];
   cornerRadius?: number;
   effects?: unknown;
@@ -20,6 +23,7 @@ export type FigmaRawNode = {
   rotation?: number;
   blendMode?: string;
   layoutMode?: string;
+  layoutPositioning?: "AUTO" | "ABSOLUTE";
   counterAxisAlignItems?: string;
   primaryAxisAlignItems?: string;
   itemSpacing?: number;
@@ -61,6 +65,7 @@ export type FigmaRawPaint = {
     position: number;
     color: { r: number; g: number; b: number; a: number };
   }>;
+  gradientHandlePositions?: Array<{ x: number; y: number }>;
   imageRef?: string;
   scaleMode?: string;
   opacity?: number;

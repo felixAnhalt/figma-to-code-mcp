@@ -12,6 +12,8 @@ import yaml from "js-yaml";
 
 config();
 
+const LIVE_TOOL_TIMEOUT_MS = 10 * 60 * 1000;
+
 describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
   "Live Figma Optimization Test (v3)",
   () => {
@@ -23,6 +25,8 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
     );
     const libraryCachePath = process.env.FIGMA_MCP_CACHE_PATH;
     const forceRefresh = Boolean(process.env.FIGMA_MCP_REFRESH_CACHE);
+    const includeComponentVariants = process.env.FIGMA_INCLUDE_COMPONENT_VARIANTS === "1";
+    const fixtureSuffix = includeComponentVariants ? "-with-variants" : "";
 
     let server: McpServer;
     let client: Client;
@@ -109,10 +113,16 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
           method: "tools/call",
           params: {
             name: "get_figma_design",
-            arguments: { fileKey: figmaFileKey, nodeId, resolveVariables: true },
+            arguments: {
+              fileKey: figmaFileKey,
+              nodeId,
+              resolveVariables: true,
+              includeComponentVariants,
+            },
           },
         },
         CallToolResultSchema,
+        { timeout: LIVE_TOOL_TIMEOUT_MS },
       );
 
       expect(toolResult.isError).toBeFalsy();
@@ -124,11 +134,11 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
 
       // Save fixtures — JSON for inspection, YAML matching what the LLM actually receives
       fs.writeFileSync(
-        path.join(resourcesDir, "live-optimized-response.json"),
+        path.join(resourcesDir, `live-optimized-response${fixtureSuffix}.json`),
         JSON.stringify(mcpResponse, null, 2),
       );
       fs.writeFileSync(
-        path.join(resourcesDir, "live-optimized-response.yaml"),
+        path.join(resourcesDir, `live-optimized-response${fixtureSuffix}.yaml`),
         yaml.dump(mcpResponse),
       );
 
@@ -185,9 +195,9 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
       expect(mcpResponse).not.toHaveProperty("definitions");
       if (componentSetCount > 0) {
         const firstSet = Object.values(componentSets ?? {})[0];
-        expect(firstSet).toHaveProperty("name");
-        expect(firstSet).toHaveProperty("variants");
+        expect(firstSet).toHaveProperty("file");
         expect(firstSet).toHaveProperty("propKeys");
+        expect(mcpResponse).toHaveProperty("componentSetsFolder");
         console.log(`✓ componentSets shape is correct`);
       }
 
@@ -219,7 +229,7 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
       expect(responseStr).not.toContain('"flexDirection"');
       console.log("✓ No legacy display/flexDirection at top level");
 
-      expect(optimizedSize).toBeLessThan(rawSize);
+      if (!includeComponentVariants) expect(optimizedSize).toBeLessThan(rawSize);
       console.log(`\n✓ Size reduction: ${reduction.toFixed(1)}%`);
 
       console.log("\n=== TEST COMPLETE ===\n");

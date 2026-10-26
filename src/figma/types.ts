@@ -78,6 +78,13 @@ export type MCPResponse = {
    */
   svgAssetsFolder?: string;
   /**
+   * Absolute path to the folder where the rendered PNG of the requested node is saved.
+   * Present together with renderedDesignNodePathInAssetFolder when rendering succeeds.
+   */
+  renderedDesignNodeAssetsFolder?: string;
+  /** File name of the rendered PNG of the requested node, relative to renderedDesignNodeAssetsFolder. */
+  renderedDesignNodePathInAssetFolder?: string;
+  /**
    * Summary of unresolved variable aliases that could not be inlined.
    * Present when the response still contains VARIABLE_ALIAS entries.
    */
@@ -136,6 +143,9 @@ export type V3Node = {
   /** Raw text content (TEXT nodes only) */
   text?: string;
 
+  /** Styled ranges covering the entire text; each run inherits the node's resolved text style. */
+  textRuns?: TextRun[];
+
   /** Prototype interactions (ON_HOVER, ON_CLICK, etc.). Only present when non-empty. */
   interactions?: Interaction[];
 
@@ -149,6 +159,9 @@ export type V3Node = {
    * Combine with svgAssetsFolder at the root level to get the full path.
    */
   svgPathInAssetFolder?: string;
+  /** Exported viewBox in node-local pixels; preserves ink outside the original layout footprint. */
+  /** Exported SVG viewBox in node-local pixels. A missing x or y means 0. */
+  svgViewport?: { x?: number; y?: number; width: number; height: number };
 
   /** Comments attached to this node (unresolved only). */
   comments?: Comment[];
@@ -195,6 +208,11 @@ export type StyleVarRefs = Partial<
  * After tokenization, padding and gap values may be replaced with TokenRef strings.
  */
 export type Layout = {
+  /** Establish a containing block, or preserve a non-flow child's parent-local placement. */
+  position?: "relative" | "absolute";
+  /** Parent-local pixel offsets, including zero and negative values. Never design-token refs. */
+  left?: number;
+  top?: number;
   /** flex-direction equivalent */
   direction?: "row" | "column";
   /** align-items equivalent */
@@ -258,6 +276,8 @@ export type Style = {
   /** Stroke color as rgba() or TokenRef string */
   border?: string;
   borderWidth?: number | TokenRef;
+  /** Asymmetric stroke widths. Replaces borderWidth; zero-valued edges are significant. */
+  borderWidths?: { top: number; right: number; bottom: number; left: number };
   /** Single radius or [topLeft, topRight, bottomRight, bottomLeft] or TokenRef string */
   radius?: number | number[] | TokenRef;
   /** CSS box-shadow string or TokenRef string */
@@ -292,10 +312,37 @@ export type Style = {
 
 export type Paint = {
   type: string;
+  /** Normalized node-local gradient handles, including positions outside the unit square. */
+  gradientHandlePositions?: GradientHandlePositions;
   gradientStops?: GradientStop[];
   imageRef?: string;
   scaleMode?: string;
   opacity?: number;
+};
+
+export type GradientHandlePositions = [
+  { x: number; y: number },
+  { x: number; y: number },
+  { x: number; y: number },
+];
+
+/** Scalar overrides applied after resolving the TEXT node's base typography token. */
+export type TextStyleDelta = Pick<
+  Style,
+  | "color"
+  | "font"
+  | "fontSize"
+  | "fontWeight"
+  | "fontStyle"
+  | "lineHeight"
+  | "letterSpacing"
+  | "textDecoration"
+  | "textTransform"
+> & { _varRefs?: Pick<StyleVarRefs, "color"> };
+
+export type TextRun = {
+  text: string;
+  style?: TextStyleDelta;
 };
 
 export type GradientStop = {
@@ -355,6 +402,8 @@ export type ComponentSet = {
   name: string;
   /** All prop dimension keys found across variants, e.g. ["variant", "size", "state"] */
   propKeys: string[];
+  /** Every value each prop takes across the set's members, e.g. { size: ["lg", "md", "sm"] } */
+  propValues?: Record<string, string[]>;
   /**
    * Shared base: layout/style/children common to ALL variants.
    * Omit a field from a variant's overrides if it matches the base exactly.

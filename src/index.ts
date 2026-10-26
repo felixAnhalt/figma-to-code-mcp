@@ -2,6 +2,9 @@
 export type {
   MCPResponse,
   V3Node,
+  TextRun,
+  TextStyleDelta,
+  GradientHandlePositions,
   Layout,
   Style,
   Paint,

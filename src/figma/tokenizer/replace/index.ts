@@ -1,5 +1,5 @@
 import type { V3Node, MCPResponse } from "../../types";
-import { replaceStyleTokens } from "./style";
+import { replaceStyleTokens, replaceTextRunColors } from "./style";
 import { replaceLayoutTokens } from "./layout";
 
 export function replaceNodeTokens(
@@ -16,6 +16,9 @@ export function replaceNodeTokens(
     ...node,
     style: replaceStyleTokens(node.style, colorsByRaw, shadowsByRaw, radiiByRaw, typographiesByRaw),
     layout: replaceLayoutTokens(node.layout, spacingsByRaw, paddingCombosByRaw, heightsByRaw),
+    ...(node.textRuns
+      ? { textRuns: node.textRuns.map((run) => replaceTextRunColors(run, colorsByRaw)) }
+      : {}),
     children: node.children?.map((child) =>
       replaceNodeTokens(
         child,

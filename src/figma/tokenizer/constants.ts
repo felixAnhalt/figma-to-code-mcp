@@ -1,4 +1,4 @@
-export const MIN_USES_FOR_TOKEN = 2;
+export const MIN_USES_FOR_TOKEN = 1;
 
 export const COLOR_SEMANTIC_NAMES: Record<string, string> = {
   "#FFFFFF": "white",

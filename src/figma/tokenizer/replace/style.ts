@@ -1,6 +1,17 @@
-import type { Style } from "../../types";
+import type { Style, TextRun } from "../../types";
 import { buildTypographyKey } from "../registry";
 import { normalizeShadowKey } from "../normalize";
+
+/** Run typography stays scalar: it inherits metrics from the node's typography token. */
+export function replaceTextRunColors(run: TextRun, colorsByRaw: Map<string, string>): TextRun {
+  if (!run.style) return { ...run };
+  const style = { ...run.style };
+  if (typeof style.color === "string") {
+    const token = style._varRefs?.color ?? colorsByRaw.get(style.color);
+    if (token) style.color = `colors.${token}`;
+  }
+  return { ...run, style };
+}
 
 export function replaceStyleTokens(
   style: Style | undefined,

@@ -5,6 +5,9 @@ export { fetchStyles, fetchVariables } from "./fetch";
 export type {
   MCPResponse,
   V3Node,
+  TextRun,
+  TextStyleDelta,
+  GradientHandlePositions,
   ComponentVariant,
   ComponentSet,
   ComponentDefinition,

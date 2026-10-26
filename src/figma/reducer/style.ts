@@ -1,9 +1,28 @@
-import type { Style, StyleVarRefs } from "../types";
+import type { Style, StyleVarRefs } from "~/figma/types";
+import type { VariableResolutionContext } from "~/figma/variableResolver";
 import type { FigmaRawNode, FigmaRawPaint, FigmaEffect } from "./types";
 import { formatColor, roundTo } from "./utils";
-import { processPaint } from "./paint";
-import { resolveVariableName } from "./paint";
-import type { VariableResolutionContext } from "../variableResolver";
+import { processPaint, resolveVariableName } from "./paint";
+import { extractStrokeWidths } from "./stroke-widths";
+
+function extractBorderFromNode(
+  node: FigmaRawNode,
+  variableContext: VariableResolutionContext | null | undefined,
+  varRefs: StyleVarRefs,
+) {
+  const stroke = (node.strokes as FigmaRawPaint[] | undefined)?.find((s) => s.visible !== false);
+  if (!stroke) return undefined;
+  const border = processPaint(stroke, variableContext, (name) => {
+    varRefs.border = name;
+  });
+  const widths = extractStrokeWidths(node);
+  if (widths.borderWidth !== undefined) {
+    const boundVars = node.boundVariables as Record<string, unknown> | undefined;
+    const name = resolveVariableName(boundVars?.strokeWeight, variableContext);
+    if (name) varRefs.borderWidth = name;
+  }
+  return { ...(typeof border === "string" ? { border } : {}), ...widths };
+}
 
 export function extractStyleFromNode(
   node: FigmaRawNode,
@@ -29,23 +48,7 @@ export function extractStyleFromNode(
     }
   }
 
-  const strokes = (node.strokes as FigmaRawPaint[] | undefined)?.filter((s) => s.visible !== false);
-  if (strokes && strokes.length > 0) {
-    const processed = processPaint(strokes[0], variableContext, (name) => {
-      varRefs.border = name;
-    });
-    if (typeof processed === "string") style.border = processed;
-    if (node.strokeWeight !== undefined && node.strokeWeight !== 0) {
-      style.borderWidth = node.strokeWeight as number;
-      // Check for boundVariables on strokeWeight
-      const boundVars = node.boundVariables as Record<string, unknown> | undefined;
-      const boundStrokeWeight = boundVars?.strokeWeight;
-      if (boundStrokeWeight) {
-        const name = resolveVariableName(boundStrokeWeight, variableContext);
-        if (name) varRefs.borderWidth = name;
-      }
-    }
-  }
+  Object.assign(style, extractBorderFromNode(node, variableContext, varRefs));
 
   const rectangleCornerRadii = node.rectangleCornerRadii as number[] | undefined;
   if (rectangleCornerRadii) {

@@ -1,0 +1,2 @@
+# Keep detected text files as LF in both the repository and working tree.
+* text=auto eol=lf

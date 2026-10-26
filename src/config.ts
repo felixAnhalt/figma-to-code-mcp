@@ -224,7 +224,7 @@ export function getServerConfig(isStdioMode: boolean): ServerConfig {
     config.svgOutputDir = resolve(process.env.FIGMA_SVG_OUTPUT_DIR);
     config.configSources.svgOutputDir = "env";
   } else {
-    config.svgOutputDir = resolve(tmpdir(), "figma-mcp-svg-files");
+    config.svgOutputDir = resolve(tmpdir(), "figma-mcp-files");
   }
 
   // Handle libraryFileKeys (comma-separated Figma file keys for variable prefetch)

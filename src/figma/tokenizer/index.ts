@@ -7,6 +7,7 @@ import {
 } from "./constants";
 import {
   buildSemanticTokenRegistry,
+  withFallbackNames,
   parseString,
   parseNumber,
   parsePaddingCombo,
@@ -16,6 +17,14 @@ import {
   buildRadiusSemanticMap,
   buildHeightSemanticMap,
 } from "./registry";
+import {
+  colorFallbackName,
+  heightFallbackName,
+  paddingComboFallbackName,
+  radiusFallbackName,
+  shadowFallbackName,
+  spacingFallbackName,
+} from "./fallbackNames";
 import { replaceNodeTokens, replaceComponentSetTokens } from "./replace";
 
 // ── Figma variable ref collection ─────────────────────────────────────────────
@@ -82,6 +91,7 @@ function collectFigmaVarRefs(response: MCPResponse): FigmaVarMaps {
 
   function collectNode(node: V3Node): void {
     collectStyle(node.style);
+    for (const run of node.textRuns ?? []) collectStyle(run.style);
     collectLayout(node.layout);
     for (const child of node.children ?? []) collectNode(child);
   }
@@ -126,6 +136,14 @@ function stripVarRefsFromNode(node: V3Node): V3Node {
     style: stripVarRefsFromStyle(node.style),
     layout: stripVarRefsFromLayout(node.layout),
     children: node.children?.map(stripVarRefsFromNode),
+    ...(node.textRuns
+      ? {
+          textRuns: node.textRuns.map((run) => ({
+            ...run,
+            ...(run.style ? { style: stripVarRefsFromStyle(run.style) } : {}),
+          })),
+        }
+      : {}),
   };
   if (!stripped.style) delete stripped.style;
   if (!stripped.layout) delete stripped.layout;
@@ -185,32 +203,32 @@ export function extractTokens(response: MCPResponse): MCPResponse {
   // Step 3: build semantic token registries from frequency-based invented names
   const { tokensByRaw: colorsByRaw, registry: colorRegistry } = buildSemanticTokenRegistry(
     colors,
-    COLOR_SEMANTIC_NAMES,
+    withFallbackNames(colors, COLOR_SEMANTIC_NAMES, colorFallbackName),
     parseString,
   );
   const { tokensByRaw: shadowsByRaw, registry: shadowRegistry } = buildSemanticTokenRegistry(
     shadows,
-    SHADOW_SEMANTIC_NAMES,
+    withFallbackNames(shadows, SHADOW_SEMANTIC_NAMES, shadowFallbackName),
     parseString,
   );
   const { tokensByRaw: spacingsByRaw, registry: spacingRegistry } = buildSemanticTokenRegistry(
     spacings,
-    buildSpacingSemanticMap(spacings),
+    withFallbackNames(spacings, buildSpacingSemanticMap(spacings), spacingFallbackName),
     parseNumber,
   );
   const { tokensByRaw: radiiByRaw, registry: radiusRegistry } = buildSemanticTokenRegistry(
     radii,
-    buildRadiusSemanticMap(radii),
+    withFallbackNames(radii, buildRadiusSemanticMap(radii), radiusFallbackName),
     parseNumber,
   );
   const { tokensByRaw: paddingCombosByRaw, registry: paddingRegistry } = buildSemanticTokenRegistry(
     paddingCombos,
-    PADDING_COMBO_SEMANTIC_NAMES,
+    withFallbackNames(paddingCombos, PADDING_COMBO_SEMANTIC_NAMES, paddingComboFallbackName),
     parsePaddingCombo,
   );
   const { tokensByRaw: heightsByRaw, registry: heightRegistry } = buildSemanticTokenRegistry(
     heights,
-    buildHeightSemanticMap(heights),
+    withFallbackNames(heights, buildHeightSemanticMap(heights), heightFallbackName),
     parseNumber,
   );
 

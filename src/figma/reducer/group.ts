@@ -1,19 +1,106 @@
+import type { VariableResolutionContext } from "~/figma/variableResolver";
 import type { FigmaRawNode, FigmaRawPaint } from "./types";
-import { extractFillColor, parseRelativeTransform } from "./utils";
+import { roundTo } from "./utils";
 import type { SvgPathEntry } from "../svg-writer";
-import { extractVectorPaths } from "./vector";
+import type { Layout } from "../types";
+import { extractVectorPaths, getVectorPaintColor } from "./vector";
+import {
+  getFiniteTransform,
+  getLocalSize,
+  getParentLocalPosition,
+  hasPositionedChildren,
+  hasUntransformedAxes,
+  isAutoLayout,
+} from "./positioning";
 
-export function extractVectorEntriesFromChildren(children: FigmaRawNode[]): SvgPathEntry[] {
+const VECTOR_CONTAINER_TYPES = new Set(["GROUP", "FRAME"]);
+
+export function getVectorMerge(
+  node: FigmaRawNode,
+  children: FigmaRawNode[],
+  variableContext?: VariableResolutionContext | null,
+) {
+  if (!VECTOR_CONTAINER_TYPES.has(node.type) || node.isMask || children.length < 2) return;
+  if (isAutoLayout(node)) return;
+  const source = node.children ? node : { ...node, children };
+  if (!(source.children ?? []).every((child) => isSupportedVectorSubtree(child, source))) return;
+  const directVectors = children.every((child) => child.type === "VECTOR");
+  const entries = extractVectorEntriesFromDeepGroup(source, variableContext);
+  if (entries.length < 2) return;
+  const { width, height } = getLocalSize(node);
+  const bounds =
+    width !== undefined && height !== undefined ? { x: 0, y: 0, width, height } : undefined;
+  const positioned = hasPositionedChildren(source);
+  if (positioned && !bounds) return;
+  const layout = positioned && bounds ? mergedCanvasLayout(bounds.width, bounds.height) : undefined;
+  const name = directVectors || node.type === "FRAME" ? children[0].name : node.name;
+  return { entries, bounds, name, layout };
+}
+
+function mergedCanvasLayout(width: number, height: number): Layout {
+  return {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    width: `${roundTo(width, 2)}px`,
+    height: `${roundTo(height, 2)}px`,
+  };
+}
+
+function isSupportedVectorSubtree(node: FigmaRawNode, parent: FigmaRawNode): boolean {
+  if (node.visible === false) return true;
+  if (hasUnsupportedMergeProperties(node) || !hasMergeCoordinates(node, parent)) return false;
+  if (node.type === "VECTOR") return extractVectorPaths(node) !== undefined;
+  if (!VECTOR_CONTAINER_TYPES.has(node.type) || isAutoLayout(node) || !hasUntransformedAxes(node))
+    return false;
+  const fills = node.fills as FigmaRawPaint[] | undefined;
+  if (fills?.some((fill) => fill.visible !== false && fill.type !== "NONE")) return false;
+  return (node.children ?? []).every((child) => isSupportedVectorSubtree(child, node));
+}
+
+function hasMergeCoordinates(node: FigmaRawNode, parent: FigmaRawNode): boolean {
+  if (node.relativeTransform !== undefined) return getFiniteTransform(node) !== undefined;
+  const bounds = node.absoluteBoundingBox;
+  const hasPositionEvidence =
+    node.layoutPositioning === "ABSOLUTE" || bounds?.x !== undefined || bounds?.y !== undefined;
+  return !hasPositionEvidence || getParentLocalPosition(node, parent) !== undefined;
+}
+
+function hasUnsupportedMergeProperties(node: FigmaRawNode): boolean {
+  const fills = (node.fills as FigmaRawPaint[] | undefined)?.filter(
+    (fill) => fill.visible !== false,
+  );
+  const strokes = node.strokes as FigmaRawPaint[] | undefined;
+  const effects = node.effects as Array<{ visible?: boolean }> | undefined;
+  return (
+    node.isMask === true ||
+    (node.opacity !== undefined && node.opacity !== 1) ||
+    node.clipsContent === true ||
+    (node.rotation !== undefined && node.rotation !== 0) ||
+    (node.blendMode !== undefined && !["NORMAL", "PASS_THROUGH"].includes(node.blendMode)) ||
+    (fills?.length ?? 0) > 1 ||
+    (fills?.some((fill) => fill.type !== "SOLID") ?? false) ||
+    (strokes?.some((stroke) => stroke.visible !== false) ?? false) ||
+    (effects?.some((effect) => effect.visible !== false) ?? false)
+  );
+}
+
+export function extractVectorEntriesFromChildren(
+  children: FigmaRawNode[],
+  parent?: FigmaRawNode,
+  variableContext?: VariableResolutionContext | null,
+): SvgPathEntry[] {
   const entries: SvgPathEntry[] = [];
 
   for (const child of children) {
+    if (child.visible === false) continue;
     if ((child as FigmaRawNode).isMask) continue;
     const childPaths = extractVectorPaths(child);
     if (!childPaths) continue;
 
-    const fillColor = extractFillColor(child.fills as FigmaRawPaint[] | undefined);
+    const fillColor = getVectorPaintColor(child, variableContext);
     const pathsWithFill = childPaths.map((p) => ({ ...p, fillColor }));
-    const transform = parseRelativeTransform(child.relativeTransform as number[][] | undefined);
+    const transform = getVectorTransform(child, parent);
 
     entries.push({ paths: pathsWithFill, transform });
   }
@@ -21,25 +108,43 @@ export function extractVectorEntriesFromChildren(children: FigmaRawNode[]): SvgP
   return entries;
 }
 
+function getVectorTransform(node: FigmaRawNode, parent?: FigmaRawNode) {
+  const transform = getFiniteTransform(node);
+  if (transform) return transform;
+  const position = getParentLocalPosition(node, parent);
+  const translation: SvgPathEntry["transform"] = position
+    ? [1, 0, 0, 1, position.left, position.top]
+    : undefined;
+  return translation;
+}
+
+type CollectedVector = {
+  node: FigmaRawNode;
+  parent: FigmaRawNode;
+  offsetX: number;
+  offsetY: number;
+};
+
 export function collectVectorsDeep(
   node: FigmaRawNode,
   parentX: number = 0,
   parentY: number = 0,
-): Array<{ node: FigmaRawNode; offsetX: number; offsetY: number }> {
-  const result: Array<{ node: FigmaRawNode; offsetX: number; offsetY: number }> = [];
+): CollectedVector[] {
+  const result: CollectedVector[] = [];
 
   const children = node.children ?? [];
   for (const child of children) {
     const childNode = child as FigmaRawNode;
+    if (childNode.visible === false) continue;
 
     if (childNode.type === "VECTOR") {
       if (childNode.isMask === true) continue;
-      result.push({ node: childNode, offsetX: parentX, offsetY: parentY });
+      result.push({ node: childNode, parent: node, offsetX: parentX, offsetY: parentY });
     } else if (childNode.type === "GROUP" || childNode.type === "FRAME") {
       if (childNode.isMask === true) continue;
-      const childBounds = childNode.absoluteBoundingBox as { x: number; y: number } | undefined;
-      const offsetX = parentX + (childBounds?.x ?? 0);
-      const offsetY = parentY + (childBounds?.y ?? 0);
+      const position = getParentLocalPosition(childNode, node);
+      const offsetX = parentX + (position?.left ?? 0);
+      const offsetY = parentY + (position?.top ?? 0);
       result.push(...collectVectorsDeep(childNode, offsetX, offsetY));
     }
   }
@@ -47,26 +152,29 @@ export function collectVectorsDeep(
   return result;
 }
 
-export function extractVectorEntriesFromDeepGroup(groupNode: FigmaRawNode): SvgPathEntry[] {
+export function extractVectorEntriesFromDeepGroup(
+  groupNode: FigmaRawNode,
+  variableContext?: VariableResolutionContext | null,
+): SvgPathEntry[] {
   const vectorInfos = collectVectorsDeep(groupNode);
   const entries: SvgPathEntry[] = [];
 
-  for (const { node, offsetX, offsetY } of vectorInfos) {
+  for (const { node, parent, offsetX, offsetY } of vectorInfos) {
     const childPaths = extractVectorPaths(node);
     if (!childPaths) continue;
 
-    const fillColor = extractFillColor(node.fills as FigmaRawPaint[] | undefined);
+    const fillColor = getVectorPaintColor(node, variableContext);
     const pathsWithFill = childPaths.map((p) => ({ ...p, fillColor }));
 
-    const relativeTransform = node.relativeTransform as number[][] | undefined;
-    const baseTransform = parseRelativeTransform(relativeTransform);
-
-    let transform: [number, number, number, number, number, number] | undefined;
-    if (baseTransform) {
-      transform = baseTransform;
-    } else {
-      transform = [1, 0, 0, 1, offsetX, offsetY];
-    }
+    const baseTransform = getVectorTransform(node, parent) ?? [1, 0, 0, 1, 0, 0];
+    const transform: SvgPathEntry["transform"] = [
+      baseTransform[0],
+      baseTransform[1],
+      baseTransform[2],
+      baseTransform[3],
+      baseTransform[4] + offsetX,
+      baseTransform[5] + offsetY,
+    ];
 
     entries.push({ paths: pathsWithFill, transform });
   }
@@ -82,59 +190,10 @@ export function extractVectorEntriesFromGroupChildren(
   groups: FigmaRawNode[],
   offset: { x: number; y: number; width?: number; height?: number },
 ): SvgPathEntry[] {
-  const entries: SvgPathEntry[] = [];
-
-  for (const group of groups) {
-    const groupTransform = parseRelativeTransform(
-      group.relativeTransform as number[][] | undefined,
-    );
-    const groupChildren = group.children ?? [];
-
-    for (const child of groupChildren) {
-      if ((child as FigmaRawNode).isMask === true) continue;
-      const childPaths = extractVectorPaths(child as FigmaRawNode);
-      if (!childPaths) continue;
-
-      const fillColor = extractFillColor(
-        (child as FigmaRawNode).fills as FigmaRawPaint[] | undefined,
-      );
-      const pathsWithFill = childPaths.map((p) => ({ ...p, fillColor }));
-
-      const childTransform = parseRelativeTransform(
-        (child as FigmaRawNode).relativeTransform as number[][] | undefined,
-      );
-
-      let finalTransform: [number, number, number, number, number, number] | undefined;
-
-      if (childTransform) {
-        if (groupTransform) {
-          finalTransform = combineTransforms(groupTransform, childTransform);
-        } else {
-          finalTransform = childTransform;
-        }
-      } else if (groupTransform) {
-        finalTransform = [1, 0, 0, 1, groupTransform[4], groupTransform[5]];
-      } else if (offset.x !== 0 || offset.y !== 0) {
-        finalTransform = [1, 0, 0, 1, offset.x, offset.y];
-      }
-
-      entries.push({ paths: pathsWithFill, transform: finalTransform });
-    }
-  }
-
-  return entries;
-}
-
-function combineTransforms(
-  a: [number, number, number, number, number, number],
-  b: [number, number, number, number, number, number],
-): [number, number, number, number, number, number] {
-  return [
-    a[0] * b[0] + a[2] * b[1],
-    a[1] * b[0] + a[3] * b[1],
-    a[0] * b[2] + a[2] * b[3],
-    a[1] * b[2] + a[3] * b[3],
-    a[0] * b[4] + a[2] * b[5] + a[4],
-    a[1] * b[4] + a[3] * b[5] + a[5],
-  ];
+  return extractVectorEntriesFromDeepGroup({
+    id: "vector-merge-parent",
+    type: "FRAME",
+    absoluteBoundingBox: offset,
+    children: groups,
+  });
 }

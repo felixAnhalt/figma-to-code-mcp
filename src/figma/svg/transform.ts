@@ -1,225 +1,117 @@
+import { svgPathBbox } from "svg-path-bbox";
+import svgPath from "svgpath";
+import { Logger } from "~/utils/logger";
+import type { V3Node } from "../types";
 import type { SvgBounds, SvgPathEntry } from "./cache";
 
+const BOUNDS_PADDING_RATIO = 0.01;
+const DEGENERATE_AXIS_SIZE = 1;
+const FALLBACK_BOUNDS: SvgBounds = { x: 0, y: 0, width: 1, height: 1 };
+const PATH_COORDINATE_PRECISION = 4;
+const VIEWPORT_ORIGIN_TOLERANCE = 0.01;
+
+type EmittedSvgViewport = NonNullable<V3Node["svgViewport"]>;
+
+/** Omits x or y when it is zero within float noise, since a missing offset means 0. */
+export function toEmittedSvgViewport(viewport: SvgBounds): EmittedSvgViewport {
+  const { x, y, width, height } = viewport;
+  return {
+    ...(isVisibleOffset(x) ? { x } : {}),
+    ...(isVisibleOffset(y) ? { y } : {}),
+    width,
+    height,
+  };
+}
+
+function isVisibleOffset(offset: number): boolean {
+  return Math.abs(offset) >= VIEWPORT_ORIGIN_TOLERANCE;
+}
+
+function hasFiniteBounds(bounds: SvgBounds): boolean {
+  return [bounds.x, bounds.y, bounds.width, bounds.height].every(Number.isFinite);
+}
+
+function hasFinitePathCoordinates(path: ReturnType<typeof svgPath>): boolean {
+  let finite = true;
+  path.iterate((segment) => {
+    finite &&= segment.slice(1).every(Number.isFinite);
+  });
+  return finite;
+}
+
 export function computePathBounds(d: string): SvgBounds | undefined {
-  const numbers: number[] = [];
-  const numRegex = /-?(?:\d+\.?\d*|\d*\.?\d+)(?:[eE][+-]?\d+)?/g;
-  let match;
-  while ((match = numRegex.exec(d)) !== null) {
-    numbers.push(parseFloat(match[0]));
+  try {
+    const path = svgPath(d).abs();
+    // svg-path-bbox otherwise measures the valid prefix of malformed path data.
+    if (("err" in path && path.err) || !hasFinitePathCoordinates(path)) return undefined;
+    const [x, y, maxX, maxY] = svgPathBbox(path);
+    const bounds = { x, y, width: maxX - x, height: maxY - y };
+    return hasFiniteBounds(bounds) ? bounds : undefined;
+  } catch (error) {
+    Logger.warn(
+      "Failed to compute SVG path bounds:",
+      error instanceof Error ? error.message : String(error),
+    );
+    return undefined;
   }
+}
 
-  if (numbers.length < 2) return undefined;
+function padBounds(bounds: SvgBounds): SvgBounds | undefined {
+  const width = bounds.width || DEGENERATE_AXIS_SIZE;
+  const height = bounds.height || DEGENERATE_AXIS_SIZE;
+  const paddingX = width * BOUNDS_PADDING_RATIO;
+  const paddingY = height * BOUNDS_PADDING_RATIO;
+  const padded = {
+    x: bounds.x - (width - bounds.width) / 2 - paddingX,
+    y: bounds.y - (height - bounds.height) / 2 - paddingY,
+    width: width + paddingX * 2,
+    height: height + paddingY * 2,
+  };
+  return hasFiniteBounds(padded) ? padded : undefined;
+}
 
-  let x = 0,
-    y = 0;
-  let startX = 0,
-    startY = 0;
-  let minX = Infinity,
-    minY = Infinity,
-    maxX = -Infinity,
-    maxY = -Infinity;
-  let numIdx = 0;
-
-  function updateBounds(px: number, py: number) {
-    minX = Math.min(minX, px);
-    minY = Math.min(minY, py);
-    maxX = Math.max(maxX, px);
-    maxY = Math.max(maxY, py);
-  }
-
-  let i = 0;
-  while (i < d.length) {
-    const cmdMatch = d.slice(i).match(/[MLHVCSQTAZ]/i);
-    if (!cmdMatch) break;
-    const cmd = cmdMatch[0];
-    const isRelative = cmd >= "a" && cmd <= "z";
-    const ucmd = cmd.toUpperCase();
-
-    i = d.indexOf(cmd, i) + 1;
-
-    switch (ucmd) {
-      case "M": {
-        x = numbers[numIdx++];
-        y = numbers[numIdx++];
-        startX = x;
-        startY = y;
-        updateBounds(x, y);
-        while (numIdx + 1 < numbers.length && d.slice(i).match(/^-?[.\d]/)) {
-          x = numbers[numIdx++];
-          y = numbers[numIdx++];
-          if (isRelative) {
-            x += startX;
-            y += startY;
-          }
-          updateBounds(x, y);
-        }
-        break;
-      }
-      case "L": {
-        while (numIdx + 1 < numbers.length) {
-          x = numbers[numIdx++];
-          y = numbers[numIdx++];
-          if (isRelative) {
-            x += startX;
-            y += startY;
-          }
-          updateBounds(x, y);
-        }
-        break;
-      }
-      case "H": {
-        while (numIdx < numbers.length) {
-          x = numbers[numIdx++];
-          if (isRelative) x += startX;
-          updateBounds(x, y);
-        }
-        break;
-      }
-      case "V": {
-        while (numIdx < numbers.length) {
-          y = numbers[numIdx++];
-          if (isRelative) y += startY;
-          updateBounds(x, y);
-        }
-        break;
-      }
-      case "C": {
-        while (numIdx + 5 < numbers.length) {
-          let cx1 = numbers[numIdx++];
-          let cy1 = numbers[numIdx++];
-          if (isRelative) {
-            cx1 += startX;
-            cy1 += startY;
-          }
-          updateBounds(cx1, cy1);
-          let cx2 = numbers[numIdx++];
-          let cy2 = numbers[numIdx++];
-          if (isRelative) {
-            cx2 += startX;
-            cy2 += startY;
-          }
-          updateBounds(cx2, cy2);
-          x = numbers[numIdx++];
-          y = numbers[numIdx++];
-          if (isRelative) {
-            x += startX;
-            y += startY;
-          }
-          updateBounds(x, y);
-        }
-        break;
-      }
-      case "Q": {
-        while (numIdx + 3 < numbers.length) {
-          let cx = numbers[numIdx++];
-          let cy = numbers[numIdx++];
-          if (isRelative) {
-            cx += startX;
-            cy += startY;
-          }
-          updateBounds(cx, cy);
-          x = numbers[numIdx++];
-          y = numbers[numIdx++];
-          if (isRelative) {
-            x += startX;
-            y += startY;
-          }
-          updateBounds(x, y);
-        }
-        break;
-      }
-      case "S": {
-        while (numIdx + 3 < numbers.length) {
-          let cx = numbers[numIdx++];
-          let cy = numbers[numIdx++];
-          if (isRelative) {
-            cx += startX;
-            cy += startY;
-          }
-          updateBounds(cx, cy);
-          x = numbers[numIdx++];
-          y = numbers[numIdx++];
-          if (isRelative) {
-            x += startX;
-            y += startY;
-          }
-          updateBounds(x, y);
-        }
-        break;
-      }
-      case "T": {
-        while (numIdx + 1 < numbers.length) {
-          x = numbers[numIdx++];
-          y = numbers[numIdx++];
-          if (isRelative) {
-            x += startX;
-            y += startY;
-          }
-          updateBounds(x, y);
-        }
-        break;
-      }
-      case "A": {
-        while (numIdx + 6 < numbers.length) {
-          numIdx += 7;
-          x = numbers[numIdx - 2];
-          y = numbers[numIdx - 1];
-          if (isRelative) {
-            x += startX;
-            y += startY;
-          }
-          updateBounds(x, y);
-        }
-        break;
-      }
-      case "Z": {
-        x = startX;
-        y = startY;
-        updateBounds(x, y);
-        break;
-      }
-    }
-    startX = x;
-    startY = y;
-  }
-
-  if (minX === Infinity) return undefined;
-
-  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+function unionBounds(first: SvgBounds, second: SvgBounds): SvgBounds {
+  const x = Math.min(first.x, second.x);
+  const y = Math.min(first.y, second.y);
+  return {
+    x,
+    y,
+    width: Math.max(first.x + first.width, second.x + second.width) - x,
+    height: Math.max(first.y + first.height, second.y + second.height) - y,
+  };
 }
 
 export function computeBoundsFromPaths(
   paths: Array<{ d: string; fillRule?: string }>,
 ): SvgBounds | undefined {
-  let minX = Infinity,
-    minY = Infinity,
-    maxX = -Infinity,
-    maxY = -Infinity;
-  let hasPoints = false;
+  const bounds = computeInkBounds(paths);
+  return bounds ? padBounds(bounds) : undefined;
+}
 
-  for (const path of paths) {
-    const bounds = computePathBounds(path.d);
-    if (bounds) {
-      hasPoints = true;
-      minX = Math.min(minX, bounds.x);
-      minY = Math.min(minY, bounds.y);
-      maxX = Math.max(maxX, bounds.x + bounds.width);
-      maxY = Math.max(maxY, bounds.y + bounds.height);
-    }
-  }
+function computeInkBounds(paths: Array<{ d: string }>): SvgBounds | undefined {
+  const bounds = paths
+    .map((path) => computePathBounds(path.d))
+    .filter((bounds): bounds is SvgBounds => bounds !== undefined);
+  return bounds.length ? bounds.reduce(unionBounds) : undefined;
+}
 
-  if (!hasPoints) return undefined;
+function isUsableCanvas(bounds: SvgBounds): boolean {
+  return hasFiniteBounds(bounds) && bounds.width >= 0 && bounds.height >= 0;
+}
 
-  const width = maxX - minX;
-  const height = maxY - minY;
-  const paddingX = width * 0.01;
-  const paddingY = height * 0.01;
-
+/** Measure already serialized geometry; retain zero canvas axes until after the union. */
+export function computeSvgViewport(paths: Array<{ d: string }>, canvas?: SvgBounds): SvgBounds {
+  const ink = computeInkBounds(paths);
+  const combined =
+    canvas && isUsableCanvas(canvas) ? (ink ? unionBounds(canvas, ink) : canvas) : ink;
+  const bounds = combined && isUsableCanvas(combined) ? combined : FALLBACK_BOUNDS;
+  const width = bounds.width || DEGENERATE_AXIS_SIZE;
+  const height = bounds.height || DEGENERATE_AXIS_SIZE;
   return {
-    x: Math.max(0, minX - paddingX),
-    y: Math.max(0, minY - paddingY),
-    width: width + paddingX * 2,
-    height: height + paddingY * 2,
+    x: bounds.x - (width - bounds.width) / 2,
+    y: bounds.y - (height - bounds.height) / 2,
+    width,
+    height,
   };
 }
 
@@ -227,306 +119,34 @@ export function transformPath(
   d: string,
   transform: [number, number, number, number, number, number],
 ): string {
-  const [a, b, c, d_val, tx, ty] = transform;
-
-  function transformPoint(x: number, y: number): [number, number] {
-    return [a * x + c * y + tx, b * x + d_val * y + ty];
-  }
-
-  function transformX(x: number, y: number): number {
-    return a * x + c * y + tx;
-  }
-
-  function transformY(x: number, y: number): number {
-    return b * x + d_val * y + ty;
-  }
-
-  function formatNum(n: number): string {
-    return Number(n.toFixed(4)).toString();
-  }
-
-  const tokens: string[] = [];
-  let i = 0;
-
-  function nextNumber(): number | undefined {
-    skipWhitespace();
-    const slice = d.slice(i);
-    const match = slice.match(/^-?(?:\d+\.?\d*|\d*\.?\d+)(?:[eE][+-]?\d+)?/);
-    if (!match) return undefined;
-    i += match[0].length;
-    return parseFloat(match[0]);
-  }
-
-  function skipWhitespace() {
-    const slice = d.slice(i);
-    const match = slice.match(/^[\s,]+/);
-    if (match) i += match[0].length;
-  }
-
-  while (i < d.length) {
-    skipWhitespace();
-    if (i >= d.length) break;
-
-    const cmdChar = d[i];
-    if (/[MLHVCSQTAZ]/i.test(cmdChar)) {
-      const cmd = cmdChar;
-      const isRelative = cmd >= "a" && cmd <= "z";
-      const ucmd = cmd.toUpperCase();
-      tokens.push(cmd);
-      i++;
-
-      let x = 0,
-        y = 0;
-      let startX = 0,
-        startY = 0;
-
-      switch (ucmd) {
-        case "M": {
-          const x1 = nextNumber();
-          const y1 = nextNumber();
-          if (x1 !== undefined && y1 !== undefined) {
-            const [newX, newY] = transformPoint(x1, y1);
-            tokens.push(formatNum(newX), formatNum(newY));
-            x = isRelative ? x + x1 : x1;
-            y = isRelative ? y + y1 : y1;
-            startX = x;
-            startY = y;
-          }
-          let x2 = nextNumber();
-          let y2 = nextNumber();
-          while (x2 !== undefined && y2 !== undefined) {
-            if (isRelative) {
-              x2 = x + x2;
-              y2 = y + y2;
-            }
-            const [newX, newY] = transformPoint(x2, y2);
-            tokens.push(formatNum(newX), formatNum(newY));
-            x = newX;
-            y = newY;
-            x2 = nextNumber();
-            y2 = nextNumber();
-          }
-          break;
-        }
-        case "L": {
-          let x1 = nextNumber();
-          let y1 = nextNumber();
-          while (x1 !== undefined && y1 !== undefined) {
-            if (isRelative) {
-              x1 = x + x1;
-              y1 = y + y1;
-            }
-            const [newX, newY] = transformPoint(x1, y1);
-            tokens.push(formatNum(newX), formatNum(newY));
-            x = newX;
-            y = newY;
-            x1 = nextNumber();
-            y1 = nextNumber();
-          }
-          break;
-        }
-        case "H": {
-          let x1 = nextNumber();
-          while (x1 !== undefined) {
-            if (isRelative) {
-              x1 = x + x1;
-            }
-            const newX = transformX(x1, y);
-            tokens.push(formatNum(newX));
-            x = newX;
-            x1 = nextNumber();
-          }
-          break;
-        }
-        case "V": {
-          let y1 = nextNumber();
-          while (y1 !== undefined) {
-            if (isRelative) {
-              y1 = y + y1;
-            }
-            const newY = transformY(x, y1);
-            tokens.push(formatNum(newY));
-            y = newY;
-            y1 = nextNumber();
-          }
-          break;
-        }
-        case "C": {
-          let cx1 = nextNumber();
-          let cy1 = nextNumber();
-          let cx2 = nextNumber();
-          let cy2 = nextNumber();
-          let x1 = nextNumber();
-          let y1 = nextNumber();
-          while (
-            cx1 !== undefined &&
-            cy1 !== undefined &&
-            cx2 !== undefined &&
-            cy2 !== undefined &&
-            x1 !== undefined &&
-            y1 !== undefined
-          ) {
-            if (isRelative) {
-              cx1 = x + cx1;
-              cy1 = y + cy1;
-              cx2 = x + cx2;
-              cy2 = y + cy2;
-              x1 = x + x1;
-              y1 = y + y1;
-            }
-            const [newCx1, newCy1] = transformPoint(cx1, cy1);
-            const [newCx2, newCy2] = transformPoint(cx2, cy2);
-            const [newX, newY] = transformPoint(x1, y1);
-            tokens.push(
-              formatNum(newCx1),
-              formatNum(newCy1),
-              formatNum(newCx2),
-              formatNum(newCy2),
-              formatNum(newX),
-              formatNum(newY),
-            );
-            x = newX;
-            y = newY;
-            cx1 = nextNumber();
-            cy1 = nextNumber();
-            cx2 = nextNumber();
-            cy2 = nextNumber();
-            x1 = nextNumber();
-            y1 = nextNumber();
-          }
-          break;
-        }
-        case "S": {
-          let cx2 = nextNumber();
-          let cy2 = nextNumber();
-          let x1 = nextNumber();
-          let y1 = nextNumber();
-          while (cx2 !== undefined && cy2 !== undefined && x1 !== undefined && y1 !== undefined) {
-            if (isRelative) {
-              cx2 = x + cx2;
-              cy2 = y + cy2;
-              x1 = x + x1;
-              y1 = y + y1;
-            }
-            const [newCx2, newCy2] = transformPoint(cx2, cy2);
-            const [newX, newY] = transformPoint(x1, y1);
-            tokens.push(formatNum(newCx2), formatNum(newCy2), formatNum(newX), formatNum(newY));
-            x = newX;
-            y = newY;
-            cx2 = nextNumber();
-            cy2 = nextNumber();
-            x1 = nextNumber();
-            y1 = nextNumber();
-          }
-          break;
-        }
-        case "Q": {
-          let cx = nextNumber();
-          let cy = nextNumber();
-          let x1 = nextNumber();
-          let y1 = nextNumber();
-          while (cx !== undefined && cy !== undefined && x1 !== undefined && y1 !== undefined) {
-            if (isRelative) {
-              cx = x + cx;
-              cy = y + cy;
-              x1 = x + x1;
-              y1 = y + y1;
-            }
-            const [newCx, newCy] = transformPoint(cx, cy);
-            const [newX, newY] = transformPoint(x1, y1);
-            tokens.push(formatNum(newCx), formatNum(newCy), formatNum(newX), formatNum(newY));
-            x = newX;
-            y = newY;
-            cx = nextNumber();
-            cy = nextNumber();
-            x1 = nextNumber();
-            y1 = nextNumber();
-          }
-          break;
-        }
-        case "T": {
-          let x1 = nextNumber();
-          let y1 = nextNumber();
-          while (x1 !== undefined && y1 !== undefined) {
-            if (isRelative) {
-              x1 = x + x1;
-              y1 = y + y1;
-            }
-            const [newX, newY] = transformPoint(x1, y1);
-            tokens.push(formatNum(newX), formatNum(newY));
-            x = newX;
-            y = newY;
-            x1 = nextNumber();
-            y1 = nextNumber();
-          }
-          break;
-        }
-        case "A": {
-          let rx = nextNumber();
-          let ry = nextNumber();
-          let rot = nextNumber();
-          let largeArc = nextNumber();
-          let sweep = nextNumber();
-          let x1 = nextNumber();
-          let y1 = nextNumber();
-          while (
-            rx !== undefined &&
-            ry !== undefined &&
-            rot !== undefined &&
-            largeArc !== undefined &&
-            sweep !== undefined &&
-            x1 !== undefined &&
-            y1 !== undefined
-          ) {
-            if (rx === null) rx = 0;
-            if (ry === null) ry = 0;
-            tokens.push(formatNum(rx), formatNum(ry));
-            if (rot !== undefined) tokens.push(formatNum(rot));
-            if (largeArc !== undefined) tokens.push(String(largeArc));
-            if (sweep !== undefined) tokens.push(String(sweep));
-            if (isRelative) {
-              x1 = x + x1;
-              y1 = y + y1;
-            }
-            const [newX, newY] = transformPoint(x1, y1);
-            tokens.push(formatNum(newX), formatNum(newY));
-            x = newX;
-            y = newY;
-            rx = nextNumber();
-            ry = nextNumber();
-            rot = nextNumber();
-            largeArc = nextNumber();
-            sweep = nextNumber();
-            x1 = nextNumber();
-            y1 = nextNumber();
-          }
-          break;
-        }
-        case "Z": {
-          x = startX;
-          y = startY;
-          break;
-        }
-      }
-    } else {
-      tokens.push(d[i]);
-      i++;
-    }
-  }
-
-  return tokens.join(" ");
+  return svgPath(d).matrix(transform).round(PATH_COORDINATE_PRECISION).toString();
 }
 
 function roundCoord(num: number): string {
-  return Number(num.toFixed(4)).toString();
+  return Number(num.toFixed(PATH_COORDINATE_PRECISION)).toString();
 }
 
 export function roundPathCoordinates(d: string): string {
-  return d.replace(/-?(?:\d+\.?\d*|\d*\.?\d+)(?:[eE][+-]?\d+)?/g, (match) => {
+  const rounded = d.replace(/-?(?:\d+\.?\d*|\d*\.?\d+)(?:[eE][+-]?\d+)?/g, (match) => {
     const num = parseFloat(match);
     if (isNaN(num)) return match;
     return roundCoord(num);
   });
+  // Keep existing spelling when unchanged; the parser preserves separators and arc flags otherwise.
+  return rounded === d ? d : svgPath(d).round(PATH_COORDINATE_PRECISION).toString();
+}
+
+function resolveSvgBounds(paths: Array<{ d: string }>, bounds?: SvgBounds): SvgBounds {
+  if (bounds && hasFiniteBounds(bounds) && bounds.width > 0 && bounds.height > 0) {
+    return bounds;
+  }
+  return computeBoundsFromPaths(paths) ?? FALLBACK_BOUNDS;
+}
+
+function buildCanvasAttributes(paths: Array<{ d: string }>, bounds?: SvgBounds): string {
+  const { x, y, width, height } = resolveSvgBounds(paths, bounds);
+  // Keep the local canvas exact; expanded stroke outlines may extend beyond its origin.
+  return `width="${width}" height="${height}" viewBox="${x} ${y} ${width} ${height}" overflow="visible"`;
 }
 
 export function buildSvgContent(
@@ -540,11 +160,8 @@ export function buildSvgContent(
     })
     .join("\n");
 
-  const viewBoxAttr = bounds
-    ? ` viewBox="${bounds.x.toFixed(2)} ${bounds.y.toFixed(2)} ${bounds.width.toFixed(2)} ${bounds.height.toFixed(2)}"`
-    : "";
-
-  return `<svg xmlns="http://www.w3.org/2000/svg"${viewBoxAttr} fill="currentColor">\n${pathElements}\n</svg>\n`;
+  const canvasAttrs = buildCanvasAttributes(paths, bounds);
+  return `<svg xmlns="http://www.w3.org/2000/svg" ${canvasAttrs} fill="currentColor">\n${pathElements}\n</svg>\n`;
 }
 
 export function buildSvgContentWithFills(
@@ -559,15 +176,11 @@ export function buildSvgContentWithFills(
     })
     .join("\n");
 
-  let svgAttrs = 'xmlns="http://www.w3.org/2000/svg"';
-  if (bounds) {
-    svgAttrs += ` width="${Math.ceil(bounds.width)}" height="${Math.ceil(bounds.height)}" viewBox="0 0 ${Math.ceil(bounds.width)} ${Math.ceil(bounds.height)}"`;
-  }
-
-  return `<svg ${svgAttrs}>\n${pathElements}\n</svg>\n`;
+  const canvasAttrs = buildCanvasAttributes(paths, bounds);
+  return `<svg xmlns="http://www.w3.org/2000/svg" ${canvasAttrs}>\n${pathElements}\n</svg>\n`;
 }
 
-export function buildSvgContentFromEntries(entries: SvgPathEntry[], bounds?: SvgBounds): string {
+function serializeSvgEntries(entries: SvgPathEntry[]) {
   const allPaths: Array<{ d: string; fillRule?: string; fillColor?: string }> = [];
 
   for (const entry of entries) {
@@ -590,5 +203,20 @@ export function buildSvgContentFromEntries(entries: SvgPathEntry[], bounds?: Svg
     }
   }
 
-  return buildSvgContentWithFills(allPaths, bounds);
+  return allPaths;
+}
+
+export function buildSvgContentFromEntries(entries: SvgPathEntry[], bounds?: SvgBounds): string {
+  return buildSvgContentWithFills(serializeSvgEntries(entries), bounds);
+}
+
+/** Standalone image exports must include ink that external image viewports would otherwise clip. */
+export function buildSvgExport(entries: SvgPathEntry[], canvas?: SvgBounds, fillColor?: string) {
+  const paths = serializeSvgEntries(entries);
+  const viewport = computeSvgViewport(paths, canvas);
+  const coloredPaths = paths.map((path) => ({
+    ...path,
+    fillColor: path.fillColor ?? fillColor ?? "currentColor",
+  }));
+  return { content: buildSvgContentWithFills(coloredPaths, viewport), viewport };
 }

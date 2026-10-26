@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { FigmaService } from "~/services/figmaConnector";
-import { generateMCPResponse, fetchStyles, extractTokens } from "~/figma";
+import { generateMCPResponse, extractTokens } from "~/figma";
+import { externalizeComponentSets } from "~/figma/mcp/componentSetFiles";
 import yaml from "js-yaml";
 import { Logger, writeLogs } from "~/utils/logger";
 import { tmpdir } from "node:os";
@@ -29,6 +30,12 @@ const parameters = {
     .describe(
       "Whether to resolve variable references to their actual values. Set to false if already fetched once.",
     ),
+  includeComponentVariants: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Set true only when building components from a component library: also returns every other variant of each component this design uses (all sizes, colors, and states), with their props and any visuals that can be fetched. Every component set is written as a JSON file in componentSetsFolder and listed in componentSets by name, with its propKeys and propValues; a large set becomes a folder there with index.json and one JSON file per variant, named by node id. Every `file` value is relative to componentSetsFolder. Leave false when rebuilding this design; the response is smaller and faster.",
+    ),
   svgOutputDir: z
     .string()
     .optional()
@@ -37,6 +44,39 @@ const parameters = {
 
 const parametersSchema = z.object(parameters);
 export type GetFigmaDesignParams = z.infer<typeof parametersSchema>;
+
+const ASSET_FIELDS = [
+  "svgAssetsFolder",
+  "renderedDesignNodeAssetsFolder",
+  "renderedDesignNodePathInAssetFolder",
+] as const;
+type AssetField = (typeof ASSET_FIELDS)[number];
+
+export type FigmaDesignRequestOptions = {
+  outputFormat: "yaml" | "json";
+  svgOutputDir?: string;
+  preloadedVariableContext?: VariableResolutionContext | null;
+  renderImage: boolean;
+};
+
+async function renderRootNodeImageUrl(
+  figmaService: FigmaService,
+  fileKey: string,
+  nodeId: string,
+): Promise<string | null> {
+  const images = await figmaService.renderNodeImages(fileKey, [nodeId]);
+  return images[nodeId] ?? null;
+}
+
+/** Moves asset locations to the end of the response, after the design tree, for readability. */
+function moveAssetFieldsToEnd(response: Partial<Record<AssetField, string>>): void {
+  for (const field of ASSET_FIELDS) {
+    const value = response[field];
+    if (value === undefined) continue;
+    delete response[field];
+    response[field] = value;
+  }
+}
 
 /**
  * New unified Figma tool that fetches complete design data with:
@@ -49,15 +89,18 @@ export type GetFigmaDesignParams = z.infer<typeof parametersSchema>;
 async function getFigmaDesign(
   params: GetFigmaDesignParams,
   figmaService: FigmaService,
-  outputFormat: "yaml" | "json",
-  svgOutputDir?: string,
-  preloadedVariableContext?: VariableResolutionContext | null,
+  options: FigmaDesignRequestOptions,
 ) {
   try {
-    const { fileKey, nodeId: rawNodeId, resolveVariables } = parametersSchema.parse(params);
+    const {
+      fileKey,
+      nodeId: rawNodeId,
+      resolveVariables,
+      includeComponentVariants,
+    } = parametersSchema.parse(params);
 
     // Use provided svgOutputDir or default to temp directory
-    const outputDir = svgOutputDir || join(tmpdir(), "figma-mcp-svg-files");
+    const outputDir = options.svgOutputDir || join(tmpdir(), "figma-mcp-files");
 
     // Replace - with : in nodeId for Figma API
     const nodeId = rawNodeId.replace(/-/g, ":");
@@ -66,22 +109,19 @@ async function getFigmaDesign(
 
     const authHeaders = figmaService.getAuthHeaders();
 
-    // Fetch styles (component maps are built internally by generateMCPResponse)
-    Logger.log("Fetching styles...");
-    const styleMap = await fetchStyles(fileKey, authHeaders);
-
-    Logger.log(`Found ${Object.keys(styleMap).length} styles`);
-
     // Generate normalized MCP response — component map resolution happens internally
     Logger.log("Building normalized graph...");
-    let mcpResponse = await generateMCPResponse({
+    const mcpResponse = await generateMCPResponse({
       fileKey,
       authHeaders,
       rootNodeId: nodeId,
-      styleMap,
       resolveVariables,
+      includeComponentVariants,
       svgOutputDir: outputDir,
-      preloadedVariableContext,
+      preloadedVariableContext: options.preloadedVariableContext,
+      fetchRenderedImageUrl: options.renderImage
+        ? () => renderRootNodeImageUrl(figmaService, fileKey, nodeId)
+        : undefined,
     });
 
     // Post-pass: extract design tokens and replace repeated raw values with refs
@@ -94,17 +134,15 @@ async function getFigmaDesign(
       `Successfully extracted design tree${tokenizedResponse.componentSets ? `, ${Object.keys(tokenizedResponse.componentSets).length} component sets` : ""}${tokenizedResponse.tokens ? `, ${Object.values(tokenizedResponse.tokens).reduce((n, cat) => n + Object.keys(cat ?? {}).length, 0)} tokens` : ""}`,
     );
 
-    Logger.log(`Generating ${outputFormat.toUpperCase()} result`);
+    Logger.log(`Generating ${options.outputFormat.toUpperCase()} result`);
 
-    // Move svgAssetsFolder to the end of the response for better readability
-    const svgAssetsFolder = tokenizedResponse.svgAssetsFolder;
-    delete tokenizedResponse.svgAssetsFolder;
-    if (svgAssetsFolder) {
-      tokenizedResponse.svgAssetsFolder = svgAssetsFolder;
-    }
+    // Component sets need their tokens resolved, so they are written after tokenizing
+    const response = await externalizeComponentSets(tokenizedResponse, outputDir);
+
+    moveAssetFieldsToEnd(response);
 
     const formattedResult =
-      outputFormat === "json" ? JSON.stringify(tokenizedResponse) : yaml.dump(tokenizedResponse);
+      options.outputFormat === "json" ? JSON.stringify(response) : yaml.dump(response);
 
     Logger.log("Sending result to client");
 
@@ -127,7 +165,13 @@ async function getFigmaDesign(
 export const getFigmaDesignTool = {
   name: "get_figma_design",
   description:
-    "Get complete Figma design data with full layout, styling, Flexbox primitives, and component relationships. SVG assets are automatically saved to a temp folder referenced in the response.",
+    "Get Figma layout, styling, text, components, and exported SVG assets. " +
+    "Render textRuns instead of duplicating text; expand base typography tokens before applying run overrides. " +
+    "Preserve layout.position/left/top, per-edge borderWidths, and gradientHandlePositions. " +
+    "SVG files are in svgAssetsFolder. Keep each node's layout footprint and place its asset at " +
+    "svgViewport x/y (an omitted x or y means 0) using svgViewport width/height; do not stretch the expanded asset to the node's original size. " +
+    "Compare against the PNG render of the requested node at renderedDesignNodeAssetsFolder + renderedDesignNodePathInAssetFolder when present. " +
+    "A large COMPONENT_SET root keeps its container here, and its variants are in root.file (index.json plus one JSON file per variant).",
   parametersSchema,
   handler: getFigmaDesign,
 } as const;

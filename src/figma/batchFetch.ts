@@ -27,7 +27,6 @@ export async function fetchNodesBatch(
     try {
       const data = await httpClient<GetFileNodesResponse>(url, {
         headers: authHeaders,
-        skipCurlFallback: true,
       });
 
       if (data.nodes) {

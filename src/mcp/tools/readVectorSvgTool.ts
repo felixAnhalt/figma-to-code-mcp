@@ -5,7 +5,7 @@ import { Logger } from "~/utils/logger";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const SVG_FILES_DIR = join(tmpdir(), "figma-mcp-svg-files");
+const SVG_FILES_DIR = join(tmpdir(), "figma-mcp-files");
 
 async function ensureSvgFilesDir(): Promise<string> {
   try {

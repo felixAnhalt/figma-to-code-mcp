@@ -7,22 +7,21 @@ import {
   type SvgBounds,
   type SvgPathEntry,
 } from "./cache";
-import { computeBoundsFromPaths, buildSvgContent } from "./transform";
+import { buildSvgContent } from "./transform";
 
 export async function writeVectorSvg(
   fileKey: string,
   nodeId: string,
   paths: Array<{ d: string; fillRule?: string }>,
-  _bounds?: SvgBounds,
+  bounds?: SvgBounds,
 ): Promise<string | undefined> {
   try {
     if (!paths || paths.length === 0 || !paths.some((p) => p.d)) {
       return undefined;
     }
-    const computedBounds = computeBoundsFromPaths(paths);
     const safeNodeId = nodeId.replace(/[:/\\]/g, "_");
     const cacheKey = `${fileKey}_${safeNodeId}`;
-    const content = buildSvgContent(paths, computedBounds);
+    const content = buildSvgContent(paths, bounds);
     svgContentCache.set(cacheKey, content);
     return `${SVG_URI_SCHEME}${cacheKey}`;
   } catch {

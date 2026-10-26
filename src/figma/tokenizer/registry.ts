@@ -36,6 +36,17 @@ export function buildSemanticTokenRegistry<T>(
   return { tokensByRaw, registry };
 }
 
+/** Semantic names where they exist, and a derived name for every other value. */
+export function withFallbackNames(
+  frequencyMap: FrequencyMap,
+  semanticNames: Record<string, string>,
+  fallbackNameFor: (raw: string) => string,
+): Record<string, string> {
+  const names: Record<string, string> = {};
+  for (const raw of frequencyMap.keys()) names[raw] = semanticNames[raw] ?? fallbackNameFor(raw);
+  return names;
+}
+
 export function parseNumber(raw: string): number {
   return Number(raw);
 }
