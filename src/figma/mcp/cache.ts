@@ -14,6 +14,7 @@ export function getDesignCacheKey(options: MCPOptions): string {
     rootNodeId: options.rootNodeId,
     authHeaders: options.authHeaders,
     resolveVariables: options.resolveVariables ?? true,
+    includeComponentVariants: options.includeComponentVariants ?? false,
     styleMap: options.styleMap ?? {},
     componentMap: options.componentMap,
     componentSetMap: options.componentSetMap,

@@ -394,6 +394,8 @@ export type ComponentSet = {
   name: string;
   /** All prop dimension keys found across variants, e.g. ["variant", "size", "state"] */
   propKeys: string[];
+  /** Every value each prop takes across the set's members, e.g. { size: ["lg", "md", "sm"] } */
+  propValues?: Record<string, string[]>;
   /**
    * Shared base: layout/style/children common to ALL variants.
    * Omit a field from a variant's overrides if it matches the base exactly.

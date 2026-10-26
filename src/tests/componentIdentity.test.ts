@@ -54,7 +54,7 @@ function stubLibraries(libraries: Record<string, Record<string, unknown>>) {
 }
 
 function effectiveChildren(set: ComponentSet, id: string): V3Node[] | undefined {
-  return set.variants[id].children ?? set.base?.children;
+  return set.variants[id]?.children ?? set.base?.children;
 }
 
 function standaloneMeta(file: string, nodeId: string, name: string): RichComponentMeta {
@@ -118,9 +118,9 @@ describe("Component source and set identity", () => {
     const sets = response.componentSets!;
     expect(Object.keys(sets)).toHaveLength(2);
     expect(effectiveChildren(sets[first.component!], "10:1")?.[0].text).toBe("Library A");
-    expect(effectiveChildren(sets[second.component!], "local:2")?.[0].text).toBe("Library B");
+    expect(effectiveChildren(sets[second.component!], "10:1")?.[0].text).toBe("Library B");
     expect(Object.keys(sets[first.component!].variants)).toEqual(["10:1"]);
-    expect(Object.keys(sets[second.component!].variants)).toEqual(["local:2"]);
+    expect(Object.keys(sets[second.component!].variants)).toEqual(["10:1"]);
   });
 
   it("keeps unrelated same-name sets within one file separate and disambiguates names deterministically", async () => {
@@ -285,8 +285,8 @@ describe("Nested source component references", () => {
     );
     const set = response.componentSets![SET_NAME];
     expect(set.base?.children).toBeUndefined();
-    expect(set.variants.localButton.children?.[0].component).toBe("Icon A");
-    expect(set.variants.siblingButton.children?.[0].component).toBe("Icon B");
+    expect(set.variants["button:1"].children?.[0].component).toBe("Icon A");
+    expect(set.variants["button:2"].children?.[0].component).toBe("Icon B");
   });
 
   it("keeps nested references scoped when local IDs, source IDs and target display names collide across files", async () => {

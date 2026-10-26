@@ -1,6 +1,6 @@
 import { httpClientRaw } from "~/utils/httpClient";
 import { Logger } from "~/utils/logger";
-import type { RichComponentMeta } from "./types";
+import type { ComponentSetMetadata, RichComponentMeta } from "./types";
 
 type RawComponent = {
   key: string;
@@ -8,7 +8,7 @@ type RawComponent = {
   componentSetId?: string;
   remote?: boolean;
 };
-type SetMetadata = Record<string, { name: string }>;
+type SetMetadata = Record<string, ComponentSetMetadata>;
 type PublishedSet = { nodeId?: string; name?: string };
 type PublishedComponent = {
   key?: string;
@@ -32,11 +32,16 @@ export function componentSetIdentity(meta: Pick<RichComponentMeta, "file_key" | 
   return JSON.stringify([meta.file_key, meta.componentSetId]);
 }
 
+export type ComponentMapOptions = {
+  localFileKey?: string;
+  includeComponentVariants?: boolean;
+};
+
 export async function buildRichComponentMap(
   rawComponents: Record<string, RawComponent>,
   rawComponentSets: SetMetadata,
   authHeaders: Record<string, string>,
-  localFileKey = "",
+  { localFileKey = "", includeComponentVariants = true }: ComponentMapOptions = {},
 ) {
   const componentSetMap = { ...rawComponentSets };
   const { sources, published } = await discoverPublishedSources(
@@ -45,7 +50,11 @@ export async function buildRichComponentMap(
     localFileKey,
   );
   const componentMap = mapLocalComponents(rawComponents, sources, componentSetMap, localFileKey);
-  addPublishedSiblings(componentMap, published, componentSetMap);
+  recordSetMemberNames(componentSetMap, [
+    ...Object.values(componentMap),
+    ...publishedMetadata(published),
+  ]);
+  if (includeComponentVariants) addPublishedSiblings(componentMap, published, componentSetMap);
   return { componentMap, componentSetMap };
 }
 
@@ -117,13 +126,32 @@ async function listFileComponents(
 ) {
   if (discovery.listedFiles.has(fileKey)) return;
   discovery.listedFiles.add(fileKey);
+  for (const item of await fetchPublishedComponents(fileKey, authHeaders)) {
+    discovery.published.push(item);
+    if (item.key) discovery.sources.set(item.key, { ...discovery.sources.get(item.key), ...item });
+  }
+}
+
+async function fetchPublishedComponents(
+  fileKey: string,
+  authHeaders: Record<string, string>,
+): Promise<PublishedComponent[]> {
   const response = await fetchOptionalMetadata<{ meta?: { components?: PublishedComponent[] } }>(
     `/files/${fileKey}/components`,
     authHeaders,
   );
-  for (const item of response?.meta?.components ?? []) {
-    discovery.published.push(item);
-    if (item.key) discovery.sources.set(item.key, { ...discovery.sources.get(item.key), ...item });
+  return response?.meta?.components ?? [];
+}
+
+/** Records the member names of the sets in the given library files, without adding any bodies. */
+export async function recordLibraryMemberNames(
+  fileKeys: string[],
+  componentSetMap: SetMetadata,
+  authHeaders: Record<string, string>,
+): Promise<void> {
+  for (const fileKey of new Set(fileKeys)) {
+    const components = await fetchPublishedComponents(fileKey, authHeaders);
+    recordSetMemberNames(componentSetMap, publishedMetadata(components));
   }
 }
 
@@ -205,6 +233,30 @@ function addPublishedSiblings(
     componentMap[identity] = meta;
     seenSources.add(identity);
     const name = publishedSet(source)?.name;
-    if (name) componentSetMap[componentSetIdentity(meta)] = { name };
+    const setIdentity = componentSetIdentity(meta);
+    if (name) componentSetMap[setIdentity] = { ...componentSetMap[setIdentity], name };
+  }
+}
+
+function publishedMetadata(published: PublishedComponent[]): RichComponentMeta[] {
+  return published.flatMap((source) =>
+    source.key && source.file_key && source.node_id
+      ? [richMetadata(source.node_id, { key: source.key, name: source.name ?? source.key }, source)]
+      : [],
+  );
+}
+
+function recordSetMemberNames(componentSetMap: SetMetadata, metas: RichComponentMeta[]) {
+  const namesByIdentity = new Map<string, Set<string>>();
+  for (const meta of metas) {
+    if (!meta.componentSetId) continue;
+    const identity = componentSetIdentity(meta);
+    if (!componentSetMap[identity]) continue;
+    const names = namesByIdentity.get(identity) ?? new Set<string>();
+    names.add(meta.name);
+    namesByIdentity.set(identity, names);
+  }
+  for (const [identity, names] of namesByIdentity) {
+    componentSetMap[identity] = { ...componentSetMap[identity], memberNames: [...names] };
   }
 }

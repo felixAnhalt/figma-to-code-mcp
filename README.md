@@ -39,6 +39,8 @@ Give [Cursor](https://cursor.sh/) and other AI-powered coding tools access to yo
 
 `get_figma_design` exports SVG assets automatically. Its response contains `svgAssetsFolder` and relative `svgPathInAssetFolder` filenames; combine them to locate each file. Use `svgOutputDir` to export directly to a chosen assets directory. There is no separate registered `read_vector_svg` tool.
 
+By default `get_figma_design` returns the components the design uses inline in `componentSets`, each with `propKeys` and `propValues` (the values each prop takes across the set's members). For building components from a component library, pass `includeComponentVariants: true` to also get every other variant of those components (all sizes, colors, and states), with their props and any visuals that can be fetched. Each set is then written to its own JSON file in `componentSetsFolder`, and `componentSets` lists each set's `file`, `propKeys` and `propValues`. A set larger than 228 KB becomes a folder named after the set: its `file` is `<set>/index.json`, which lists the variants, and each variant is its own `<nodeId>.json` beside it. That fetches more from Figma and returns a larger response.
+
 With `--skip-image-downloads`, only `get_figma_design` is registered; SVG export remains available.
 
 ## Required Scopes
@@ -67,7 +69,7 @@ If comment access is unavailable, extraction continues without comments and logs
 This MCP server transforms [Figma API](https://www.figma.com/developers/api) data into an LLM-friendly format:
 
 - **Compact layout/style fields** (`layout.direction`, `style.background`, `style.fontSize`) instead of verbose Figma internals
-- **Node-local styles** with repeated values referenced from the `tokens` registry
+- **Node-local styles** with every distinct design value referenced from the `tokens` registry
 - **Flexbox primitives** for auto-layout, with parent-local positioning for overlays and freeform graphics
 - **Complete UI data** (colors, typography, spacing, effects)
 - **99.5% size reduction** while preserving all UI-critical information

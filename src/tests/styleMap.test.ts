@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { fetchStyles } from "~/figma";
 import { buildNormalizedGraph } from "~/figma/reducer";
-import type { MCPResponse } from "~/figma/types";
+import type { DesignTokens, MCPResponse } from "~/figma/types";
 import { getFigmaDesignTool } from "~/mcp/tools/getFigmaDesignTool";
 import { FigmaService } from "~/services/figmaConnector";
 
@@ -40,6 +40,37 @@ const EXPECTED_TEXT_STYLE = {
   letterSpacing: 0.5,
   textAlign: "right",
 };
+const TOKEN_REF_SEPARATOR = ".";
+
+/** Replaces a `category.name` token reference with the token's value; other values pass through. */
+function resolveTokenRef(value: unknown, tokens: DesignTokens): unknown {
+  if (typeof value !== "string" || !value.includes(TOKEN_REF_SEPARATOR)) return value;
+  const [category, name] = value.split(TOKEN_REF_SEPARATOR);
+  const tokensByCategory: Record<string, Record<string, unknown> | undefined> = tokens;
+  return tokensByCategory[category]?.[name] ?? value;
+}
+
+/** Expands a TEXT node's typography token back into the font fields it replaces. */
+function resolveStyleTokens(
+  style: Record<string, unknown>,
+  tokens: DesignTokens,
+): Record<string, unknown> {
+  const { typography, ...fields } = style;
+  const resolved = Object.fromEntries(
+    Object.entries(fields).map(([key, value]) => [key, resolveTokenRef(value, tokens)]),
+  );
+  const [, typographyName] =
+    typeof typography === "string" ? typography.split(TOKEN_REF_SEPARATOR) : [];
+  const token = typographyName ? tokens.typography?.[typographyName] : undefined;
+  if (!token) return resolved;
+  return {
+    ...resolved,
+    font: token.font,
+    fontSize: token.size,
+    fontWeight: token.weight,
+    lineHeight: token.lineHeight,
+  };
+}
 
 function styledRectangle(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -216,10 +247,13 @@ describe("getFigmaDesignTool style request policy", () => {
     const { result } = await requestStyledDesign();
     expect(result).not.toHaveProperty("isError", true);
     const response = JSON.parse(result.content[0].text) as MCPResponse;
+    const tokens = response.tokens ?? {};
+    const textNode = response.root.children?.[0];
 
-    expect(response.root).toMatchObject({
-      style: EXPECTED_RECTANGLE_STYLE,
-      children: [{ type: "TEXT", text: "Effective text", style: EXPECTED_TEXT_STYLE }],
-    });
+    expect(resolveStyleTokens(response.root.style ?? {}, tokens)).toMatchObject(
+      EXPECTED_RECTANGLE_STYLE,
+    );
+    expect(textNode).toMatchObject({ type: "TEXT", text: "Effective text" });
+    expect(resolveStyleTokens(textNode?.style ?? {}, tokens)).toMatchObject(EXPECTED_TEXT_STYLE);
   });
 });

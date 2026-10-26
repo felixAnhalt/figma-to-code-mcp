@@ -189,7 +189,7 @@ describe("extractTokens — shadow semantic names after float normalization", ()
     expect(result.root.children![2].style?.shadow).toBe("shadows.focusRingDestructive");
   });
 
-  it("does NOT tokenize an unknown shadow value", () => {
+  it("gives an unknown shadow its own token", () => {
     const unknownShadow = "5px 5px 10px rgba(100, 100, 100, 0.5)";
     const response = makeResponse(
       makeFrame({
@@ -200,62 +200,70 @@ describe("extractTokens — shadow semantic names after float normalization", ()
       }),
     );
     const result = extractTokens(response);
-    // Should stay as raw string
-    expect(result.root.children![0].style?.shadow).toBe(unknownShadow);
-    expect(result.tokens?.shadows).toBeUndefined();
+    const name = String(result.root.children![0].style?.shadow).replace("shadows.", "");
+    expect(result.root.children![0].style?.shadow).toBe(`shadows.${name}`);
+    expect(result.tokens?.shadows?.[name]).toBe("5px 5px 10px #64646480");
   });
 });
 
 // ── No fallback tokens for unnamed values ─────────────────────────────────────
 
-describe("extractTokens — no fallback tokens for unnamed values", () => {
-  it("does NOT tokenize an unnamed color even if used 10+ times", () => {
+describe("extractTokens — every value gets a token", () => {
+  it("gives an unnamed color its own token even when used once", () => {
     const unknownColor = "rgba(123, 45, 67, 1)";
-    const children = Array.from({ length: 10 }, () =>
-      makeFrame({ style: { background: unknownColor } }),
+    const response = makeResponse(
+      makeFrame({ children: [makeFrame({ style: { background: unknownColor } })] }),
     );
-    const response = makeResponse(makeFrame({ children }));
     const result = extractTokens(response);
-    expect(result.tokens?.colors).toBeUndefined();
-    // Raw value preserved
-    expect(result.root.children![0].style?.background).toBe(unknownColor);
+    const reference = String(result.root.children![0].style?.background);
+    const name = reference.replace("colors.", "");
+    expect(reference).toBe(`colors.${name}`);
+    expect(result.tokens?.colors?.[name]).toBe(unknownColor);
   });
 
-  it("does NOT tokenize an unnamed spacing value (e.g. 5.5)", () => {
-    const children = Array.from({ length: 10 }, () => makeFrame({ layout: { gap: 5.5 } }));
-    const response = makeResponse(makeFrame({ children }));
-    const result = extractTokens(response);
-    expect(result.tokens?.spacing).toBeUndefined();
-    expect(result.root.children![0].layout?.gap).toBe(5.5);
-  });
-
-  it("does NOT tokenize an unnamed radius value (e.g. 10)", () => {
-    const children = Array.from({ length: 10 }, () => makeFrame({ style: { radius: 10 } }));
-    const response = makeResponse(makeFrame({ children }));
-    const result = extractTokens(response);
-    expect(result.tokens?.radius).toBeUndefined();
-    expect(result.root.children![0].style?.radius).toBe(10);
-  });
-
-  it("only tokenizes values that appear 2+ times AND have a semantic name", () => {
+  it("keeps distinct unnamed colors apart", () => {
     const response = makeResponse(
       makeFrame({
         children: [
-          // white appears twice → should get token
+          makeFrame({ style: { background: "rgba(1, 23, 4, 5)" } }),
+          makeFrame({ style: { background: "rgba(12, 3, 4, 5)" } }),
+        ],
+      }),
+    );
+    const result = extractTokens(response);
+    const [first, second] = result.root.children!.map((child) => child.style?.background);
+    expect(first).not.toBe(second);
+    expect(Object.keys(result.tokens?.colors ?? {})).toHaveLength(2);
+  });
+
+  it("gives an unnamed spacing value its own token (e.g. 5.5)", () => {
+    const response = makeResponse(makeFrame({ children: [makeFrame({ layout: { gap: 5.5 } })] }));
+    const result = extractTokens(response);
+    expect(result.root.children![0].layout?.gap).toBe("spacing.n5_5");
+    expect(result.tokens?.spacing?.n5_5).toBe(5.5);
+  });
+
+  it("gives an unnamed radius value its own token (e.g. 10)", () => {
+    const response = makeResponse(makeFrame({ children: [makeFrame({ style: { radius: 10 } })] }));
+    const result = extractTokens(response);
+    expect(result.root.children![0].style?.radius).toBe("radius.r10");
+    expect(result.tokens?.radius?.r10).toBe(10);
+  });
+
+  it("gives each distinct color its own token, named or not", () => {
+    const response = makeResponse(
+      makeFrame({
+        children: [
           makeFrame({ style: { background: "#FFFFFF" } }),
           makeFrame({ style: { background: "#FFFFFF" } }),
-          // unknown color appears twice → should NOT get token
-          makeFrame({ style: { background: "rgba(99, 99, 99, 1)" } }),
           makeFrame({ style: { background: "rgba(99, 99, 99, 1)" } }),
         ],
       }),
     );
     const result = extractTokens(response);
-    expect(result.tokens?.colors?.white).toBeDefined();
-    // Should have exactly 1 color token — no fallback for unknown
-    expect(Object.keys(result.tokens?.colors ?? {}).length).toBe(1);
-    // Unknown stays raw
-    expect(result.root.children![2].style?.background).toBe("rgba(99, 99, 99, 1)");
+    expect(result.root.children![0].style?.background).toBe("colors.white");
+    expect(Object.keys(result.tokens?.colors ?? {})).toHaveLength(2);
+    expect(result.tokens?.colors?.white).toBe("#FFFFFF");
   });
 });
 
@@ -361,26 +369,25 @@ describe("extractTokens — paddingCombos tokens", () => {
     });
   }
 
-  it("does NOT tokenize an unknown [v, h] combo", () => {
+  it("gives an unknown [v, h] combo its own token", () => {
     const children = Array.from({ length: 5 }, () =>
       makeFrame({ layout: { padding: [7, 14] as [number, number] } }),
     );
     const response = makeResponse(makeFrame({ children }));
     const result = extractTokens(response);
-    // Stays as raw array
-    expect(result.root.children![0].layout?.padding).toEqual([7, 14]);
-    expect(result.tokens?.paddingCombos).toBeUndefined();
+    expect(result.root.children![0].layout?.padding).toBe("paddingCombos.p7_14");
+    expect(result.tokens?.paddingCombos?.p7_14).toEqual([7, 14]);
   });
 
-  it("does NOT tokenize a combo that appears only once", () => {
+  it("tokenizes a combo that appears only once", () => {
     const response = makeResponse(
       makeFrame({
         children: [makeFrame({ layout: { padding: [8, 16] as [number, number] } })],
       }),
     );
     const result = extractTokens(response);
-    expect(result.root.children![0].layout?.padding).toEqual([8, 16]);
-    expect(result.tokens?.paddingCombos).toBeUndefined();
+    expect(result.root.children![0].layout?.padding).toBe("paddingCombos.buttonMd");
+    expect(result.tokens?.paddingCombos?.buttonMd).toEqual([8, 16]);
   });
 });
 
@@ -406,21 +413,21 @@ describe("extractTokens — heights tokens (minHeight as CSS strings)", () => {
     });
   }
 
-  it("does NOT tokenize an unknown minHeight value (e.g. 50px)", () => {
+  it("gives an unknown minHeight its own token", () => {
     const children = Array.from({ length: 5 }, () => makeFrame({ layout: { minHeight: "50px" } }));
     const response = makeResponse(makeFrame({ children }));
     const result = extractTokens(response);
-    expect(result.root.children![0].layout?.minHeight).toBe("50px");
-    expect(result.tokens?.heights).toBeUndefined();
+    expect(result.root.children![0].layout?.minHeight).toBe("heights.h50");
+    expect(result.tokens?.heights?.h50).toBe(50);
   });
 
-  it("does NOT tokenize a minHeight that appears only once", () => {
+  it("tokenizes a minHeight that appears only once", () => {
     const response = makeResponse(
       makeFrame({ children: [makeFrame({ layout: { minHeight: "36px" } })] }),
     );
     const result = extractTokens(response);
-    expect(result.root.children![0].layout?.minHeight).toBe("36px");
-    expect(result.tokens?.heights).toBeUndefined();
+    expect(result.root.children![0].layout?.minHeight).toBe("heights.md");
+    expect(result.tokens?.heights?.md).toBe(36);
   });
 
   it("leaves non-px minHeight values unchanged (e.g. fit-content)", () => {
@@ -496,21 +503,27 @@ describe("extractTokens — componentSets get token replacement", () => {
   });
 });
 
-// ── No tokens when no values repeat ──────────────────────────────────────────
+// ── Values that appear only once ─────────────────────────────────────────────
 
-describe("extractTokens — no tokens when nothing repeats", () => {
-  it("returns undefined tokens when all values appear only once", () => {
+describe("extractTokens — values that appear only once", () => {
+  it("gives a token to each value, even when it appears only once", () => {
     const response = makeResponse(
       makeFrame({
         children: [
-          makeFrame({ style: { background: "rgba(255, 255, 255, 1)", radius: 8 } }),
-          makeFrame({ style: { background: "rgba(151, 71, 255, 1)", radius: 4 } }),
+          makeFrame({ style: { background: "#9747FF", radius: 8 } }),
+          makeFrame({ style: { background: "#123456", radius: 4 } }),
         ],
       }),
     );
     const result = extractTokens(response);
-    // Each value appears only once, so no tokens
-    expect(result.tokens).toBeUndefined();
+    expect(result.root.children![0].style).toEqual({
+      background: "colors.primary",
+      radius: "radius.md",
+    });
+    expect(result.root.children![1].style).toEqual({
+      background: "colors.c123456",
+      radius: "radius.sm",
+    });
   });
 });
 

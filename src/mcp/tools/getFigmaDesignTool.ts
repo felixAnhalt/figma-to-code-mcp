@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { FigmaService } from "~/services/figmaConnector";
 import { generateMCPResponse, extractTokens } from "~/figma";
+import { externalizeComponentSets } from "~/figma/mcp/componentSetFiles";
 import yaml from "js-yaml";
 import { Logger, writeLogs } from "~/utils/logger";
 import { tmpdir } from "node:os";
@@ -29,6 +30,12 @@ const parameters = {
     .describe(
       "Whether to resolve variable references to their actual values. Set to false if already fetched once.",
     ),
+  includeComponentVariants: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Set true only when building components from a component library: also returns every other variant of each component this design uses (all sizes, colors, and states), with their props and any visuals that can be fetched. Each component set is written as a JSON file in componentSetsFolder and listed in componentSets by name, with its propKeys and propValues. A large set becomes a folder there with index.json and one JSON file per variant, named by node id. Leave false when rebuilding this design; the response is smaller and faster.",
+    ),
   svgOutputDir: z
     .string()
     .optional()
@@ -54,10 +61,15 @@ async function getFigmaDesign(
   preloadedVariableContext?: VariableResolutionContext | null,
 ) {
   try {
-    const { fileKey, nodeId: rawNodeId, resolveVariables } = parametersSchema.parse(params);
+    const {
+      fileKey,
+      nodeId: rawNodeId,
+      resolveVariables,
+      includeComponentVariants,
+    } = parametersSchema.parse(params);
 
     // Use provided svgOutputDir or default to temp directory
-    const outputDir = svgOutputDir || join(tmpdir(), "figma-mcp-svg-files");
+    const outputDir = svgOutputDir || join(tmpdir(), "figma-mcp-files");
 
     // Replace - with : in nodeId for Figma API
     const nodeId = rawNodeId.replace(/-/g, ":");
@@ -73,6 +85,7 @@ async function getFigmaDesign(
       authHeaders,
       rootNodeId: nodeId,
       resolveVariables,
+      includeComponentVariants,
       svgOutputDir: outputDir,
       preloadedVariableContext,
     });
@@ -89,15 +102,20 @@ async function getFigmaDesign(
 
     Logger.log(`Generating ${outputFormat.toUpperCase()} result`);
 
+    // Component sets need their tokens resolved, so they are written after tokenizing
+    const response = includeComponentVariants
+      ? await externalizeComponentSets(tokenizedResponse, outputDir)
+      : tokenizedResponse;
+
     // Move svgAssetsFolder to the end of the response for better readability
-    const svgAssetsFolder = tokenizedResponse.svgAssetsFolder;
-    delete tokenizedResponse.svgAssetsFolder;
+    const svgAssetsFolder = response.svgAssetsFolder;
+    delete response.svgAssetsFolder;
     if (svgAssetsFolder) {
-      tokenizedResponse.svgAssetsFolder = svgAssetsFolder;
+      response.svgAssetsFolder = svgAssetsFolder;
     }
 
     const formattedResult =
-      outputFormat === "json" ? JSON.stringify(tokenizedResponse) : yaml.dump(tokenizedResponse);
+      outputFormat === "json" ? JSON.stringify(response) : yaml.dump(response);
 
     Logger.log("Sending result to client");
 

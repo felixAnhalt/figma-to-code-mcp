@@ -16,6 +16,7 @@ import { transformComments, type NodeCommentsMap } from "../transform/comments";
 
 const MAX_UNRESOLVED_VARIABLE_SAMPLE_SIZE = 10;
 const DEFAULT_DESIGN_CACHE_TTL_MS = 5 * 60 * 1000;
+const DEFAULT_INCLUDE_COMPONENT_VARIANTS = false;
 type RootNode = NonNullable<Awaited<ReturnType<typeof fetchNodesBatch>>[string]>;
 
 export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse> {
@@ -58,6 +59,7 @@ async function buildDesignArtifact(opts: MCPOptions): Promise<CachedDesign> {
       opts.authHeaders,
       variableContext,
       pendingVectors,
+      includeComponentVariants(opts),
     );
   }
 
@@ -80,8 +82,15 @@ async function resolveComponentMetadata(rootNode: RootNode, opts: MCPOptions) {
     rootNode.components ?? {},
     rootNode.componentSets ?? {},
     opts.authHeaders,
-    opts.fileKey,
+    {
+      localFileKey: opts.fileKey,
+      includeComponentVariants: includeComponentVariants(opts),
+    },
   );
+}
+
+function includeComponentVariants(opts: MCPOptions): boolean {
+  return opts.includeComponentVariants ?? DEFAULT_INCLUDE_COMPONENT_VARIANTS;
 }
 
 async function resolveVariableContext(opts: MCPOptions): Promise<VariableResolutionContext | null> {

@@ -12,8 +12,12 @@ import type {
   Layout,
   Style,
 } from "../types";
-import { componentSetIdentity, componentSourceIdentity } from "./componentMap";
-import type { RichComponentMeta } from "./types";
+import {
+  componentSetIdentity,
+  componentSourceIdentity,
+  recordLibraryMemberNames,
+} from "./componentMap";
+import type { ComponentSetMetadata, RichComponentMeta } from "./types";
 
 export { parseVariantProps };
 
@@ -40,26 +44,40 @@ function collectInstancesByComponentId(node: V3Node): Map<string, V3Node> {
 
 export async function enrichDefinitions(
   normalized: MCPResponse,
-  componentMap: ComponentMetadata,
-  componentSetMap: Record<string, { name: string }>,
+  componentMapInput: ComponentMetadata,
+  componentSetMapInput: Record<string, ComponentSetMetadata>,
   authHeaders: Record<string, string>,
   variableContext: VariableResolutionContext | null,
   pendingVectors: PendingVectorWriteInput[] = [],
+  includeComponentVariants = true,
 ): Promise<void> {
+  const componentMap: ComponentMetadata = { ...componentMapInput };
+  const componentSetMap = { ...componentSetMapInput };
   const definitions = normalized.definitions ?? {};
   applyInstanceFallbacks(definitions, normalized.root);
   applyDefinitionMetadata(definitions, componentMap, componentSetMap);
-  const requests = collectSourceNodeRequests(definitions, componentMap);
-  const reducedNodes = await fetchReducedSourceNodes(
+  const requests = collectSourceNodeRequests(definitions, componentMap, includeComponentVariants);
+  const { reducedNodes, nested } = await fetchReducedSourceNodes(
     requests,
     authHeaders,
     variableContext,
     pendingVectors,
   );
   applySourceDefinitions(definitions, componentMap, reducedNodes);
-  registerReferencedComponents(definitions, componentMap, componentSetMap, reducedNodes);
-  addSiblingVariants(definitions, componentMap, reducedNodes);
-  const { componentSets, namesByComponentId } = buildComponentSets(definitions, componentMap);
+  const adoptedFileKeys = registerReferencedComponents(
+    definitions,
+    componentMap,
+    componentSetMap,
+    reducedNodes,
+    nested,
+  );
+  await recordLibraryMemberNames(adoptedFileKeys, componentSetMap, authHeaders);
+  addSiblingVariants(definitions, componentMap, reducedNodes, includeComponentVariants);
+  const { componentSets, namesByComponentId } = buildComponentSets(
+    definitions,
+    componentMap,
+    componentSetMap,
+  );
   normalized.componentSets = componentSets;
   patchEmittedInstances(normalized, namesByComponentId, componentMap);
   delete normalized.definitions;
@@ -78,7 +96,7 @@ function applyInstanceFallbacks(definitions: Definitions, root: V3Node) {
 function applyDefinitionMetadata(
   definitions: Definitions,
   componentMap: ComponentMetadata,
-  componentSetMap: Record<string, { name: string }>,
+  componentSetMap: Record<string, ComponentSetMetadata>,
 ) {
   for (const [id, definition] of Object.entries(definitions)) {
     const meta = componentMap[id];
@@ -92,16 +110,54 @@ function applyDefinitionMetadata(
   }
 }
 
-function collectSourceNodeRequests(definitions: Definitions, componentMap: ComponentMetadata) {
+function collectSourceNodeRequests(
+  definitions: Definitions,
+  componentMap: ComponentMetadata,
+  includeComponentVariants: boolean,
+) {
+  const usedSets = new Set(
+    Object.keys(definitions).flatMap((id) => {
+      const meta = componentMap[id];
+      return meta?.componentSetId ? [componentSetIdentity(meta)] : [];
+    }),
+  );
   const requests = new Map<string, Set<string>>();
-  for (const id of Object.keys(definitions)) {
-    const meta = componentMap[id];
-    if (!meta?.file_key || !meta.node_id) continue;
+  for (const [id, meta] of Object.entries(componentMap)) {
+    if (!meta.file_key || !meta.node_id) continue;
+    if (!isSourceNodeNeeded(id, meta, definitions, usedSets, includeComponentVariants)) continue;
     if (!requests.has(meta.file_key)) requests.set(meta.file_key, new Set());
     requests.get(meta.file_key)!.add(meta.node_id);
   }
   return requests;
 }
+
+function isSourceNodeNeeded(
+  id: string,
+  meta: RichComponentMeta,
+  definitions: Definitions,
+  usedSets: Set<string>,
+  includeComponentVariants: boolean,
+): boolean {
+  if (id in definitions) return true;
+  return (
+    includeComponentVariants &&
+    Boolean(meta.componentSetId) &&
+    usedSets.has(componentSetIdentity(meta))
+  );
+}
+
+type NestedComponentRecord = {
+  key?: string;
+  name?: string;
+  componentSetId?: string;
+  description?: string;
+};
+
+/** Components and set names declared by the library files that were fetched for this design. */
+type NestedSourceIndex = {
+  componentsByKey: Map<string, RichComponentMeta>;
+  setNames: Record<string, { name: string }>;
+};
 
 async function fetchReducedSourceNodes(
   requests: Map<string, Set<string>>,
@@ -109,10 +165,12 @@ async function fetchReducedSourceNodes(
   variableContext: VariableResolutionContext | null,
   pendingVectors: PendingVectorWriteInput[],
 ) {
+  const nested: NestedSourceIndex = { componentsByKey: new Map(), setNames: {} };
   const files = await Promise.all(
     [...requests].map(async ([fileKey, nodeIds]) => {
       try {
         const nodes = await fetchNodesBatch(fileKey, [...nodeIds], authHeaders);
+        indexNestedComponents(fileKey, nodes, nested);
         return reduceSourceNodes(fileKey, nodes, variableContext, pendingVectors);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -121,7 +179,48 @@ async function fetchReducedSourceNodes(
       }
     }),
   );
-  return new Map(files.flat());
+  return { reducedNodes: new Map(files.flat()), nested };
+}
+
+function indexNestedComponents(
+  fileKey: string,
+  nodes: Awaited<ReturnType<typeof fetchNodesBatch>>,
+  index: NestedSourceIndex,
+) {
+  for (const entry of Object.values(nodes)) {
+    if (!entry) continue;
+    indexNestedComponentRecords(fileKey, entry.components ?? {}, index);
+    indexNestedSetNames(fileKey, entry.componentSets ?? {}, index);
+  }
+}
+
+function indexNestedComponentRecords(
+  fileKey: string,
+  components: Record<string, NestedComponentRecord>,
+  index: NestedSourceIndex,
+) {
+  for (const [localId, component] of Object.entries(components)) {
+    if (!component.key) continue;
+    index.componentsByKey.set(component.key, {
+      key: component.key,
+      file_key: fileKey,
+      node_id: localId,
+      name: component.name ?? component.key,
+      ...(component.componentSetId ? { componentSetId: component.componentSetId } : {}),
+      ...(component.description ? { description: component.description } : {}),
+    });
+  }
+}
+
+function indexNestedSetNames(
+  fileKey: string,
+  componentSets: Record<string, { name: string }>,
+  index: NestedSourceIndex,
+) {
+  for (const [setId, set] of Object.entries(componentSets)) {
+    const identity = componentSetIdentity({ file_key: fileKey, componentSetId: setId });
+    index.setNames[identity] = { name: set.name };
+  }
 }
 
 function reduceSourceNodes(
@@ -186,20 +285,47 @@ function applySourceDefinitions(
 function registerReferencedComponents(
   definitions: Definitions,
   componentMap: ComponentMetadata,
-  componentSetMap: Record<string, { name: string }>,
+  componentSetMap: Record<string, ComponentSetMetadata>,
   reducedNodes: Map<string, V3Node>,
-) {
+  nested: NestedSourceIndex,
+): string[] {
   const idsByKey = new Map<string, string>();
   for (const [id, meta] of Object.entries(componentMap)) if (meta.key) idsByKey.set(meta.key, id);
   const registered: Definitions = {};
+  const adoptedFileKeys: string[] = [];
   for (const root of reducedNodes.values()) {
     for (const key of collectPublishedReferenceKeys(root)) {
-      const id = idsByKey.get(key);
+      const known = idsByKey.get(key);
+      const id = known ?? adoptNestedComponent(key, componentMap, componentSetMap, nested);
+      if (!known && id && componentMap[id].componentSetId) {
+        adoptedFileKeys.push(componentMap[id].file_key);
+      }
+      if (id) idsByKey.set(key, id);
       if (id && !(id in definitions)) registered[id] = { name: componentMap[id].name };
     }
   }
   applyDefinitionMetadata(registered, componentMap, componentSetMap);
   Object.assign(definitions, registered);
+  return adoptedFileKeys;
+}
+
+/** Adds a component referenced by a library body from that library's own metadata; nothing is fetched. */
+function adoptNestedComponent(
+  key: string,
+  componentMap: ComponentMetadata,
+  componentSetMap: Record<string, ComponentSetMetadata>,
+  nested: NestedSourceIndex,
+): string | undefined {
+  const meta = nested.componentsByKey.get(key);
+  if (!meta) return undefined;
+  const id = componentSourceIdentity(meta);
+  componentMap[id] = meta;
+  const setIdentity = componentSetIdentity(meta);
+  const setName = nested.setNames[setIdentity];
+  if (meta.componentSetId && setName) {
+    componentSetMap[setIdentity] = { ...componentSetMap[setIdentity], ...setName };
+  }
+  return id;
 }
 
 function collectPublishedReferenceKeys(node: V3Node, keys: string[] = []): string[] {
@@ -219,7 +345,9 @@ function addSiblingVariants(
   definitions: Definitions,
   componentMap: ComponentMetadata,
   reducedNodes: Map<string, V3Node>,
+  includeComponentVariants: boolean,
 ) {
+  if (!includeComponentVariants) return;
   for (const [id, definition] of Object.entries(definitions)) {
     const meta = componentMap[id];
     if (!meta?.componentSetId) continue;
@@ -291,7 +419,11 @@ function assignGroupNames(groups: Map<string, DefinitionGroup>) {
   return names;
 }
 
-function buildComponentSets(definitions: Definitions, componentMap: ComponentMetadata) {
+function buildComponentSets(
+  definitions: Definitions,
+  componentMap: ComponentMetadata,
+  componentSetMap: Record<string, ComponentSetMetadata>,
+) {
   const groups = groupDefinitions(definitions, componentMap);
   const names = assignGroupNames(groups);
   const componentSets: Record<string, ComponentSet> = {};
@@ -299,17 +431,63 @@ function buildComponentSets(definitions: Definitions, componentMap: ComponentMet
   for (const [identity, group] of groups) {
     const name = names.get(identity)!;
     const members = collectAllSetMembers(group.componentIds, definitions);
-    const base = computeBaseStyles(members);
-    const set: ComponentSet = {
-      name,
-      propKeys: extractPropKeys(members),
-      variants: buildVariantOverrides(members, base),
-    };
-    if (base.layout || base.style || base.children) set.base = base;
-    componentSets[name] = set;
+    const memberNames = listedMemberNames(group.componentIds, componentMap, componentSetMap);
+    componentSets[name] = buildComponentSet(name, members, memberNames, componentMap);
     for (const { componentId } of members) namesByComponentId.set(componentId, name);
   }
   return { componentSets, namesByComponentId };
+}
+
+function buildComponentSet(
+  name: string,
+  members: VariantMember[],
+  memberNames: string[],
+  componentMap: ComponentMetadata,
+): ComponentSet {
+  const base = computeBaseStyles(members);
+  const propValues = collectPropValues(members, memberNames);
+  const propKeys = Object.keys(propValues);
+  const set: ComponentSet = {
+    name,
+    propKeys,
+    ...(propKeys.length > 0 ? { propValues } : {}),
+    variants: buildVariantOverrides(members, base, componentMap),
+  };
+  if (base.layout || base.style || base.children) set.base = base;
+  return set;
+}
+
+function listedMemberNames(
+  componentIds: string[],
+  componentMap: ComponentMetadata,
+  componentSetMap: Record<string, ComponentSetMetadata>,
+): string[] {
+  const meta = componentMap[componentIds[0]];
+  if (!meta?.componentSetId) return [];
+  const setMeta =
+    componentSetMap[componentSetIdentity(meta)] ?? componentSetMap[meta.componentSetId];
+  return setMeta?.memberNames ?? [];
+}
+
+function collectPropValues(
+  members: VariantMember[],
+  memberNames: string[],
+): Record<string, string[]> {
+  const valuesByKey = new Map<string, Set<string>>();
+  const propSets = [
+    ...members.map(({ value }) => value.props ?? {}),
+    ...memberNames.map((memberName) => parseVariantProps(memberName)),
+  ];
+  for (const props of propSets) {
+    for (const [key, value] of Object.entries(props)) {
+      const values = valuesByKey.get(key) ?? new Set<string>();
+      values.add(String(value));
+      valuesByKey.set(key, values);
+    }
+  }
+  return Object.fromEntries(
+    [...valuesByKey.keys()].sort().map((key) => [key, [...valuesByKey.get(key)!].sort()]),
+  );
 }
 
 function collectAllSetMembers(componentIds: string[], definitions: Definitions): VariantMember[] {
@@ -359,11 +537,11 @@ function allEqual<T>(items: Array<T | undefined>): boolean {
   return items.every((item) => JSON.stringify(item) === first);
 }
 
-function extractPropKeys(members: VariantMember[]): string[] {
-  return [...new Set(members.flatMap(({ value }) => Object.keys(value.props ?? {})))].sort();
-}
-
-function buildVariantOverrides(members: VariantMember[], base: NonNullable<ComponentSet["base"]>) {
+function buildVariantOverrides(
+  members: VariantMember[],
+  base: NonNullable<ComponentSet["base"]>,
+  componentMap: ComponentMetadata,
+) {
   const variants: ComponentSet["variants"] = {};
   for (const { componentId, value } of members) {
     const entry: ComponentSet["variants"][string] = {};
@@ -375,9 +553,18 @@ function buildVariantOverrides(members: VariantMember[], base: NonNullable<Compo
     if (style) entry.style = style;
     if (!allEqual([value.children, base.children]) && value.children)
       entry.children = value.children;
-    variants[componentId] = entry;
+    const key = variantOutputKey(componentId, componentMap);
+    if (Object.keys(entry).length > 0 && !(key in variants)) variants[key] = entry;
   }
   return variants;
+}
+
+/**
+ * Members of a set share a file, so a node id names one component within it. The same component
+ * can be reached under two identities, so buildVariantOverrides keeps the first entry per node id.
+ */
+function variantOutputKey(componentId: string, componentMap: ComponentMetadata): string {
+  return componentMap[componentId]?.node_id || componentId;
 }
 
 function diffObjects(

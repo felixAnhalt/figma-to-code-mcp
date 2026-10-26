@@ -30,6 +30,10 @@ it("documents exactly the tools a default MCP client discovers", async () => {
       "svgViewport",
     ])
       expect(design?.description).toContain(field);
+    expect(design?.inputSchema.properties?.includeComponentVariants).toMatchObject({
+      type: "boolean",
+      default: false,
+    });
   } finally {
     await client.close();
     await server.close();

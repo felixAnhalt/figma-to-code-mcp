@@ -127,6 +127,14 @@ describe("design cache input isolation", () => {
     expect(fetchNodesBatch).toHaveBeenCalledTimes(4);
   });
 
+  it("keeps the component-variant option in cache identity without splitting the default", async () => {
+    const opts = options({ componentMap: {}, componentSetMap: {} });
+    await generateMCPResponse(opts);
+    await generateMCPResponse({ ...opts, includeComponentVariants: true });
+    await generateMCPResponse({ ...opts, includeComponentVariants: false });
+    expect(fetchNodesBatch).toHaveBeenCalledTimes(2);
+  });
+
   it("normalizes record and Map order for compatible cache hits", async () => {
     const first = context();
     first.variableValues.set("other", 16);

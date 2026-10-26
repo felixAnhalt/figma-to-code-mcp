@@ -1,5 +1,5 @@
 import { beforeEach, vi } from "vitest";
-import { buildRichComponentMap } from "~/figma/mcp/componentMap";
+import { buildRichComponentMap, componentSetIdentity } from "~/figma/mcp/componentMap";
 import { enrichDefinitions } from "~/figma/mcp/enrich";
 import type { MCPResponse } from "~/figma/types";
 import { httpClient, httpClientRaw } from "~/utils/httpClient";
@@ -44,7 +44,7 @@ describe("Component discovery at the HTTP boundary", () => {
       },
       {},
       AUTH_HEADERS,
-      "designFile",
+      { localFileKey: "designFile" },
     );
     expect(componentMap.local).toMatchObject({ file_key: "designFile", node_id: "local" });
     expect(componentMap.unknown).toMatchObject({ file_key: "", node_id: "unknown" });
@@ -98,7 +98,7 @@ describe("Component discovery at the HTTP boundary", () => {
       { local: { key: "own-key", name: "Own", remote: false } },
       {},
       AUTH_HEADERS,
-      "designFile",
+      { localFileKey: "designFile" },
     );
     expect(componentMap.local).toMatchObject({ file_key: "designFile", node_id: "5:5" });
     expect(httpClientRaw).toHaveBeenCalledTimes(1);
@@ -110,11 +110,35 @@ describe("Component discovery at the HTTP boundary", () => {
       { local: { key: "unpublished-key", name: "Unpublished", remote: false } },
       {},
       AUTH_HEADERS,
-      "designFile",
+      { localFileKey: "designFile" },
     );
     expect(vi.mocked(httpClientRaw).mock.calls.map(([url]) => url)).toEqual([
       `${API_ROOT}/files/designFile/components`,
     ]);
+  });
+
+  it("lists every member name of a used set, and adds unused siblings only when asked", async () => {
+    const used = { ...publishedComponent("used", "library-a", "10:1", "200:1"), name: "Size=sm" };
+    const unused = {
+      ...publishedComponent("unused", "library-a", "10:2", "200:1"),
+      name: "Size=lg",
+    };
+    stubRoutes({
+      "/components/used": { meta: used },
+      "/files/library-a/components": { meta: { components: [used, unused] } },
+    });
+    const { componentMap, componentSetMap } = await buildRichComponentMap(
+      { localUsed: { key: "used", name: "Size=sm" } },
+      {},
+      AUTH_HEADERS,
+      { includeComponentVariants: false },
+    );
+    const setIdentity = componentSetIdentity({ file_key: "library-a", componentSetId: "200:1" });
+    expect(Object.values(componentMap).map(({ name }) => name)).toEqual(["Size=sm"]);
+    expect(componentSetMap[setIdentity]).toEqual({
+      name: "Button",
+      memberNames: ["Size=sm", "Size=lg"],
+    });
   });
 
   it("does not stop provenance discovery after three unavailable component keys", async () => {
@@ -204,6 +228,23 @@ describe("Component discovery at the HTTP boundary", () => {
     ).toHaveLength(1);
     expect(Object.values(result.componentMap).some((meta) => meta.key === "unrelated")).toBe(false);
     expect(Object.values(result.componentSetMap).some((set) => set.name === "Button")).toBe(true);
+  });
+
+  it("leaves published siblings out unless includeComponentVariants is set", async () => {
+    const first = publishedComponent("first", "library-a", "10:1", "source-set");
+    const sibling = publishedComponent("sibling", "library-a", "10:2", "source-set");
+    stubRoutes({
+      "/components/first": { meta: first },
+      "/files/library-a/components": { meta: { components: [first, sibling] } },
+    });
+    const result = await buildRichComponentMap(
+      { local: { key: "first", name: "State=First", componentSetId: "local-set" } },
+      { "local-set": { name: "Button" } },
+      AUTH_HEADERS,
+      { includeComponentVariants: false },
+    );
+    expect(Object.values(result.componentMap).some((meta) => meta.key === "sibling")).toBe(false);
+    expect(result.componentMap.local.componentSetId).toBe("source-set");
   });
 
   it("preserves raw set metadata when there are no components to resolve", async () => {

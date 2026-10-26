@@ -25,6 +25,7 @@ vi.mock("~/figma/batchFetch", () => ({
 
 vi.mock("~/utils/httpClient", () => ({
   httpClient: vi.fn(),
+  httpClientRaw: vi.fn(),
 }));
 
 vi.mock("~/figma/cache", () => ({
@@ -34,7 +35,7 @@ vi.mock("~/figma/cache", () => ({
 
 import { generateMCPResponse } from "~/figma/index";
 import { fetchNodesBatch } from "~/figma/batchFetch";
-import { httpClient } from "~/utils/httpClient";
+import { httpClient, httpClientRaw } from "~/utils/httpClient";
 import { enrichDefinitions } from "~/figma/mcp/enrich";
 import type { ComponentDefinition, ComponentSet, MCPResponse } from "~/figma/types";
 
@@ -364,6 +365,7 @@ describe("Component definitions — enriched", () => {
       componentMap,
       componentSetMap,
       resolveVariables: false,
+      includeComponentVariants: true,
     });
 
     const set = result.componentSets!["Button"];
@@ -377,7 +379,7 @@ describe("Component definitions — enriched", () => {
     expect(set.propKeys).toContain("variant");
   });
 
-  it("lists sibling variants by their props without fetching their bodies", async () => {
+  it("omits sibling variants of used components by default", async () => {
     const setId = "200:1";
     const compIdA = "100:1";
     const compIdB = "100:2";
@@ -410,10 +412,162 @@ describe("Component definitions — enriched", () => {
       resolveVariables: false,
     });
 
+    expect(result.componentSets!.Button.variants[compIdB]).toBeUndefined();
+    expect(fetchNodesBatch).toHaveBeenCalledTimes(2);
     expect(fetchNodesBatch).toHaveBeenLastCalledWith("libFile", [compIdA], expect.anything());
+  });
+
+  it("omits a variant entry that adds nothing beyond the base", async () => {
+    const setId = "200:1";
+    const compId = "100:1";
+    const componentMap: Record<string, RichComponentMeta> = {
+      [compId]: {
+        key: "aaa",
+        file_key: "libFile",
+        node_id: compId,
+        name: "Button",
+        componentSetId: setId,
+      },
+    };
+    (fetchNodesBatch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(rootFileResponse("1:1", [instanceNode("I1:2", "BtnInst", compId)]))
+      .mockResolvedValueOnce({ [compId]: frameNodeEntry(compId, "Button") });
+
+    const result = await generateMCPResponse({
+      fileKey: "designFile",
+      authHeaders: { "X-Figma-Token": "tok" },
+      rootNodeId: "1:1",
+      componentMap,
+      componentSetMap: { [setId]: { name: "Button" } },
+      resolveVariables: false,
+    });
+
+    expect(result.componentSets!.Button.variants).toEqual({});
+  });
+
+  it("lists every value a prop takes across the set's listed members, not only the used ones", async () => {
+    const setId = "200:1";
+    const compIdA = "100:1";
+    const componentMap: Record<string, RichComponentMeta> = {
+      [compIdA]: {
+        key: "aaa",
+        file_key: "libFile",
+        node_id: compIdA,
+        name: "Variant=Primary",
+        componentSetId: setId,
+      },
+    };
+    (fetchNodesBatch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(rootFileResponse("1:1", [instanceNode("I1:2", "BtnInst", compIdA)]))
+      .mockResolvedValueOnce({ [compIdA]: frameNodeEntry(compIdA, "Variant=Primary") });
+
+    const result = await generateMCPResponse({
+      fileKey: "designFile",
+      authHeaders: { "X-Figma-Token": "tok" },
+      rootNodeId: "1:1",
+      componentMap,
+      componentSetMap: {
+        [setId]: {
+          name: "Button",
+          memberNames: ["Variant=Primary", "Variant=Secondary", "Variant=Tertiary"],
+        },
+      },
+      resolveVariables: false,
+    });
+
+    expect(result.componentSets!.Button.propKeys).toEqual(["variant"]);
+    expect(result.componentSets!.Button.propValues).toEqual({
+      variant: ["primary", "secondary", "tertiary"],
+    });
+  });
+
+  it("with includeComponentVariants, lists every sibling by its props and fetches its body", async () => {
+    const setId = "200:1";
+    const compIdA = "100:1";
+    const compIdB = "100:2";
+    const componentMap: Record<string, RichComponentMeta> = {
+      [compIdA]: {
+        key: "aaa",
+        file_key: "libFile",
+        node_id: compIdA,
+        name: "Variant=Primary",
+        componentSetId: setId,
+      },
+      [compIdB]: {
+        key: "bbb",
+        file_key: "libFile",
+        node_id: compIdB,
+        name: "Variant=Secondary",
+        componentSetId: setId,
+      },
+    };
+    (fetchNodesBatch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(rootFileResponse("1:1", [instanceNode("I1:2", "BtnInst", compIdA)]))
+      .mockResolvedValueOnce({
+        [compIdA]: frameNodeEntry(compIdA, "Variant=Primary"),
+        [compIdB]: frameNodeEntry(compIdB, "Variant=Secondary", {
+          children: [
+            { id: "text:secondary", type: "TEXT", name: "Label", characters: "Secondary" },
+          ],
+        }),
+      });
+
+    const result = await generateMCPResponse({
+      fileKey: "designFile",
+      authHeaders: { "X-Figma-Token": "tok" },
+      rootNodeId: "1:1",
+      componentMap,
+      componentSetMap: { [setId]: { name: "Button" } },
+      resolveVariables: false,
+      includeComponentVariants: true,
+    });
+
+    expect(fetchNodesBatch).toHaveBeenLastCalledWith(
+      "libFile",
+      [compIdA, compIdB],
+      expect.anything(),
+    );
     const sibling = result.componentSets!.Button.variants[compIdB];
     expect(sibling.props).toEqual({ variant: "secondary" });
-    expect(sibling.layout).toBeUndefined();
+    expect(sibling.children?.[0]?.text).toBe("Secondary");
+  });
+
+  it("with includeComponentVariants, keeps a sibling's props when its body is unavailable", async () => {
+    const setId = "200:1";
+    const compIdA = "100:1";
+    const compIdB = "100:2";
+    const componentMap: Record<string, RichComponentMeta> = {
+      [compIdA]: {
+        key: "aaa",
+        file_key: "libFile",
+        node_id: compIdA,
+        name: "Variant=Primary",
+        componentSetId: setId,
+      },
+      [compIdB]: {
+        key: "bbb",
+        file_key: "libFile",
+        node_id: compIdB,
+        name: "Variant=Secondary",
+        componentSetId: setId,
+      },
+    };
+    (fetchNodesBatch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(rootFileResponse("1:1", [instanceNode("I1:2", "BtnInst", compIdA)]))
+      .mockResolvedValueOnce({ [compIdA]: frameNodeEntry(compIdA, "Variant=Primary") });
+
+    const result = await generateMCPResponse({
+      fileKey: "designFile",
+      authHeaders: { "X-Figma-Token": "tok" },
+      rootNodeId: "1:1",
+      componentMap,
+      componentSetMap: { [setId]: { name: "Button" } },
+      resolveVariables: false,
+      includeComponentVariants: true,
+    });
+
+    const sibling = result.componentSets!.Button.variants[compIdB];
+    expect(sibling.props).toEqual({ variant: "secondary" });
     expect(sibling.children).toBeUndefined();
   });
 
@@ -459,6 +613,144 @@ describe("Component definitions — enriched", () => {
       "Icon",
     );
     expect(result.componentSets!.Icon.variants[nestedId]).toBeDefined();
+  });
+
+  it("adopts a component that only a library body declares, using that body's metadata", async () => {
+    const setId = "200:1";
+    const compId = "100:1";
+    const nestedId = "300:1";
+    const nestedSetId = "400:1";
+    const componentMap: Record<string, RichComponentMeta> = {
+      [compId]: {
+        key: "aaa",
+        file_key: "libFile",
+        node_id: compId,
+        name: "Variant=Primary",
+        componentSetId: setId,
+      },
+    };
+    const body = frameNodeEntry(compId, "Variant=Primary", {
+      children: [{ id: "I100:2", type: "INSTANCE", name: "Nested", componentId: nestedId }],
+    });
+    body.components = {
+      [nestedId]: {
+        key: "icon-key",
+        name: "Icon=Search",
+        componentSetId: nestedSetId,
+        remote: true,
+      },
+    };
+    body.componentSets = { [nestedSetId]: { key: "icon-set-key", name: "Icon", remote: true } };
+    (fetchNodesBatch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(rootFileResponse("1:1", [instanceNode("I1:2", "BtnInst", compId)]))
+      .mockResolvedValueOnce({ [compId]: body });
+
+    const result = await generateMCPResponse({
+      fileKey: "designFile",
+      authHeaders: { "X-Figma-Token": "tok" },
+      rootNodeId: "1:1",
+      componentMap,
+      componentSetMap: { [setId]: { name: "Button" } },
+      resolveVariables: false,
+    });
+
+    const button = result.componentSets!.Button;
+    expect((button.base?.children ?? button.variants[compId].children)?.[0]?.component).toBe(
+      "Icon",
+    );
+    expect(result.componentSets!.Icon).toBeDefined();
+    expect(fetchNodesBatch).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps one variant per component reached under two identities", async () => {
+    const setId = "200:1";
+    const componentMap: Record<string, RichComponentMeta> = {
+      "1:3": {
+        key: "key-a",
+        file_key: "libFile",
+        node_id: "378:1347",
+        name: "Size=M",
+        componentSetId: setId,
+      },
+      "59:2715": {
+        key: "key-b",
+        file_key: "libFile",
+        node_id: "378:1347",
+        name: "Size=M",
+        componentSetId: setId,
+      },
+    };
+    (fetchNodesBatch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(rootFileResponse("1:1", [instanceNode("I1:2", "BtnInst", "1:3")]))
+      .mockResolvedValueOnce({ "378:1347": frameNodeEntry("378:1347", "Size=M") });
+
+    const result = await generateMCPResponse({
+      fileKey: "designFile",
+      authHeaders: { "X-Figma-Token": "tok" },
+      rootNodeId: "1:1",
+      componentMap,
+      componentSetMap: { [setId]: { name: "Button" } },
+      includeComponentVariants: true,
+      resolveVariables: false,
+    });
+
+    expect(Object.keys(result.componentSets!.Button.variants)).toEqual(["378:1347"]);
+  });
+
+  it("records every member of an adopted nested set from its library listing", async () => {
+    const setId = "200:1";
+    const compId = "100:1";
+    const nestedId = "300:1";
+    const nestedSetId = "400:1";
+    const listedMember = (nodeId: string, name: string) => ({
+      key: `icon-${name.toLowerCase()}`,
+      file_key: "libFile",
+      node_id: nodeId,
+      name,
+      containing_frame: { containingComponentSet: { nodeId: nestedSetId, name: "Icon" } },
+    });
+    const componentMap: Record<string, RichComponentMeta> = {
+      [compId]: {
+        key: "aaa",
+        file_key: "libFile",
+        node_id: compId,
+        name: "Variant=Primary",
+        componentSetId: setId,
+      },
+    };
+    const body = frameNodeEntry(compId, "Variant=Primary", {
+      children: [{ id: "I100:2", type: "INSTANCE", name: "Nested", componentId: nestedId }],
+    });
+    body.components = {
+      [nestedId]: {
+        key: "icon-search",
+        name: "Icon=Search",
+        componentSetId: nestedSetId,
+        remote: true,
+      },
+    };
+    body.componentSets = { [nestedSetId]: { key: "icon-set-key", name: "Icon", remote: true } };
+    (fetchNodesBatch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(rootFileResponse("1:1", [instanceNode("I1:2", "BtnInst", compId)]))
+      .mockResolvedValueOnce({ [compId]: body });
+    vi.mocked(httpClientRaw).mockResolvedValue(
+      Response.json({
+        meta: {
+          components: [listedMember("300:1", "Icon=Search"), listedMember("300:2", "Icon=Close")],
+        },
+      }),
+    );
+
+    const result = await generateMCPResponse({
+      fileKey: "designFile",
+      authHeaders: { "X-Figma-Token": "tok" },
+      rootNodeId: "1:1",
+      componentMap,
+      componentSetMap: { [setId]: { name: "Button" } },
+      resolveVariables: false,
+    });
+
+    expect(result.componentSets!.Icon.propValues).toEqual({ icon: ["close", "search"] });
   });
 
   it("Phase 3: base styles hold shared values and variant overrides hold only deltas", async () => {
@@ -569,7 +861,7 @@ async function enrichVariantFixture(definitions: Record<string, ComponentDefinit
 }
 
 function effectiveMember(set: ComponentSet, id: string) {
-  const variant = set.variants[id];
+  const variant: ComponentSet["variants"][string] = set.variants[id] ?? {};
   return {
     layout: { ...set.base?.layout, ...variant.layout },
     style: { ...set.base?.style, ...variant.style },
@@ -695,6 +987,7 @@ it("exports distinct geometry for structurally identical variant vector children
   await withVariantSvgDirectory(async (svgOutputDir) => {
     const response = await generateMCPResponse({
       fileKey: "vector-design",
+      includeComponentVariants: true,
       rootNodeId: "root:1",
       authHeaders: {},
       componentMap,
@@ -705,8 +998,8 @@ it("exports distinct geometry for structurally identical variant vector children
     });
     const set = response.componentSets![VARIANT_SET_NAME];
     expect(set.base?.children).toBeUndefined();
-    const primaryNode = effectiveMember(set, "primary").children![0];
-    const secondaryNode = effectiveMember(set, "secondary").children![0];
+    const primaryNode = effectiveMember(set, "source:1").children![0];
+    const secondaryNode = effectiveMember(set, "source:2").children![0];
     expect({ ...primaryNode, svgPathInAssetFolder: undefined, svgViewport: undefined }).toEqual({
       ...secondaryNode,
       svgPathInAssetFolder: undefined,

@@ -7,6 +7,7 @@ import {
 } from "./constants";
 import {
   buildSemanticTokenRegistry,
+  withFallbackNames,
   parseString,
   parseNumber,
   parsePaddingCombo,
@@ -16,6 +17,14 @@ import {
   buildRadiusSemanticMap,
   buildHeightSemanticMap,
 } from "./registry";
+import {
+  colorFallbackName,
+  heightFallbackName,
+  paddingComboFallbackName,
+  radiusFallbackName,
+  shadowFallbackName,
+  spacingFallbackName,
+} from "./fallbackNames";
 import { replaceNodeTokens, replaceComponentSetTokens } from "./replace";
 
 // ── Figma variable ref collection ─────────────────────────────────────────────
@@ -194,32 +203,32 @@ export function extractTokens(response: MCPResponse): MCPResponse {
   // Step 3: build semantic token registries from frequency-based invented names
   const { tokensByRaw: colorsByRaw, registry: colorRegistry } = buildSemanticTokenRegistry(
     colors,
-    COLOR_SEMANTIC_NAMES,
+    withFallbackNames(colors, COLOR_SEMANTIC_NAMES, colorFallbackName),
     parseString,
   );
   const { tokensByRaw: shadowsByRaw, registry: shadowRegistry } = buildSemanticTokenRegistry(
     shadows,
-    SHADOW_SEMANTIC_NAMES,
+    withFallbackNames(shadows, SHADOW_SEMANTIC_NAMES, shadowFallbackName),
     parseString,
   );
   const { tokensByRaw: spacingsByRaw, registry: spacingRegistry } = buildSemanticTokenRegistry(
     spacings,
-    buildSpacingSemanticMap(spacings),
+    withFallbackNames(spacings, buildSpacingSemanticMap(spacings), spacingFallbackName),
     parseNumber,
   );
   const { tokensByRaw: radiiByRaw, registry: radiusRegistry } = buildSemanticTokenRegistry(
     radii,
-    buildRadiusSemanticMap(radii),
+    withFallbackNames(radii, buildRadiusSemanticMap(radii), radiusFallbackName),
     parseNumber,
   );
   const { tokensByRaw: paddingCombosByRaw, registry: paddingRegistry } = buildSemanticTokenRegistry(
     paddingCombos,
-    PADDING_COMBO_SEMANTIC_NAMES,
+    withFallbackNames(paddingCombos, PADDING_COMBO_SEMANTIC_NAMES, paddingComboFallbackName),
     parsePaddingCombo,
   );
   const { tokensByRaw: heightsByRaw, registry: heightRegistry } = buildSemanticTokenRegistry(
     heights,
-    buildHeightSemanticMap(heights),
+    withFallbackNames(heights, buildHeightSemanticMap(heights), heightFallbackName),
     parseNumber,
   );
 
