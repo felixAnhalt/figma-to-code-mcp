@@ -20,6 +20,16 @@ it("documents exactly the tools a default MCP client discovers", async () => {
     await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
     const { tools } = await client.listTools();
     expect(documentedNames).toEqual(tools.map(({ name }) => name).sort());
+    const design = tools.find(({ name }) => name === "get_figma_design");
+    for (const field of [
+      "textRuns",
+      "typography",
+      "position",
+      "borderWidths",
+      "gradientHandlePositions",
+      "svgViewport",
+    ])
+      expect(design?.description).toContain(field);
   } finally {
     await client.close();
     await server.close();

@@ -120,7 +120,11 @@ async function getFigmaDesign(
 export const getFigmaDesignTool = {
   name: "get_figma_design",
   description:
-    "Get complete Figma design data with full layout, styling, Flexbox primitives, and component relationships. SVG assets are automatically saved to a temp folder referenced in the response.",
+    "Get Figma layout, styling, text, components, and exported SVG assets. " +
+    "Render textRuns instead of duplicating text; expand base typography tokens before applying run overrides. " +
+    "Preserve layout.position/left/top, per-edge borderWidths, and gradientHandlePositions. " +
+    "SVG files are in svgAssetsFolder. Keep each node's layout footprint and place its asset at " +
+    "svgViewport x/y using svgViewport width/height; do not stretch the expanded asset to the node's original size.",
   parametersSchema,
   handler: getFigmaDesign,
 } as const;

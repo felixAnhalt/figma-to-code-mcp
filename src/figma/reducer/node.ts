@@ -1,4 +1,10 @@
 import type { FigmaRawNode, FigmaRawPaint, FigmaEffect, ComponentPropertyValue } from "./types";
+import {
+  getFiniteTransform,
+  getParentLocalPosition,
+  hasUntransformedAxes,
+  isAutoLayout,
+} from "./positioning";
 
 export function isTransparentWrapper(node: FigmaRawNode): boolean {
   if (node.isMask === true) return false;
@@ -6,7 +12,7 @@ export function isTransparentWrapper(node: FigmaRawNode): boolean {
   if (node.type !== "FRAME" && node.type !== "GROUP") return false;
   if (!node.children || node.children.length !== 1) return false;
 
-  if (node.layoutMode) return false;
+  if (isAutoLayout(node) || hasCoordinateWrapperSemantics(node)) return false;
 
   const fills = node.fills as FigmaRawPaint[] | undefined;
   if (fills && fills.length > 0 && fills.some((f) => f.type && f.type !== "NONE")) return false;
@@ -32,14 +38,26 @@ export function isTransparentWrapper(node: FigmaRawNode): boolean {
   )
     return false;
 
-  const size = node.size as { x?: number; y?: number } | undefined;
-  if (
-    size?.x !== undefined &&
-    (node.layoutSizingHorizontal === "FIXED" || node.layoutSizingVertical === "FIXED")
-  )
-    return false;
-
   return true;
+}
+
+function hasCoordinateWrapperSemantics(node: FigmaRawNode): boolean {
+  if (node.layoutPositioning === "ABSOLUTE" || node.size !== undefined) return true;
+  if (hasMeaningfulTransform(node)) return true;
+  const child = node.children?.[0];
+  if (!child || child.visible === false) return false;
+  if (child.layoutPositioning === "ABSOLUTE" || hasMeaningfulTransform(child)) return true;
+  return (
+    getParentLocalPosition(child, node) !== undefined &&
+    (child.absoluteBoundingBox !== undefined || child.size !== undefined)
+  );
+}
+
+function hasMeaningfulTransform(node: FigmaRawNode): boolean {
+  if (!hasUntransformedAxes(node)) return true;
+  const transform = getFiniteTransform(node);
+  if (transform) return transform[4] !== 0 || transform[5] !== 0;
+  return Boolean(node.absoluteBoundingBox?.x || node.absoluteBoundingBox?.y);
 }
 
 export function resolveChildren(children: FigmaRawNode[]): FigmaRawNode[] {

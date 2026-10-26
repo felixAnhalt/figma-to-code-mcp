@@ -2,11 +2,12 @@ import type { ComponentDefinition, MCPResponse, V3Node, FigmaAnnotation } from "
 import type { VariableResolutionContext } from "./variableResolver";
 import { parseVariantProps, resolveChildren, extractComponentProperties } from "./reducer/node";
 import { extractInteractions } from "./reducer/interaction";
-import { extractVectorPaths } from "./reducer/vector";
+import { extractVectorPaths, getVectorCanvasBounds, getVectorPaintColor } from "./reducer/vector";
 import { getVectorMerge } from "./reducer/group";
 import { extractLayoutFromNode } from "./reducer/layout";
 import { extractStyleFromNode } from "./reducer/style";
 import { extractTextStyleFromNode } from "./reducer/text";
+import { extractTextRuns } from "./reducer/text-runs";
 import { processPaint } from "./reducer/paint";
 import {
   addPendingVectorWrite,
@@ -37,7 +38,7 @@ export function buildNormalizedGraph(
    * Children are processed recursively; hidden nodes and their subtrees are skipped.
    * Mutates `definitions` to register component metadata when INSTANCE nodes are encountered.
    */
-  function processNode(node: FigmaRawNode): V3Node {
+  function processNode(node: FigmaRawNode, parent?: FigmaRawNode): V3Node {
     const v3: V3Node = {
       type: node.type,
       name: node.name,
@@ -58,7 +59,7 @@ export function buildNormalizedGraph(
     if (componentProps) v3.props = componentProps;
 
     // ── Layout ───────────────────────────────────────────────────────────────
-    const layout = extractLayoutFromNode(node, variableContext);
+    const layout = extractLayoutFromNode(node, variableContext, parent);
     if (layout) v3.layout = layout;
 
     // ── Style ────────────────────────────────────────────────────────────────
@@ -72,6 +73,8 @@ export function buildNormalizedGraph(
       }
 
       if (node.characters) v3.text = node.characters as string;
+      const textRuns = extractTextRuns(node, variableContext);
+      if (textRuns) v3.textRuns = textRuns;
     }
 
     if (style && Object.keys(style).length > 0) v3.style = style;
@@ -79,9 +82,16 @@ export function buildNormalizedGraph(
     // ── Vector paths (VECTOR nodes only) ───────────────────────────────────
     const vectorPaths = extractVectorPaths(node);
     if (vectorPaths) {
-      // Bounds are now computed from path data in svg-writer.ts (not absolute canvas position)
+      // Keep Figma's local canvas so independently exported chart series stay aligned.
       addPendingVectorWrite(
-        { fileKey, nodeId: node.id, paths: vectorPaths, target: v3 },
+        {
+          fileKey,
+          nodeId: node.id,
+          paths: vectorPaths,
+          target: v3,
+          bounds: getVectorCanvasBounds(node),
+          fillColor: getVectorPaintColor(node, variableContext),
+        },
         pendingVectors,
       );
     }
@@ -147,9 +157,17 @@ export function buildNormalizedGraph(
       const thisFill = style && typeof style.background === "string" ? style.background : undefined;
 
       const visible = resolved.filter((child): child is FigmaRawNode => {
-        // Suppress RECTANGLE nodes whose fill is identical to this node's fill —
-        // they are purely decorative background layers that carry no extra information.
+        // Only suppress legacy background layers with no independent geometry or decoration.
         if (!child || child.type !== "RECTANGLE" || thisFill === undefined) return true;
+        if (
+          child.size ||
+          child.absoluteBoundingBox ||
+          child.relativeTransform ||
+          child.layoutPositioning
+        )
+          return true;
+        const childStyle = extractStyleFromNode(child, variableContext);
+        if (Object.keys(childStyle ?? {}).some((key) => key !== "background")) return true;
         const childFills = child.fills as FigmaRawPaint[] | undefined;
         if (!childFills || childFills.length === 0) return true;
         const childFill = processPaint(childFills[0], variableContext);
@@ -157,9 +175,10 @@ export function buildNormalizedGraph(
       });
 
       if (visible.length > 0) {
-        const merged = getVectorMerge(node, visible);
+        const merged = getVectorMerge(node, visible, variableContext);
         if (merged) {
           const target: V3Node = { type: "VECTOR", name: merged.name };
+          if (merged.layout) target.layout = merged.layout;
           v3.children = [target];
           addPendingVectorWrite(
             {
@@ -173,7 +192,7 @@ export function buildNormalizedGraph(
             pendingVectors,
           );
         } else {
-          v3.children = visible.map((child) => processNode(child));
+          v3.children = visible.map((child) => processNode(child, node));
         }
       }
     }

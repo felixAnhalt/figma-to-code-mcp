@@ -82,6 +82,7 @@ function collectFigmaVarRefs(response: MCPResponse): FigmaVarMaps {
 
   function collectNode(node: V3Node): void {
     collectStyle(node.style);
+    for (const run of node.textRuns ?? []) collectStyle(run.style);
     collectLayout(node.layout);
     for (const child of node.children ?? []) collectNode(child);
   }
@@ -126,6 +127,14 @@ function stripVarRefsFromNode(node: V3Node): V3Node {
     style: stripVarRefsFromStyle(node.style),
     layout: stripVarRefsFromLayout(node.layout),
     children: node.children?.map(stripVarRefsFromNode),
+    ...(node.textRuns
+      ? {
+          textRuns: node.textRuns.map((run) => ({
+            ...run,
+            ...(run.style ? { style: stripVarRefsFromStyle(run.style) } : {}),
+          })),
+        }
+      : {}),
   };
   if (!stripped.style) delete stripped.style;
   if (!stripped.layout) delete stripped.layout;

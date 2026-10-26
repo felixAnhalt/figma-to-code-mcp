@@ -474,7 +474,7 @@ describe("vector merging in groups and frames", () => {
       expect(firstPathY || secondPathHas25).toBe(true);
     });
 
-    it("should use provided bounds for viewBox, not recompute from path data", async () => {
+    it("unions the original canvas with out-of-canvas ink instead of clipping merged assets", async () => {
       const v1 = vector("1:2", "Vector1");
       const v2 = vector("1:3", "Vector2", {
         relativeTransform: [
@@ -493,8 +493,9 @@ describe("vector merging in groups and frames", () => {
       const svgContent = svgContentCache.get(cacheKeys[0]);
 
       expect(svgContent).toContain('width="147"');
-      expect(svgContent).toContain('height="50"');
-      expect(svgContent).toContain('viewBox="0 0 147 50"');
+      expect(svgContent).toContain('height="60"');
+      expect(svgContent).toContain('viewBox="0 0 147 60"');
+      expect(result.root.children?.[0].svgViewport).toEqual({ x: 0, y: 0, width: 147, height: 60 });
     });
   });
 });

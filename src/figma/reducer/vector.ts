@@ -1,5 +1,57 @@
-import type { FigmaVectorNetwork, FigmaGeometry, FigmaRawNode } from "./types";
+import type { SvgBounds } from "~/figma/svg/cache";
+import type { VariableResolutionContext } from "~/figma/variableResolver";
+import { Logger } from "~/utils/logger";
+import type { FigmaVectorNetwork, FigmaGeometry, FigmaRawNode, FigmaRawPaint } from "./types";
+import { processPaint } from "./paint";
 import { roundTo } from "./utils";
+
+/** Figma geometry is node-local; absolute bounds can include rotation and translation. */
+export function getVectorCanvasBounds(node: FigmaRawNode): SvgBounds | undefined {
+  const width = node.size?.x;
+  const height = node.size?.y;
+  if (typeof width !== "number" || typeof height !== "number") return undefined;
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width < 0 || height < 0) {
+    return undefined;
+  }
+  return { x: 0, y: 0, width, height };
+}
+
+function hasVectorGeometry(geometry: unknown): boolean {
+  return Array.isArray(geometry) && (geometry as FigmaGeometry[]).some((entry) => entry.path);
+}
+
+function getGeometryPaints(node: FigmaRawNode): FigmaRawPaint[] | undefined {
+  if (hasVectorGeometry(node.fillGeometry)) return node.fills as FigmaRawPaint[] | undefined;
+  if (hasVectorGeometry(node.strokeGeometry)) return node.strokes as FigmaRawPaint[] | undefined;
+  return node.fills as FigmaRawPaint[] | undefined;
+}
+
+function applyPaintOpacity(color: string, opacity: number | undefined): string {
+  if (opacity === undefined || opacity === 1 || !Number.isFinite(opacity)) return color;
+  const alpha = parseInt(color.slice(7) || "FF", 16);
+  const combined = Math.round(alpha * Math.max(0, Math.min(1, opacity)));
+  return `${color.slice(0, 7)}${combined.toString(16).padStart(2, "0")}`.toUpperCase();
+}
+
+/** Match the paint to the geometry selected by extractVectorPaths; node opacity stays outside. */
+export function getVectorPaintColor(
+  node: FigmaRawNode,
+  variableContext?: VariableResolutionContext | null,
+): string | undefined {
+  const paints = getGeometryPaints(node)?.filter((paint) => paint.visible !== false);
+  if (!paints) return undefined;
+  if (!paints.length) return "none";
+  if (paints.length !== 1 || paints[0].type !== "SOLID") {
+    Logger.warn(`SVG export has unsupported non-solid or stacked paints on node ${node.id}`);
+    return undefined;
+  }
+  const color = processPaint(paints[0], variableContext);
+  if (typeof color !== "string") {
+    Logger.warn(`SVG export has unsupported unresolved paint on node ${node.id}`);
+    return undefined;
+  }
+  return applyPaintOpacity(color, paints[0].opacity);
+}
 
 export function vectorNetworkToSvg(
   vectorNetwork: FigmaVectorNetwork,

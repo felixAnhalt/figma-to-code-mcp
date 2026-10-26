@@ -67,11 +67,34 @@ This MCP server transforms [Figma API](https://www.figma.com/developers/api) dat
 
 - **Compact layout/style fields** (`layout.direction`, `style.background`, `style.fontSize`) instead of verbose Figma internals
 - **Node-local styles** with repeated values referenced from the `tokens` registry
-- **Flexbox primitives** for layout (no absolute positioning)
+- **Flexbox primitives** for auto-layout, with parent-local positioning for overlays and freeform graphics
 - **Complete UI data** (colors, typography, spacing, effects)
 - **99.5% size reduction** while preserving all UI-critical information
 
 The current response uses schema `v3`. [`V2_CSS_PROPERTY_MAPPING.md`](./V2_CSS_PROPERTY_MAPPING.md) describes the older v2 mapping, not the current response contract.
+
+### Interpreting visual details in v3
+
+The response includes optional fields for details that cannot be represented by one text style or a simple flex layout:
+
+| Field                       | Meaning                                                                                        |
+| --------------------------- | ---------------------------------------------------------------------------------------------- |
+| `textRuns`                  | Ordered text ranges with scalar style overrides, emitted only when character styling differs   |
+| `layout.position`           | `relative` for a containing block, or `absolute` for a non-flow child                          |
+| `layout.left`, `layout.top` | Pixel offsets in the immediate parent's coordinate system, including zero and negative offsets |
+| `style.borderWidths`        | Explicit top/right/bottom/left widths for asymmetric borders, including zero-width edges       |
+| `gradientHandlePositions`   | Three normalized node-local handles preserving a gradient's direction and geometry             |
+| `svgViewport`               | Exported SVG viewBox in node-local pixels, including ink outside the node's original canvas    |
+
+The existing full `text` field and node-level style remain present. When `textRuns` exists, render its runs in order rather than rendering `text` a second time. Resolve the node's base typography token first, then apply each run's scalar overrides. Run text concatenates to the original full text; plain runs inherit the base style. Explicit `normal`, `none`, and zero values reset inherited styling.
+
+For positioned children, keep the emitted containing block, local dimensions, and offsets. Real auto-layout siblings stay in flex flow; overlay notifications, chart curves, and guides can share an absolute coordinate space. A Figma layout mode of `NONE` is not converted into a flex column.
+
+`borderWidths` replaces the uniform `borderWidth` for asymmetric strokes. Apply the shared `border` color only to the indicated edges; do not invent a surrounding box border. Uniform borders continue using `borderWidth`.
+
+Gradient handles may lie outside the unit square; do not clamp them or discard them in favor of a default direction.
+
+SVG exports keep original node-local coordinates and include the union of the local canvas and visible geometry. Each exported node's `svgViewport` matches the file's viewBox. Keep the node's original layout footprint as a wrapper, then place the SVG or image at `svgViewport.x` / `y`, with the viewport's `width` / `height`. Do not stretch this expanded asset to the original node dimensions: chart series can have different ink bounds but must share the same local coordinate system. Preserve ancestor clipping. Solid paint colors are baked into design-exported assets so external images retain their colors too.
 
 ## Getting Started
 

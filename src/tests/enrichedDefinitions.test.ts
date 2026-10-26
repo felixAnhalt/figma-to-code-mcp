@@ -622,10 +622,13 @@ it("exports distinct geometry for structurally identical variant vector children
     expect(set.base?.children).toBeUndefined();
     const primaryNode = effectiveMember(set, "primary").children![0];
     const secondaryNode = effectiveMember(set, "secondary").children![0];
-    expect({ ...primaryNode, svgPathInAssetFolder: undefined }).toEqual({
+    expect({ ...primaryNode, svgPathInAssetFolder: undefined, svgViewport: undefined }).toEqual({
       ...secondaryNode,
       svgPathInAssetFolder: undefined,
+      svgViewport: undefined,
     });
+    expect(primaryNode.svgViewport).toEqual({ x: 0, y: 0, width: 10, height: 10 });
+    expect(secondaryNode.svgViewport).toEqual({ x: 0, y: 0, width: 20, height: 5 });
     const primary = primaryNode.svgPathInAssetFolder!;
     const secondary = secondaryNode.svgPathInAssetFolder!;
     expect(primary).not.toBe(secondary);

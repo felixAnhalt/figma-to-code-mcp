@@ -87,6 +87,11 @@ export function countFrequencies(response: MCPResponse): {
 
   function countNode(node: V3Node): void {
     countStyle(node.style);
+    for (const run of node.textRuns ?? []) {
+      const style = run.style;
+      if (typeof style?.color === "string" && !style._varRefs?.color)
+        increment(colors, style.color);
+    }
     countLayout(node.layout);
     for (const child of node.children ?? []) countNode(child);
   }
