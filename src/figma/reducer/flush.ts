@@ -1,7 +1,7 @@
 import type { V3Node } from "~/figma/types";
 import type { SvgPathEntry, SvgBounds } from "~/figma/svg";
 import { svgContentCache } from "../svg-writer";
-import { buildSvgExport } from "../svg/transform";
+import { buildSvgExport, toEmittedSvgViewport } from "../svg/transform";
 import { getVectorAssetFilename, materializeSvgAssets, type SvgAsset } from "../svg/assets";
 
 export type PendingVectorWriteInput = {
@@ -31,7 +31,7 @@ function prepareVectorAsset(write: PendingVectorWriteInput): SvgAsset {
   const { content, viewport } = buildSvgExport(entries, write.bounds, write.fillColor);
   const filename = getVectorAssetFilename(write.fileKey, write.nodeId);
   write.target.svgPathInAssetFolder = filename;
-  write.target.svgViewport = viewport;
+  write.target.svgViewport = toEmittedSvgViewport(viewport);
   // Retained for legacy URI readers; request exports never read this mutable cache.
   svgContentCache.set(filename.slice(0, -".svg".length), content);
   return { fileKey: write.fileKey, nodeId: write.nodeId, content };

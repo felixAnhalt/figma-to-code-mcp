@@ -8,12 +8,14 @@ import type { VariableResolutionContext } from "~/figma/variableResolver";
 import * as cache from "~/figma/cache";
 import { fetchNodesBatch } from "~/figma/batchFetch";
 import { fetchVariables } from "~/figma/fetch";
+import { downloadBytes } from "~/utils/downloadBytes";
 
 vi.mock("~/figma/batchFetch", () => ({ fetchNodesBatch: vi.fn() }));
 vi.mock("~/figma/fetch", () => ({
   fetchVariables: vi.fn(async () => null),
   fetchComments: vi.fn(async () => []),
 }));
+vi.mock("~/utils/downloadBytes", () => ({ downloadBytes: vi.fn(async () => Buffer.from("png")) }));
 
 let sequence = 0;
 let directory: string;
@@ -280,5 +282,67 @@ describe("pending SVG request ownership", () => {
     const next = options({ svgOutputDir: join(directory, "next") });
     await generateMCPResponse(next);
     expect(await readdir(next.svgOutputDir!)).toEqual([`${next.fileKey}_1_1.svg`]);
+  });
+});
+
+describe("cached rendered node image", () => {
+  const RENDER_URL = "https://images.example/root.png";
+
+  it("writes the rendered PNG from cache hits without rendering again", async () => {
+    const render = vi.fn(async () => RENDER_URL);
+    const opts = options({ svgOutputDir: join(directory, "first"), fetchRenderedImageUrl: render });
+    const first = await generateMCPResponse(opts);
+    const secondDir = join(directory, "second");
+    const second = await generateMCPResponse({ ...opts, svgOutputDir: secondDir });
+    const filename = `${opts.fileKey}_1_1.png`;
+    expect(first.renderedDesignNodeAssetsFolder).toBe(opts.svgOutputDir);
+    expect(second.renderedDesignNodeAssetsFolder).toBe(secondDir);
+    expect(second.renderedDesignNodePathInAssetFolder).toBe(filename);
+    expect(downloadBytes).toHaveBeenCalledWith(RENDER_URL);
+    expect(await readFile(join(secondDir, filename), "utf8")).toBe("png");
+    expect(render).toHaveBeenCalledOnce();
+    expect(fetchNodesBatch).toHaveBeenCalledOnce();
+  });
+
+  it("adds no image fields when rendering is not requested", async () => {
+    const result = await generateMCPResponse(options({ svgOutputDir: directory }));
+    expect(result).not.toHaveProperty("renderedDesignNodePathInAssetFolder");
+  });
+
+  it("keeps the render option in cache identity", async () => {
+    const opts = options();
+    await generateMCPResponse({ ...opts, fetchRenderedImageUrl: async () => RENDER_URL });
+    await generateMCPResponse(opts);
+    expect(fetchNodesBatch).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns the design without image fields when Figma renders nothing", async () => {
+    const opts = options({ svgOutputDir: directory, fetchRenderedImageUrl: async () => null });
+    const result = await generateMCPResponse(opts);
+    expect(result.root.name).toBe("Root");
+    expect(result).not.toHaveProperty("renderedDesignNodePathInAssetFolder");
+  });
+
+  it("returns the design without image fields when the render request throws", async () => {
+    const opts = options({
+      svgOutputDir: directory,
+      fetchRenderedImageUrl: async () => {
+        throw new Error("Figma unavailable");
+      },
+    });
+    const result = await generateMCPResponse(opts);
+    expect(result.root.name).toBe("Root");
+    expect(result).not.toHaveProperty("renderedDesignNodePathInAssetFolder");
+  });
+
+  it("returns the design without image fields when the download fails", async () => {
+    vi.mocked(downloadBytes).mockRejectedValueOnce(new Error("expired"));
+    const opts = options({
+      svgOutputDir: directory,
+      fetchRenderedImageUrl: async () => RENDER_URL,
+    });
+    const result = await generateMCPResponse(opts);
+    expect(result.root.name).toBe("Root");
+    expect(result).not.toHaveProperty("renderedDesignNodePathInAssetFolder");
   });
 });

@@ -2,6 +2,7 @@ import { fetchNodesBatch } from "../batchFetch";
 import { buildNormalizedGraph } from "../reducer";
 import { prepareVectorAssets, type PendingVectorWriteInput } from "../reducer/flush";
 import { materializeSvgAssets } from "../svg/assets";
+import { writeRenderedNodeImage } from "../renderedNodeImage";
 import { getDesignCacheKey, type CachedDesign } from "./cache";
 import { buildResolutionContext, mergeResolutionContext } from "../variableResolver";
 import type { VariableResolutionContext } from "../variableResolver";
@@ -31,7 +32,24 @@ export async function generateMCPResponse(opts: MCPOptions): Promise<MCPResponse
   const outputDir = opts.svgOutputDir || "";
   await materializeSvgAssets(artifact.assets, outputDir);
   if (outputDir) response.svgAssetsFolder = outputDir;
+  await attachRenderedNodeImage(response, artifact.renderedImageUrl, opts, outputDir);
   return response;
+}
+
+async function attachRenderedNodeImage(
+  response: MCPResponse,
+  imageUrl: string | null,
+  opts: MCPOptions,
+  outputDir: string,
+): Promise<void> {
+  if (!outputDir || !imageUrl) return;
+  const reference = await writeRenderedNodeImage(
+    outputDir,
+    opts.fileKey,
+    opts.rootNodeId,
+    imageUrl,
+  );
+  if (reference) Object.assign(response, reference);
 }
 
 async function buildDesignArtifact(opts: MCPOptions): Promise<CachedDesign> {
@@ -64,7 +82,21 @@ async function buildDesignArtifact(opts: MCPOptions): Promise<CachedDesign> {
   }
 
   attachVariableResolutionReport(normalized);
-  return { response: normalized, assets: prepareVectorAssets(pendingVectors) };
+  return {
+    response: normalized,
+    assets: prepareVectorAssets(pendingVectors),
+    renderedImageUrl: await fetchRenderedRootImageUrl(opts),
+  };
+}
+
+async function fetchRenderedRootImageUrl(opts: MCPOptions): Promise<string | null> {
+  if (!opts.fetchRenderedImageUrl) return null;
+  try {
+    return await opts.fetchRenderedImageUrl();
+  } catch (error) {
+    Logger.warn(`Failed to render root node ${opts.rootNodeId}:`, error);
+    return null;
+  }
 }
 
 async function fetchRootNode(opts: MCPOptions): Promise<RootNode> {

@@ -145,8 +145,7 @@ async function requestDesign(
   const result = await getFigmaDesignTool.handler(
     { fileKey, nodeId: "1:1", resolveVariables: false },
     service,
-    "json",
-    outputDirectory,
+    { outputFormat: "json", svgOutputDir: outputDirectory, renderImage: false },
   );
   expect(result).not.toHaveProperty("isError", true);
   return JSON.parse(result.content[0].text) as MCPResponse;
@@ -194,7 +193,7 @@ it("retains viewport metadata and solid asset paint on design-cache hits in a se
   expect(fetchNodesBatch).toHaveBeenCalledTimes(1);
   const firstVector = first.root.children![1].children![0].children![0];
   const secondVector = second.root.children![1].children![0].children![0];
-  expect(firstVector.svgViewport).toEqual({ x: 0, y: 0, width: 100, height: 60 });
+  expect(firstVector.svgViewport).toEqual({ width: 100, height: 60 });
   expect(secondVector.svgViewport).toEqual(firstVector.svgViewport);
   const content = await readFile(join(secondDirectory, secondVector.svgPathInAssetFolder!), "utf8");
   expect(content).toContain('fill="#0000FF"');

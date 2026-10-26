@@ -495,7 +495,7 @@ describe("vector merging in groups and frames", () => {
       expect(svgContent).toContain('width="147"');
       expect(svgContent).toContain('height="60"');
       expect(svgContent).toContain('viewBox="0 0 147 60"');
-      expect(result.root.children?.[0].svgViewport).toEqual({ x: 0, y: 0, width: 147, height: 60 });
+      expect(result.root.children?.[0].svgViewport).toEqual({ width: 147, height: 60 });
     });
   });
 });

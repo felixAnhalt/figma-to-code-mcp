@@ -175,13 +175,12 @@ function registerTools(server: McpServer, figmaService: FigmaService, options: T
       annotations: { readOnlyHint: true },
     },
     (params: GetFigmaDesignParams) =>
-      getFigmaDesignTool.handler(
-        params,
-        figmaService,
-        options.outputFormat,
-        params.svgOutputDir || options.svgOutputDir,
-        copyVariableContext(options.preloadedVariableContext),
-      ),
+      getFigmaDesignTool.handler(params, figmaService, {
+        outputFormat: options.outputFormat,
+        svgOutputDir: params.svgOutputDir || options.svgOutputDir,
+        preloadedVariableContext: copyVariableContext(options.preloadedVariableContext),
+        renderImage: !options.skipImageDownloads,
+      }),
   );
 
   if (!options.skipImageDownloads) {

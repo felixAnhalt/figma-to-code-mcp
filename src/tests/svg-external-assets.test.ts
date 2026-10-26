@@ -26,7 +26,7 @@ const SMALL_CANVAS = { x: 0, y: 0, width: 6.5, height: 3.25 };
 const OUTLINE = "M-0.8 -0.8H7.300005V4.38137H-0.8Z";
 const FRAME = { x: -2, y: -2, width: 12, height: 8 };
 const SCALE = 20;
-type ExportTarget = V3Node & { svgViewport?: SvgBounds };
+type ExportTarget = V3Node;
 type ColoredWrite = PendingVectorWriteInput & { fillColor?: string };
 
 afterEach(() => vi.restoreAllMocks());
@@ -76,15 +76,24 @@ function expectViewportMatchesFile(content: string, viewport: SvgBounds | undefi
   expect(content).toContain(`height="${viewport!.height}"`);
 }
 
+/** The viewport a consumer places the asset with: an omitted x or y means 0. */
+function fullViewport(target: ExportTarget): SvgBounds | undefined {
+  const viewport = target.svgViewport;
+  if (!viewport) return undefined;
+  return { x: viewport.x ?? 0, y: viewport.y ?? 0, width: viewport.width, height: viewport.height };
+}
+
 describe("external SVG image viewports", () => {
   it("rasterizes negative-edge ink through an actual external image instead of clipping it", async () => {
     const { target, asset } = prepareSingle();
-    const rendered = await raster(externalImage(asset.content, target.svgViewport ?? SMALL_CANVAS));
+    const rendered = await raster(
+      externalImage(asset.content, fullViewport(target) ?? SMALL_CANVAS),
+    );
     expect(rendered.pixel(-0.4, 0)[3], "negative stroke edge must survive the image viewport").toBe(
       255,
     );
     expect(rendered.pixel(7, 4)[3], "right/bottom overflow must survive too").toBeGreaterThan(0);
-    expectViewportMatchesFile(asset.content, target.svgViewport);
+    expectViewportMatchesFile(asset.content, fullViewport(target));
     expect(target.svgViewport).toEqual({ x: -0.8, y: -0.8, width: 8.1, height: 5.1814 });
     expect(target.layout).toEqual({ width: "6.5px", height: "3.25px" });
     expect(target.style?.opacity).toBe(0.5);
@@ -93,7 +102,7 @@ describe("external SVG image viewports", () => {
   it("matches inline paint, opacity and landmarks without translating paths twice", async () => {
     const { target, asset } = prepareSingle();
     const external = await raster(
-      `<g opacity="0.5">${externalImage(asset.content, target.svgViewport ?? SMALL_CANVAS)}</g>`,
+      `<g opacity="0.5">${externalImage(asset.content, fullViewport(target) ?? SMALL_CANVAS)}</g>`,
     );
     const inline = await raster(
       '<g opacity="0.5"><path d="M-0.8 -0.8H7.3V4.3814H-0.8Z" fill="#0000FF"/></g>',
@@ -129,7 +138,7 @@ describe("external SVG image viewports", () => {
     const frame = { x: -10, y: -10, width: 520, height: 142 };
     const external = await raster(
       assets
-        .map((asset, i) => externalImage(asset.content, targets[i].svgViewport ?? canvas))
+        .map((asset, i) => externalImage(asset.content, fullViewport(targets[i]) ?? canvas))
         .join(""),
       frame,
       1,
@@ -149,8 +158,8 @@ describe("external SVG image viewports", () => {
       expect(external.pixel(x, y), `chart landmark ${x},${y}`).toEqual(inline.pixel(x, y));
     }
     expect(targets.map((target) => target.svgViewport)).toEqual([
-      { x: -2, y: 0, width: 504, height: 122 },
-      { x: 0, y: -3, width: 500, height: 128 },
+      { x: -2, width: 504, height: 122 },
+      { y: -3, width: 500, height: 128 },
     ]);
     expect(
       targets.every(
@@ -162,7 +171,7 @@ describe("external SVG image viewports", () => {
   it("still respects ancestor clipping when consuming an expanded viewport", async () => {
     const { target, asset } = prepareSingle();
     const rendered = await raster(
-      `<defs><clipPath id="canvas"><rect width="6.5" height="3.25"/></clipPath></defs><g clip-path="url(#canvas)">${externalImage(asset.content, target.svgViewport ?? SMALL_CANVAS)}</g>`,
+      `<defs><clipPath id="canvas"><rect width="6.5" height="3.25"/></clipPath></defs><g clip-path="url(#canvas)">${externalImage(asset.content, fullViewport(target) ?? SMALL_CANVAS)}</g>`,
     );
     expect(rendered.pixel(-0.4, 0)[3]).toBe(0);
     expect(rendered.pixel(2, 1)[3]).toBe(255);
@@ -174,8 +183,8 @@ describe("external SVG image viewports", () => {
     expect(asset.content).not.toContain("7.300005");
     expect(asset.content).not.toContain("4.38137");
     const serialized = asset.content.match(/<path[^>]* d="([^"]+)"/)?.[1];
-    expect(target.svgViewport).toEqual(computePathBounds(serialized!));
-    expectViewportMatchesFile(asset.content, target.svgViewport);
+    expect(fullViewport(target)).toEqual(computePathBounds(serialized!));
+    expectViewportMatchesFile(asset.content, fullViewport(target));
   });
 
   it("keeps compact decimal separators valid when export rounding produces zero", () => {
@@ -185,7 +194,7 @@ describe("external SVG image viewports", () => {
     ]);
     const serialized = asset.content.match(/<path[^>]* d="([^"]+)"/)?.[1];
     expect(computePathBounds(serialized!)).toEqual({ x: 0, y: 0, width: 1, height: 1 });
-    expectViewportMatchesFile(asset.content, target.svgViewport);
+    expectViewportMatchesFile(asset.content, fullViewport(target));
   });
 
   it("emits matching viewport metadata for merged assets after rounding and transforming", () => {
@@ -206,7 +215,7 @@ describe("external SVG image viewports", () => {
       },
     ]);
     expect(target.svgViewport).toEqual({ x: -2, y: -3, width: 12, height: 13 });
-    expectViewportMatchesFile(asset.content, target.svgViewport);
+    expectViewportMatchesFile(asset.content, fullViewport(target));
   });
 
   it.each([undefined, { x: NaN, y: 0, width: 10, height: 10 }])(
@@ -217,7 +226,7 @@ describe("external SVG image viewports", () => {
         { fileKey: "fallback", nodeId: "1", target, paths: [{ d: "M-2 -1H3V4H-2Z" }], bounds },
       ]);
       expect(target.svgViewport).toEqual({ x: -2, y: -1, width: 5, height: 5 });
-      expectViewportMatchesFile(asset.content, target.svgViewport);
+      expectViewportMatchesFile(asset.content, fullViewport(target));
     },
   );
 
@@ -228,8 +237,8 @@ describe("external SVG image viewports", () => {
       width: 0,
       height: 10,
     });
-    expect(target.svgViewport).toEqual({ x: 0, y: 0, width: 20, height: 10 });
-    expectViewportMatchesFile(asset.content, target.svgViewport);
+    expect(target.svgViewport).toEqual({ width: 20, height: 10 });
+    expectViewportMatchesFile(asset.content, fullViewport(target));
     expect(
       vector.getVectorCanvasBounds({ id: "zero", type: "VECTOR", size: { x: 0, y: 10 } }),
     ).toEqual({ x: 0, y: 0, width: 0, height: 10 });
@@ -239,7 +248,7 @@ describe("external SVG image viewports", () => {
     const { target, asset } = prepareSingle([{ d: "broken" }], { x: 0, y: 0, width: 0, height: 0 });
     expect(target.svgViewport?.width).toBeGreaterThan(0);
     expect(target.svgViewport?.height).toBeGreaterThan(0);
-    expectViewportMatchesFile(asset.content, target.svgViewport);
+    expectViewportMatchesFile(asset.content, fullViewport(target));
   });
 });
 
@@ -368,7 +377,7 @@ it("retains export viewport metadata and matching XML when a design artifact is 
       "utf8",
     );
     const viewport = (first.root as ExportTarget).svgViewport;
-    expectViewportMatchesFile(firstContent, viewport);
+    expectViewportMatchesFile(firstContent, fullViewport(first.root as ExportTarget));
     if (viewport) viewport.x = 999;
     const second = await generateMCPResponse({
       ...options,
@@ -379,7 +388,7 @@ it("retains export viewport metadata and matching XML when a design artifact is 
       "utf8",
     );
     expect(fetchNodesBatch).toHaveBeenCalledTimes(1);
-    expectViewportMatchesFile(secondContent, (second.root as ExportTarget).svgViewport);
+    expectViewportMatchesFile(secondContent, fullViewport(second.root as ExportTarget));
     expect(secondContent).toBe(firstContent);
     expect((second.root as ExportTarget).svgViewport?.x).toBe(-0.8);
   } finally {

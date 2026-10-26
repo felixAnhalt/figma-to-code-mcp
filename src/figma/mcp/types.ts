@@ -28,4 +28,6 @@ export type MCPOptions = {
   componentMap?: Record<string, RichComponentMeta>;
   componentSetMap?: Record<string, ComponentSetMetadata>;
   preloadedVariableContext?: VariableResolutionContext | null;
+  /** Renders the root node and returns its image URL, or null when Figma has none. Omit to skip. */
+  fetchRenderedImageUrl?: () => Promise<string | null>;
 };

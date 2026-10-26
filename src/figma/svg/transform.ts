@@ -1,12 +1,31 @@
 import { svgPathBbox } from "svg-path-bbox";
 import svgPath from "svgpath";
 import { Logger } from "~/utils/logger";
+import type { V3Node } from "../types";
 import type { SvgBounds, SvgPathEntry } from "./cache";
 
 const BOUNDS_PADDING_RATIO = 0.01;
 const DEGENERATE_AXIS_SIZE = 1;
 const FALLBACK_BOUNDS: SvgBounds = { x: 0, y: 0, width: 1, height: 1 };
 const PATH_COORDINATE_PRECISION = 4;
+const VIEWPORT_ORIGIN_TOLERANCE = 0.01;
+
+type EmittedSvgViewport = NonNullable<V3Node["svgViewport"]>;
+
+/** Omits x or y when it is zero within float noise, since a missing offset means 0. */
+export function toEmittedSvgViewport(viewport: SvgBounds): EmittedSvgViewport {
+  const { x, y, width, height } = viewport;
+  return {
+    ...(isVisibleOffset(x) ? { x } : {}),
+    ...(isVisibleOffset(y) ? { y } : {}),
+    width,
+    height,
+  };
+}
+
+function isVisibleOffset(offset: number): boolean {
+  return Math.abs(offset) >= VIEWPORT_ORIGIN_TOLERANCE;
+}
 
 function hasFiniteBounds(bounds: SvgBounds): boolean {
   return [bounds.x, bounds.y, bounds.width, bounds.height].every(Number.isFinite);

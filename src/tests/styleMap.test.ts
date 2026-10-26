@@ -164,7 +164,7 @@ async function requestStyledDesign() {
       const result = await getFigmaDesignTool.handler(
         { fileKey, nodeId: ROOT_NODE_ID, resolveVariables: false },
         service,
-        "json",
+        { outputFormat: "json", renderImage: false },
       );
       return { result, requests };
     },

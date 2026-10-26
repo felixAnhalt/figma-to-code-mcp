@@ -1005,8 +1005,8 @@ it("exports distinct geometry for structurally identical variant vector children
       svgPathInAssetFolder: undefined,
       svgViewport: undefined,
     });
-    expect(primaryNode.svgViewport).toEqual({ x: 0, y: 0, width: 10, height: 10 });
-    expect(secondaryNode.svgViewport).toEqual({ x: 0, y: 0, width: 20, height: 5 });
+    expect(primaryNode.svgViewport).toEqual({ width: 10, height: 10 });
+    expect(secondaryNode.svgViewport).toEqual({ width: 20, height: 5 });
     const primary = primaryNode.svgPathInAssetFolder!;
     const secondary = secondaryNode.svgPathInAssetFolder!;
     expect(primary).not.toBe(secondary);

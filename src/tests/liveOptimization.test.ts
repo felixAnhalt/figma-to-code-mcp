@@ -195,14 +195,9 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
       expect(mcpResponse).not.toHaveProperty("definitions");
       if (componentSetCount > 0) {
         const firstSet = Object.values(componentSets ?? {})[0];
+        expect(firstSet).toHaveProperty("file");
         expect(firstSet).toHaveProperty("propKeys");
-        if (includeComponentVariants) {
-          expect(firstSet).toHaveProperty("file");
-          expect(mcpResponse).toHaveProperty("componentSetsFolder");
-        } else {
-          expect(firstSet).toHaveProperty("name");
-          expect(firstSet).toHaveProperty("variants");
-        }
+        expect(mcpResponse).toHaveProperty("componentSetsFolder");
         console.log(`✓ componentSets shape is correct`);
       }
 

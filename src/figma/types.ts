@@ -78,6 +78,13 @@ export type MCPResponse = {
    */
   svgAssetsFolder?: string;
   /**
+   * Absolute path to the folder where the rendered PNG of the requested node is saved.
+   * Present together with renderedDesignNodePathInAssetFolder when rendering succeeds.
+   */
+  renderedDesignNodeAssetsFolder?: string;
+  /** File name of the rendered PNG of the requested node, relative to renderedDesignNodeAssetsFolder. */
+  renderedDesignNodePathInAssetFolder?: string;
+  /**
    * Summary of unresolved variable aliases that could not be inlined.
    * Present when the response still contains VARIABLE_ALIAS entries.
    */
@@ -153,7 +160,8 @@ export type V3Node = {
    */
   svgPathInAssetFolder?: string;
   /** Exported viewBox in node-local pixels; preserves ink outside the original layout footprint. */
-  svgViewport?: { x: number; y: number; width: number; height: number };
+  /** Exported SVG viewBox in node-local pixels. A missing x or y means 0. */
+  svgViewport?: { x?: number; y?: number; width: number; height: number };
 
   /** Comments attached to this node (unresolved only). */
   comments?: Comment[];

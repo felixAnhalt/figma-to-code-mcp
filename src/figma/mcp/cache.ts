@@ -6,6 +6,7 @@ import type { MCPOptions } from "./types";
 export type CachedDesign = {
   response: MCPResponse;
   assets: SvgAsset[];
+  renderedImageUrl: string | null;
 };
 
 export function getDesignCacheKey(options: MCPOptions): string {
@@ -15,6 +16,7 @@ export function getDesignCacheKey(options: MCPOptions): string {
     authHeaders: options.authHeaders,
     resolveVariables: options.resolveVariables ?? true,
     includeComponentVariants: options.includeComponentVariants ?? false,
+    renderedImage: options.fetchRenderedImageUrl !== undefined,
     styleMap: options.styleMap ?? {},
     componentMap: options.componentMap,
     componentSetMap: options.componentSetMap,

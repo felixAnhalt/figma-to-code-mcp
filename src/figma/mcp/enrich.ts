@@ -473,11 +473,17 @@ function collectPropValues(
   members: VariantMember[],
   memberNames: string[],
 ): Record<string, string[]> {
-  const valuesByKey = new Map<string, Set<string>>();
-  const propSets = [
+  return buildPropValues([
     ...members.map(({ value }) => value.props ?? {}),
     ...memberNames.map((memberName) => parseVariantProps(memberName)),
-  ];
+  ]);
+}
+
+/** Every value each prop takes across the given prop sets, with keys and values sorted. */
+export function buildPropValues(
+  propSets: Array<Record<string, string | boolean>>,
+): Record<string, string[]> {
+  const valuesByKey = new Map<string, Set<string>>();
   for (const props of propSets) {
     for (const [key, value] of Object.entries(props)) {
       const values = valuesByKey.get(key) ?? new Set<string>();

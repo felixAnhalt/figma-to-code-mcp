@@ -1,9 +1,13 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { ComponentSet, DesignTokens, MCPResponse } from "../types";
+import { parseVariantProps } from "../reducer";
+import type { ComponentSet, DesignTokens, MCPResponse, V3Node } from "../types";
+import { buildPropValues } from "./enrich";
 
 export const COMPONENT_SET_FOLDER = "component-sets";
 export const SET_SPLIT_THRESHOLD_BYTES = 228 * 1024;
+const COMPONENT_SET_TYPE = "COMPONENT_SET";
+const COMPONENT_TYPE = "COMPONENT";
 const INDEX_FILE = "index.json";
 const JSON_EXTENSION = ".json";
 const DEFAULT_SET_STEM = "component-set";
@@ -17,47 +21,77 @@ export type ComponentSetReference = Pick<ComponentSet, "propKeys" | "propValues"
   file: string;
 };
 
-export type ExternalizedComponentSets = Omit<MCPResponse, "componentSets"> & {
+/** The root keeps its container fields. When its variants are split, `file` points at their index. */
+export type ExternalizedRoot = Omit<V3Node, "children"> & {
+  children?: V3Node[];
+  file?: string;
+  propKeys?: string[];
+  propValues?: Record<string, string[]>;
+};
+
+export type ExternalizedComponentSets = Omit<MCPResponse, "componentSets" | "root"> & {
+  root: ExternalizedRoot;
   componentSets?: Record<string, ComponentSetReference>;
   componentSetsFolder?: string;
 };
 
 /**
- * Writes each component set into `<outputDir>/component-sets` and replaces the inline sets with
- * references to those files. A set whose file would exceed the threshold becomes a folder holding
- * an index.json and one file per variant.
+ * Writes each component set, and the variants of a COMPONENT_SET root, into
+ * `<outputDir>/component-sets`. Anything whose file would exceed the threshold becomes a folder
+ * holding an index.json and one file per variant.
  */
 export async function externalizeComponentSets(
   response: MCPResponse,
   outputDir: string,
   splitThresholdBytes = SET_SPLIT_THRESHOLD_BYTES,
 ): Promise<ExternalizedComponentSets> {
-  const { componentSets, ...rest } = response;
-  if (!componentSets || Object.keys(componentSets).length === 0) return rest;
+  const { schema, componentSets = {}, root, ...rest } = response;
+  const setNames = Object.keys(componentSets);
+  const rootVariants = componentSetRootVariants(root);
+  const splitRoot =
+    rootVariants !== undefined &&
+    Buffer.byteLength(
+      serializeWithTokens({ name: root.name, variants: rootVariants }, response.tokens),
+    ) > splitThresholdBytes;
+  if (setNames.length === 0 && !splitRoot) return { schema, root, ...rest };
   const folder = join(outputDir, COMPONENT_SET_FOLDER);
-  const stems = buildUniqueStems(Object.keys(componentSets), DEFAULT_SET_STEM);
+  const stems = reserveStems(
+    [...setNames, ...(splitRoot ? [root.name ?? ""] : [])],
+    DEFAULT_SET_STEM,
+  );
   await mkdir(folder, { recursive: true });
-  const references = await Promise.all(
-    Object.entries(componentSets).map(
-      async ([name, set]) =>
+  const setRefs = await Promise.all(
+    setNames.map(
+      async (name, index) =>
         [
           name,
-          await writeComponentSet(folder, stems[name], set, response.tokens, splitThresholdBytes),
+          await writeComponentSet(
+            folder,
+            stems[index],
+            componentSets[name],
+            response.tokens,
+            splitThresholdBytes,
+          ),
         ] as const,
     ),
   );
+  const externalRoot =
+    rootVariants && splitRoot
+      ? await writeRootVariants(folder, stems[setNames.length], root, rootVariants, response.tokens)
+      : root;
   return {
+    schema,
+    root: externalRoot,
     ...rest,
-    componentSets: Object.fromEntries(references),
+    ...(setNames.length > 0 ? { componentSets: Object.fromEntries(setRefs) } : {}),
     componentSetsFolder: folder,
   };
 }
 
-export function buildUniqueStems(names: string[], fallbackStem: string): Record<string, string> {
+/** Unique, filesystem-safe stems in the order of the given names. */
+export function reserveStems(names: string[], fallbackStem: string): string[] {
   const takenStems = new Set<string>();
-  return Object.fromEntries(
-    names.map((name) => [name, reserveStem(sanitizeStem(name, fallbackStem), takenStems)]),
-  );
+  return names.map((name) => reserveStem(sanitizeStem(name, fallbackStem), takenStems));
 }
 
 async function writeComponentSet(
@@ -69,7 +103,7 @@ async function writeComponentSet(
 ): Promise<ComponentSetReference> {
   const content = serializeWithTokens(set, tokens);
   if (Buffer.byteLength(content) <= splitThresholdBytes) {
-    const file = `${stem}${JSON_EXTENSION}`;
+    const file = withJsonExtension(stem);
     await writeFile(join(folder, file), content, "utf-8");
     return toComponentSetReference(set, file);
   }
@@ -83,18 +117,84 @@ async function writeSplitComponentSet(
   tokens: DesignTokens | undefined,
 ): Promise<ComponentSetReference> {
   const setFolder = join(folder, stem);
-  const variantFiles = withJsonExtension(
-    buildUniqueStems(Object.keys(set.variants), DEFAULT_VARIANT_STEM),
-  );
+  const variantIds = Object.keys(set.variants);
+  const variantFiles = toVariantFiles(variantIds);
   await mkdir(setFolder, { recursive: true });
   await Promise.all(
-    Object.entries(set.variants).map(([id, variant]) =>
-      writeFile(join(setFolder, variantFiles[id]), serializeWithTokens(variant, tokens), "utf-8"),
+    variantIds.map((id) =>
+      writeFile(
+        join(setFolder, variantFiles[id]),
+        serializeWithTokens(set.variants[id], tokens),
+        "utf-8",
+      ),
     ),
   );
-  const index = buildSetIndex(set, variantFiles);
-  await writeFile(join(setFolder, INDEX_FILE), serializeWithTokens(index, tokens), "utf-8");
+  await writeFile(
+    join(setFolder, INDEX_FILE),
+    serializeWithTokens(buildSetIndex(set, relativeToComponentSets(stem, variantFiles)), tokens),
+    "utf-8",
+  );
   return toComponentSetReference(set, `${stem}/${INDEX_FILE}`);
+}
+
+async function writeRootVariants(
+  folder: string,
+  stem: string,
+  root: V3Node,
+  variants: V3Node[],
+  tokens: DesignTokens | undefined,
+): Promise<ExternalizedRoot> {
+  const setFolder = join(folder, stem);
+  const names = variants.map((variant) => variant.name ?? "");
+  const variantFiles = toVariantFiles(names);
+  const variantRefs = relativeToComponentSets(stem, variantFiles);
+  const propValues = buildPropValues(names.map((name) => parseVariantProps(name)));
+  const propKeys = Object.keys(propValues);
+  await mkdir(setFolder, { recursive: true });
+  await Promise.all(
+    variants.map((variant, index) =>
+      writeFile(
+        join(setFolder, variantFiles[names[index]]),
+        serializeWithTokens({ props: parseVariantProps(names[index]), ...variant }, tokens),
+        "utf-8",
+      ),
+    ),
+  );
+  const index = {
+    name: root.name,
+    propKeys,
+    ...(propKeys.length > 0 ? { propValues } : {}),
+    variants: Object.fromEntries(
+      names.map((name) => [name, { props: parseVariantProps(name), file: variantRefs[name] }]),
+    ),
+  };
+  await writeFile(join(setFolder, INDEX_FILE), serializeWithTokens(index, tokens), "utf-8");
+  const container: ExternalizedRoot = { ...root };
+  delete container.children;
+  return {
+    ...container,
+    file: `${stem}/${INDEX_FILE}`,
+    propKeys,
+    ...(propKeys.length > 0 ? { propValues } : {}),
+  };
+}
+
+function componentSetRootVariants(root: V3Node): V3Node[] | undefined {
+  const children = root.children ?? [];
+  if (root.type !== COMPONENT_SET_TYPE || children.length === 0) return undefined;
+  return children.every((child) => child.type === COMPONENT_TYPE) ? children : undefined;
+}
+
+function toVariantFiles(keys: string[]): Record<string, string> {
+  const stems = reserveStems(keys, DEFAULT_VARIANT_STEM);
+  return Object.fromEntries(keys.map((key, index) => [key, withJsonExtension(stems[index])]));
+}
+
+/** References are relative to the component-sets folder, so each variant carries its set folder. */
+function relativeToComponentSets(setStem: string, variantFiles: Record<string, string>) {
+  return Object.fromEntries(
+    Object.entries(variantFiles).map(([key, file]) => [key, `${setStem}/${file}`]),
+  );
 }
 
 function buildSetIndex(set: ComponentSet, variantFiles: Record<string, string>) {
@@ -137,10 +237,8 @@ function sanitizeStem(name: string, fallbackStem: string): string {
   return name.replace(UNSAFE_STEM_CHARS, "-").replace(EDGE_DASHES, "") || fallbackStem;
 }
 
-function withJsonExtension(stems: Record<string, string>): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(stems).map(([key, stem]) => [key, `${stem}${JSON_EXTENSION}`]),
-  );
+function withJsonExtension(stem: string): string {
+  return `${stem}${JSON_EXTENSION}`;
 }
 
 function serializeWithTokens(content: object, tokens: DesignTokens | undefined): string {
