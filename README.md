@@ -261,7 +261,7 @@ On a design-cache miss, `get_figma_design` can make these API calls:
 
 Request counts vary with the number of unique component keys, libraries, node batches, and retries. Components from multiple libraries are supported; unavailable library metadata falls back to usable instance data.
 
-Requests are paced per Figma tier so no tier exceeds its per-minute budget (10, 25, and 50 requests for tiers 1, 2, and 3 on Professional Dev/Full seats). If Figma still answers with a 429, only that tier pauses for the `Retry-After` time, and the request is retried up to three times.
+Requests are paced per Figma tier so no tier exceeds its per-minute budget (10, 25, and 50 requests for tiers 1, 2, and 3 on Professional Dev/Full seats). If Figma still answers with a 429, only that tier pauses for the `Retry-After` time, and the request is retried up to three times. A GET that fails at the network level is retried once through `curl`, which helps behind corporate proxies. The retry runs in the same request slot, so it still counts once against the tier budget.
 
 Compatible design-cache hits avoid these Figma calls but still export assets, including the node PNG, into the requested directory. The PNG is downloaded from Figma's image URL, which is not a Figma API call. Changing credentials or result-affecting options does not reuse an incompatible design response.
 

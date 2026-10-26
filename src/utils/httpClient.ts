@@ -1,5 +1,6 @@
 import { Logger } from "./logger";
 import { figmaRateLimiter } from "./figmaRateLimiter";
+import { fetchViaCurl, supportsCurlFallback } from "./curlFallback";
 
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 1000;
@@ -17,18 +18,40 @@ function delayBeforeRetryMs(response: Response, attempt: number): number {
 }
 
 /**
+ * Sends a request with fetch. A network-level failure of a GET request is retried once through
+ * curl, which handles corporate proxies. If curl fails too, the original fetch error is thrown.
+ */
+async function fetchWithCurlFallback(url: string, options: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, options);
+  } catch (fetchError) {
+    if (!supportsCurlFallback(options)) throw fetchError;
+    const path = new URL(url).pathname;
+    const message = fetchError instanceof Error ? fetchError.message : String(fetchError);
+    Logger.warn(`[httpClient] fetch failed for ${path}: ${message}. Trying curl.`);
+    try {
+      return await fetchViaCurl(url, options);
+    } catch (curlError) {
+      const curlMessage = curlError instanceof Error ? curlError.message : String(curlError);
+      Logger.error(`[httpClient] curl fallback also failed for ${path}: ${curlMessage}`);
+      throw fetchError;
+    }
+  }
+}
+
+/**
  * Sends one Figma request, paced by its tier's budget. A 429 pauses only that tier
  * for the Retry-After time, then retries, up to MAX_RETRIES times.
  */
 async function sendFigmaRequest(url: string, options: RequestInit): Promise<Response> {
-  let response = await figmaRateLimiter.run(url, () => fetch(url, options));
+  let response = await figmaRateLimiter.run(url, () => fetchWithCurlFallback(url, options));
   for (let attempt = 0; response.status === 429 && attempt < MAX_RETRIES; attempt++) {
     const delayMs = delayBeforeRetryMs(response, attempt);
     Logger.warn(
       `[httpClient] Figma rate limit hit on ${new URL(url).pathname}; retry ${attempt + 1}/${MAX_RETRIES} in ${Math.ceil(delayMs / SECONDS_TO_MS)}s`,
     );
     figmaRateLimiter.pause(url, delayMs);
-    response = await figmaRateLimiter.run(url, () => fetch(url, options));
+    response = await figmaRateLimiter.run(url, () => fetchWithCurlFallback(url, options));
   }
   return response;
 }
@@ -39,6 +62,7 @@ async function sendFigmaRequest(url: string, options: RequestInit): Promise<Resp
  * Features:
  * - Per-tier request budgets (see figmaRateLimiter)
  * - 429 retry that pauses only the affected tier
+ * - One curl retry for GET requests that fail at the network level
  * - Returns parsed JSON; throws on HTTP errors and network failures
  *
  * @param url - The URL to fetch
