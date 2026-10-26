@@ -2,9 +2,10 @@ import type { FigmaRawNode } from "./types";
 import { parseRelativeTransform } from "./utils";
 
 const TRANSFORM_TOLERANCE = 1e-8;
+const NO_LAYOUT_MODE = "NONE";
 
 export function isAutoLayout(node: FigmaRawNode): boolean {
-  return node.layoutMode === "HORIZONTAL" || node.layoutMode === "VERTICAL";
+  return Boolean(node.layoutMode) && node.layoutMode !== NO_LAYOUT_MODE;
 }
 
 function isFiniteNumber(value: unknown): value is number {

@@ -25,6 +25,7 @@ type NestedComponentMetadata = Record<string, { key?: string; remote?: boolean }
 type InstanceReference = { name: string; props: Record<string, string> };
 
 const PUBLISHED_COMPONENT_REFERENCE = "published-component";
+const PUBLISHED_REFERENCE_PREFIX = `["${PUBLISHED_COMPONENT_REFERENCE}"`;
 const UNKNOWN_REMOTE_REFERENCE = "unknown-remote";
 
 function collectInstancesByComponentId(node: V3Node): Map<string, V3Node> {
@@ -56,6 +57,7 @@ export async function enrichDefinitions(
     pendingVectors,
   );
   applySourceDefinitions(definitions, componentMap, reducedNodes);
+  registerReferencedComponents(definitions, componentMap, componentSetMap, reducedNodes);
   addSiblingVariants(definitions, componentMap, reducedNodes);
   const { componentSets, namesByComponentId } = buildComponentSets(definitions, componentMap);
   normalized.componentSets = componentSets;
@@ -91,17 +93,10 @@ function applyDefinitionMetadata(
 }
 
 function collectSourceNodeRequests(definitions: Definitions, componentMap: ComponentMetadata) {
-  const usedSets = new Set(
-    Object.keys(definitions).flatMap((id) => {
-      const meta = componentMap[id];
-      return meta?.componentSetId ? [componentSetIdentity(meta)] : [];
-    }),
-  );
   const requests = new Map<string, Set<string>>();
-  for (const [id, meta] of Object.entries(componentMap)) {
-    if (!meta.file_key || !meta.node_id) continue;
-    if (!(id in definitions) && !(meta.componentSetId && usedSets.has(componentSetIdentity(meta))))
-      continue;
+  for (const id of Object.keys(definitions)) {
+    const meta = componentMap[id];
+    if (!meta?.file_key || !meta.node_id) continue;
     if (!requests.has(meta.file_key)) requests.set(meta.file_key, new Set());
     requests.get(meta.file_key)!.add(meta.node_id);
   }
@@ -188,6 +183,38 @@ function applySourceDefinitions(
   }
 }
 
+function registerReferencedComponents(
+  definitions: Definitions,
+  componentMap: ComponentMetadata,
+  componentSetMap: Record<string, { name: string }>,
+  reducedNodes: Map<string, V3Node>,
+) {
+  const idsByKey = new Map<string, string>();
+  for (const [id, meta] of Object.entries(componentMap)) if (meta.key) idsByKey.set(meta.key, id);
+  const registered: Definitions = {};
+  for (const root of reducedNodes.values()) {
+    for (const key of collectPublishedReferenceKeys(root)) {
+      const id = idsByKey.get(key);
+      if (id && !(id in definitions)) registered[id] = { name: componentMap[id].name };
+    }
+  }
+  applyDefinitionMetadata(registered, componentMap, componentSetMap);
+  Object.assign(definitions, registered);
+}
+
+function collectPublishedReferenceKeys(node: V3Node, keys: string[] = []): string[] {
+  const key = publishedReferenceKey(node.component);
+  if (key) keys.push(key);
+  for (const child of node.children ?? []) collectPublishedReferenceKeys(child, keys);
+  return keys;
+}
+
+function publishedReferenceKey(component: string | undefined): string | undefined {
+  if (!component?.startsWith(PUBLISHED_REFERENCE_PREFIX)) return undefined;
+  const [, key] = JSON.parse(component) as [string, string, null];
+  return key;
+}
+
 function addSiblingVariants(
   definitions: Definitions,
   componentMap: ComponentMetadata,
@@ -200,23 +227,24 @@ function addSiblingVariants(
     for (const [otherId, otherMeta] of Object.entries(componentMap)) {
       if (id === otherId || componentSetIdentity(meta) !== componentSetIdentity(otherMeta))
         continue;
-      const node = reducedNodes.get(componentSourceIdentity(otherMeta));
-      if (node) variants[otherId] = sourceVariant(otherMeta, node);
+      variants[otherId] = siblingVariant(
+        otherMeta,
+        reducedNodes.get(componentSourceIdentity(otherMeta)),
+      );
     }
     if (Object.keys(variants).length > 0) definition.variants = variants;
   }
 }
 
-function sourceVariant(meta: RichComponentMeta, node: V3Node): ComponentVariant {
-  return {
+function siblingVariant(meta: RichComponentMeta, node?: V3Node): ComponentVariant {
+  const identity = {
     name: meta.name,
     variantName: meta.name,
     props: parseVariantProps(meta.name),
     description: meta.description,
-    layout: node.layout,
-    style: node.style,
-    children: node.children,
   };
+  if (!node) return identity;
+  return { ...identity, layout: node.layout, style: node.style, children: node.children };
 }
 
 function definitionIdentity(id: string, meta?: RichComponentMeta) {

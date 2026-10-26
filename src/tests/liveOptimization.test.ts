@@ -12,6 +12,8 @@ import yaml from "js-yaml";
 
 config();
 
+const LIVE_TOOL_TIMEOUT_MS = 10 * 60 * 1000;
+
 describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
   "Live Figma Optimization Test (v3)",
   () => {
@@ -113,6 +115,7 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
           },
         },
         CallToolResultSchema,
+        { timeout: LIVE_TOOL_TIMEOUT_MS },
       );
 
       expect(toolResult.isError).toBeFalsy();

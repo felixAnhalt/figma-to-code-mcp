@@ -377,6 +377,90 @@ describe("Component definitions — enriched", () => {
     expect(set.propKeys).toContain("variant");
   });
 
+  it("lists sibling variants by their props without fetching their bodies", async () => {
+    const setId = "200:1";
+    const compIdA = "100:1";
+    const compIdB = "100:2";
+    const componentMap: Record<string, RichComponentMeta> = {
+      [compIdA]: {
+        key: "aaa",
+        file_key: "libFile",
+        node_id: compIdA,
+        name: "Variant=Primary",
+        componentSetId: setId,
+      },
+      [compIdB]: {
+        key: "bbb",
+        file_key: "libFile",
+        node_id: compIdB,
+        name: "Variant=Secondary",
+        componentSetId: setId,
+      },
+    };
+    (fetchNodesBatch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(rootFileResponse("1:1", [instanceNode("I1:2", "BtnInst", compIdA)]))
+      .mockResolvedValueOnce({ [compIdA]: frameNodeEntry(compIdA, "Variant=Primary") });
+
+    const result = await generateMCPResponse({
+      fileKey: "designFile",
+      authHeaders: { "X-Figma-Token": "tok" },
+      rootNodeId: "1:1",
+      componentMap,
+      componentSetMap: { [setId]: { name: "Button" } },
+      resolveVariables: false,
+    });
+
+    expect(fetchNodesBatch).toHaveBeenLastCalledWith("libFile", [compIdA], expect.anything());
+    const sibling = result.componentSets!.Button.variants[compIdB];
+    expect(sibling.props).toEqual({ variant: "secondary" });
+    expect(sibling.layout).toBeUndefined();
+    expect(sibling.children).toBeUndefined();
+  });
+
+  it("registers components referenced from a library body so nested instances use their set name", async () => {
+    const setId = "200:1";
+    const compId = "100:1";
+    const nestedId = "300:1";
+    const componentMap: Record<string, RichComponentMeta> = {
+      [compId]: {
+        key: "aaa",
+        file_key: "libFile",
+        node_id: compId,
+        name: "Variant=Primary",
+        componentSetId: setId,
+      },
+      [nestedId]: {
+        key: "icon-key",
+        file_key: "libFile",
+        node_id: nestedId,
+        name: "Icon=Search",
+        componentSetId: "400:1",
+      },
+    };
+    const body = frameNodeEntry(compId, "Variant=Primary", {
+      children: [{ id: "I100:2", type: "INSTANCE", name: "Nested", componentId: nestedId }],
+    });
+    body.components = { [nestedId]: { key: "icon-key", name: "Icon=Search", remote: true } };
+    (fetchNodesBatch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(rootFileResponse("1:1", [instanceNode("I1:2", "BtnInst", compId)]))
+      .mockResolvedValueOnce({ [compId]: body });
+
+    const result = await generateMCPResponse({
+      fileKey: "designFile",
+      authHeaders: { "X-Figma-Token": "tok" },
+      rootNodeId: "1:1",
+      componentMap,
+      componentSetMap: { [setId]: { name: "Button" }, "400:1": { name: "Icon" } },
+      resolveVariables: false,
+    });
+
+    const button = result.componentSets!.Button;
+    expect((button.base?.children ?? button.variants[compId].children)?.[0]?.component).toBe(
+      "Icon",
+    );
+    expect(result.componentSets!.Icon.variants[nestedId]).toBeDefined();
+  });
+
   it("Phase 3: base styles hold shared values and variant overrides hold only deltas", async () => {
     const setId = "200:1";
     const compIdA = "100:1";
@@ -399,11 +483,12 @@ describe("Component definitions — enriched", () => {
       },
     };
 
-    const inst = instanceNode("I1:2", "BtnInst", compIdA);
+    const instA = instanceNode("I1:2", "BtnInst", compIdA);
+    const instB = instanceNode("I1:3", "BtnInst", compIdB);
 
     // Both share layoutMode=HORIZONTAL; they differ only in fill colour
     (fetchNodesBatch as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce(rootFileResponse("1:1", [inst]))
+      .mockResolvedValueOnce(rootFileResponse("1:1", [instA, instB]))
       .mockResolvedValueOnce({
         [compIdA]: frameNodeEntry(compIdA, "Variant=Primary", {
           layoutMode: "HORIZONTAL",

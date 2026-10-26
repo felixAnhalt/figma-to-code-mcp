@@ -36,15 +36,15 @@ export async function buildRichComponentMap(
   rawComponents: Record<string, RawComponent>,
   rawComponentSets: SetMetadata,
   authHeaders: Record<string, string>,
+  localFileKey = "",
 ) {
   const componentSetMap = { ...rawComponentSets };
-  const resolved = await resolveComponentKeys(Object.values(rawComponents), authHeaders);
-  const published = await fetchReferencedLibraries(resolved, authHeaders);
-  const byKey = new Map(resolved);
-  for (const source of published) {
-    if (source.key) byKey.set(source.key, { ...byKey.get(source.key), ...source });
-  }
-  const componentMap = mapLocalComponents(rawComponents, byKey, componentSetMap);
+  const { sources, published } = await discoverPublishedSources(
+    Object.values(rawComponents),
+    authHeaders,
+    localFileKey,
+  );
+  const componentMap = mapLocalComponents(rawComponents, sources, componentSetMap, localFileKey);
   addPublishedSiblings(componentMap, published, componentSetMap);
   return { componentMap, componentSetMap };
 }
@@ -64,34 +64,67 @@ async function fetchOptionalMetadata<T>(path: string, authHeaders: Record<string
   }
 }
 
-async function resolveComponentKeys(raw: RawComponent[], authHeaders: Record<string, string>) {
-  const keys = [...new Set(raw.map((component) => component.key).filter(Boolean))];
-  const entries = await Promise.all(
-    keys.map(async (key) => {
-      const response = await fetchOptionalMetadata<{ meta?: PublishedComponent }>(
-        `/components/${key}`,
-        authHeaders,
-      );
-      return [key, response?.meta] as const;
-    }),
+type PublishedDiscovery = {
+  sources: Map<string, PublishedComponent>;
+  published: PublishedComponent[];
+  listedFiles: Set<string>;
+};
+
+async function discoverPublishedSources(
+  raw: RawComponent[],
+  authHeaders: Record<string, string>,
+  localFileKey: string,
+): Promise<PublishedDiscovery> {
+  const discovery: PublishedDiscovery = {
+    sources: new Map(),
+    published: [],
+    listedFiles: new Set(),
+  };
+  const localKeys = new Set(
+    raw.filter((component) => component.remote === false).map((component) => component.key),
   );
-  return new Map(entries);
+  if (localFileKey && localKeys.size > 0) {
+    await listFileComponents(localFileKey, authHeaders, discovery);
+  }
+  for (const key of new Set(raw.map((component) => component.key).filter(Boolean))) {
+    if (discovery.sources.has(key)) continue;
+    // A local component missing from this file's own listing is unpublished: nothing to look up.
+    if (localFileKey && localKeys.has(key)) continue;
+    await discoverComponentSource(key, authHeaders, discovery);
+  }
+  return discovery;
 }
 
-async function fetchReferencedLibraries(
-  resolved: Map<string, PublishedComponent | undefined>,
+async function discoverComponentSource(
+  key: string,
   authHeaders: Record<string, string>,
+  discovery: PublishedDiscovery,
 ) {
-  const files = new Set([...resolved.values()].map((source) => source?.file_key).filter(Boolean));
-  const responses = await Promise.all(
-    [...files].map((file) =>
-      fetchOptionalMetadata<{ meta?: { components?: PublishedComponent[] } }>(
-        `/files/${file}/components`,
-        authHeaders,
-      ),
-    ),
+  const response = await fetchOptionalMetadata<{ meta?: PublishedComponent }>(
+    `/components/${key}`,
+    authHeaders,
   );
-  return responses.flatMap((response) => response?.meta?.components ?? []);
+  const source = response?.meta;
+  if (!source) return;
+  discovery.sources.set(key, source);
+  if (source.file_key) await listFileComponents(source.file_key, authHeaders, discovery);
+}
+
+async function listFileComponents(
+  fileKey: string,
+  authHeaders: Record<string, string>,
+  discovery: PublishedDiscovery,
+) {
+  if (discovery.listedFiles.has(fileKey)) return;
+  discovery.listedFiles.add(fileKey);
+  const response = await fetchOptionalMetadata<{ meta?: { components?: PublishedComponent[] } }>(
+    `/files/${fileKey}/components`,
+    authHeaders,
+  );
+  for (const item of response?.meta?.components ?? []) {
+    discovery.published.push(item);
+    if (item.key) discovery.sources.set(item.key, { ...discovery.sources.get(item.key), ...item });
+  }
 }
 
 function publishedSet(source?: PublishedComponent) {
@@ -101,15 +134,25 @@ function publishedSet(source?: PublishedComponent) {
   );
 }
 
+function ownerFileKey(
+  raw: RawComponent,
+  source: PublishedComponent | undefined,
+  localFileKey: string,
+): string {
+  if (source?.node_id) return source.file_key ?? "";
+  return raw.remote === false ? localFileKey : "";
+}
+
 function richMetadata(
   localId: string,
   raw: RawComponent,
   source?: PublishedComponent,
+  localFileKey = "",
 ): RichComponentMeta {
   const componentSetId = publishedSet(source)?.nodeId ?? raw.componentSetId;
   return {
     key: raw.key,
-    file_key: source?.node_id ? (source.file_key ?? "") : "",
+    file_key: ownerFileKey(raw, source, localFileKey),
     node_id: source?.node_id ?? localId,
     name: raw.name,
     ...(componentSetId ? { componentSetId } : {}),
@@ -121,11 +164,12 @@ function mapLocalComponents(
   rawComponents: Record<string, RawComponent>,
   byKey: Map<string, PublishedComponent | undefined>,
   componentSetMap: SetMetadata,
+  localFileKey: string,
 ) {
   const componentMap: Record<string, RichComponentMeta> = {};
   for (const [localId, raw] of Object.entries(rawComponents)) {
     const source = byKey.get(raw.key);
-    const meta = richMetadata(localId, raw, source);
+    const meta = richMetadata(localId, raw, source, localFileKey);
     componentMap[localId] = meta;
     const name = publishedSet(source)?.name ?? componentSetMap[raw.componentSetId ?? ""]?.name;
     if (meta.componentSetId && name) componentSetMap[componentSetIdentity(meta)] = { name };

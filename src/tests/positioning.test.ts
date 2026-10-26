@@ -23,6 +23,22 @@ function vector(overrides: Partial<FigmaRawNode> = {}): FigmaRawNode {
 }
 
 describe("parent-local positioning", () => {
+  it("keeps a grid-laid-out frame as a column with its padding and children in flow", () => {
+    const grid = node({
+      layoutMode: "GRID",
+      paddingTop: 20,
+      paddingLeft: 20,
+      paddingRight: 20,
+      paddingBottom: 20,
+    });
+    const variant = node({ layoutMode: "VERTICAL", relativeTransform: translation(21, 21) });
+    expect(extractLayoutFromNode(grid)).toMatchObject({
+      direction: "column",
+      padding: 20,
+    });
+    expect(extractLayoutFromNode(variant, undefined, grid)).not.toHaveProperty("position");
+  });
+
   it("keeps an overlay out of auto-layout without positioning its flow sibling", () => {
     const overlay = node({
       layoutMode: "HORIZONTAL",

@@ -45,12 +45,13 @@ With `--skip-image-downloads`, only `get_figma_design` is registered; SVG export
 
 Create a Figma personal access token with these scopes:
 
-| Scope                  | Purpose                                    |
-| ---------------------- | ------------------------------------------ |
-| `file_content:read`    | Read file nodes, layout, styles            |
-| `library_content:read` | Read published components/styles           |
-| `file_variables:read`  | Read variables (Enterprise only, optional) |
-| `file_comments:read`   | Read comments attached to nodes (optional) |
+| Scope                  | Purpose                                                         |
+| ---------------------- | --------------------------------------------------------------- |
+| `file_content:read`    | Read file nodes, layout, styles                                 |
+| `library_content:read` | Read published components/styles                                |
+| `library_assets:read`  | Resolve referenced components to their published library source |
+| `file_variables:read`  | Read variables (Enterprise only, optional)                      |
+| `file_comments:read`   | Read comments attached to nodes (optional)                      |
 
 > **Note:** Variable resolution requires Enterprise plan. Set `resolveVariables: false` if not on Enterprise.
 
@@ -190,14 +191,14 @@ FIGMA_MCP_CACHE_TTL_MS=604800000
 
 On a design-cache miss, `get_figma_design` can make these API calls:
 
-| Endpoint                                  | Tier | When called                                                 |
-| ----------------------------------------- | ---- | ----------------------------------------------------------- |
-| `GET /v1/files/{fileKey}/nodes`           | T1   | Fetch the requested design node with vector geometry        |
-| `GET /v1/files/{fileKey}/variables/local` | T2   | When `resolveVariables=true`                                |
-| `GET /v1/files/{fileKey}/comments`        | T2   | Attempt to fetch comments; failure is non-fatal             |
-| `GET /v1/components/{key}`                | T3   | Resolve referenced component keys to their source libraries |
-| `GET /v1/files/{libFileKey}/components`   | T3   | Fetch metadata once per resolved library                    |
-| `GET /v1/files/{libFileKey}/nodes`        | T1   | Fetch source component definitions, batched per library     |
+| Endpoint                                  | Tier | When called                                                                   |
+| ----------------------------------------- | ---- | ----------------------------------------------------------------------------- |
+| `GET /v1/files/{fileKey}/nodes`           | T1   | Fetch the requested design node with vector geometry                          |
+| `GET /v1/files/{fileKey}/variables/local` | T2   | When `resolveVariables=true`                                                  |
+| `GET /v1/files/{fileKey}/comments`        | T2   | Attempt to fetch comments; failure is non-fatal                               |
+| `GET /v1/components/{key}`                | T3   | Discover the library of a component key that no listing has covered yet       |
+| `GET /v1/files/{fileKey}/components`      | T3   | List published components of this file and each discovered library, once each |
+| `GET /v1/files/{libFileKey}/nodes`        | T1   | Fetch source component definitions, batched per library                       |
 
 Request counts vary with the number of unique component keys, libraries, node batches, and retries. Components from multiple libraries are supported; unavailable library metadata falls back to usable instance data.
 

@@ -35,6 +35,21 @@ function stubRoutes(routes: Record<string, unknown | Error | Response>) {
 beforeEach(() => vi.resetAllMocks());
 
 describe("Component discovery at the HTTP boundary", () => {
+  it("points unpublished local components at this file and leaves unowned remote ones without a file", async () => {
+    stubRoutes({});
+    const { componentMap } = await buildRichComponentMap(
+      {
+        local: { key: "local-key", name: "Local", remote: false },
+        unknown: { key: "unknown-key", name: "Unknown" },
+      },
+      {},
+      AUTH_HEADERS,
+      "designFile",
+    );
+    expect(componentMap.local).toMatchObject({ file_key: "designFile", node_id: "local" });
+    expect(componentMap.unknown).toMatchObject({ file_key: "", node_id: "unknown" });
+  });
+
   it("resolves every referenced library and deduplicates repeated component keys and library requests", async () => {
     const first = publishedComponent("first", "library-a", "10:1");
     const second = publishedComponent("second", "library-a", "10:2");
@@ -67,7 +82,6 @@ describe("Component discovery at the HTTP boundary", () => {
     ).toEqual(
       [
         "/components/first",
-        "/components/second",
         "/components/third",
         "/files/library-a/components",
         "/files/library-b/components",
@@ -75,6 +89,32 @@ describe("Component discovery at the HTTP boundary", () => {
         .map((path) => API_ROOT + path)
         .sort(),
     );
+  });
+
+  it("resolves a local component from this file's own published listing without a lookup", async () => {
+    const own = publishedComponent("own-key", "designFile", "5:5");
+    stubRoutes({ "/files/designFile/components": { meta: { components: [own] } } });
+    const { componentMap } = await buildRichComponentMap(
+      { local: { key: "own-key", name: "Own", remote: false } },
+      {},
+      AUTH_HEADERS,
+      "designFile",
+    );
+    expect(componentMap.local).toMatchObject({ file_key: "designFile", node_id: "5:5" });
+    expect(httpClientRaw).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not look up unpublished local components that this file's listing does not contain", async () => {
+    stubRoutes({ "/files/designFile/components": { meta: { components: [] } } });
+    await buildRichComponentMap(
+      { local: { key: "unpublished-key", name: "Unpublished", remote: false } },
+      {},
+      AUTH_HEADERS,
+      "designFile",
+    );
+    expect(vi.mocked(httpClientRaw).mock.calls.map(([url]) => url)).toEqual([
+      `${API_ROOT}/files/designFile/components`,
+    ]);
   });
 
   it("does not stop provenance discovery after three unavailable component keys", async () => {

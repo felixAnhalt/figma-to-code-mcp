@@ -80,6 +80,7 @@ async function resolveComponentMetadata(rootNode: RootNode, opts: MCPOptions) {
     rootNode.components ?? {},
     rootNode.componentSets ?? {},
     opts.authHeaders,
+    opts.fileKey,
   );
 }
 
