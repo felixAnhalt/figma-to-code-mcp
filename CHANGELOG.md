@@ -1,5 +1,12 @@
 # tmegit-figma-to-code-mcp
 
+## [0.29.1](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.29.0...v0.29.1) (2026-10-26)
+
+
+### Bug Fixes
+
+* **propmapping:** rename V2_CSS_PROPERTY_MAPPING.md to V3_CSS_PROPERTY_MAPPING.md and update README ([6a94c4f](https://github.com/felixAnhalt/figma-to-code-mcp/commit/6a94c4f75ddaee789b3624011e6c8e56d430fbbf))
+
 ## [0.29.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.28.2...v0.29.0) (2026-07-23)
 
 
