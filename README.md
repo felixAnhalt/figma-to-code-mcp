@@ -76,7 +76,7 @@ This MCP server transforms [Figma API](https://www.figma.com/developers/api) dat
 - **Complete UI data** (colors, typography, spacing, effects)
 - **99.5% size reduction** while preserving all UI-critical information
 
-The current response uses schema `v3`. [`V2_CSS_PROPERTY_MAPPING.md`](./V2_CSS_PROPERTY_MAPPING.md) describes the older v2 mapping, not the current response contract.
+The current response uses schema `v3`. [`V3_CSS_PROPERTY_MAPPING.md`](V3_CSS_PROPERTY_MAPPING.md) describes the older v2 mapping, not the current response contract.
 
 ### Interpreting visual details in v3
 
