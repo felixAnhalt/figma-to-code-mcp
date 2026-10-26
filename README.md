@@ -202,6 +202,8 @@ On a design-cache miss, `get_figma_design` can make these API calls:
 
 Request counts vary with the number of unique component keys, libraries, node batches, and retries. Components from multiple libraries are supported; unavailable library metadata falls back to usable instance data.
 
+Requests are paced per Figma tier so no tier exceeds its per-minute budget (10, 25, and 50 requests for tiers 1, 2, and 3 on Professional Dev/Full seats). If Figma still answers with a 429, only that tier pauses for the `Retry-After` time, and the request is retried up to three times.
+
 Compatible design-cache hits avoid these Figma calls but still export assets into the requested SVG directory. Changing credentials or result-affecting options does not reuse an incompatible design response.
 
 Effective styles are read from node properties, including node-specific overrides. The tool does not make a separate `/styles` request. The library's existing `fetchStyles` export and `styleMap` parameter remain available for compatibility; shared-style names are not currently emitted in the design response.

@@ -41,7 +41,6 @@ export async function fetchStyles(
 
   const json = await httpClient<{ meta?: { styles?: Array<{ key: string }> } }>(url, {
     headers: authHeaders,
-    skipCurlFallback: true,
   });
 
   const stylesMap: Record<string, unknown> = {};
@@ -72,7 +71,6 @@ export async function fetchComponents(
     };
   }>(url, {
     headers: authHeaders,
-    skipCurlFallback: true,
   });
 
   const componentMap: Record<string, RichComponentMeta> = {};
@@ -100,7 +98,6 @@ export async function fetchVariables(
   try {
     const json = await httpClient<GetLocalVariablesResponse>(url, {
       headers: authHeaders,
-      skipCurlFallback: true,
     });
     return json;
   } catch (error) {
@@ -118,7 +115,6 @@ export async function fetchComments(
   try {
     const json = await httpClient<{ comments: FigmaComment[] }>(url, {
       headers: authHeaders,
-      skipCurlFallback: true,
     });
     return json.comments ?? [];
   } catch (error) {

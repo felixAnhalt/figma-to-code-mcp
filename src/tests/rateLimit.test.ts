@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { httpClientRaw } from "../utils/httpClient";
+import { figmaRateLimiter } from "../utils/figmaRateLimiter";
 
 describe("httpClientRaw", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
@@ -7,6 +8,7 @@ describe("httpClientRaw", () => {
   beforeEach(() => {
     fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
+    figmaRateLimiter.reset();
   });
 
   afterEach(() => {
@@ -14,11 +16,15 @@ describe("httpClientRaw", () => {
   });
 
   describe("rate limiting", () => {
-    it("serializes requests with 100ms minimum interval", async () => {
-      const timestamps: number[] = [];
+    it("serializes requests within one tier", async () => {
+      let inFlight = 0;
+      let maxInFlight = 0;
 
       fetchMock.mockImplementation(async () => {
-        timestamps.push(Date.now());
+        inFlight++;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        inFlight--;
         return new Response(JSON.stringify({ ok: true }), { status: 200 });
       });
 
@@ -28,10 +34,7 @@ describe("httpClientRaw", () => {
 
       await Promise.all(promises);
 
-      for (let i = 1; i < timestamps.length; i++) {
-        const diff = timestamps[i] - timestamps[i - 1];
-        expect(diff).toBeGreaterThanOrEqual(90);
-      }
+      expect(maxInFlight).toBe(1);
     });
 
     it("does not wait before first request", async () => {
