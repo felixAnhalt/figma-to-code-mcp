@@ -1,8 +1,9 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import yaml from "js-yaml";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { externalizeComponentSets, reserveStems } from "~/figma/mcp/componentSetFiles";
+import { externalizeComponentSets } from "~/figma/mcp/componentSetFiles";
 import type { ComponentSet, DesignTokens, MCPResponse, V3Node } from "~/figma/types";
 
 const BUTTON_SET: ComponentSet = {
@@ -53,6 +54,10 @@ async function readJson(path: string): Promise<Record<string, unknown>> {
   return JSON.parse(await readFile(path, "utf-8"));
 }
 
+async function readYaml(path: string): Promise<Record<string, unknown>> {
+  return yaml.load(await readFile(path, "utf-8")) as Record<string, unknown>;
+}
+
 let outputDir: string;
 
 beforeEach(async () => {
@@ -68,6 +73,7 @@ describe("externalizeComponentSets", () => {
     const result = await externalizeComponentSets(
       responseWith({ Button: BUTTON_SET, "Icon / Search": ICON_SET }),
       outputDir,
+      "json",
     );
     const folder = join(outputDir, "component-sets");
 
@@ -79,8 +85,23 @@ describe("externalizeComponentSets", () => {
     expect(await readJson(join(folder, "Button.json"))).toEqual(BUTTON_SET);
   });
 
+  it("writes YAML files with the same references when the output format is yaml", async () => {
+    const result = await externalizeComponentSets(
+      responseWith({ Button: BUTTON_SET }, TOKENS),
+      outputDir,
+      "yaml",
+    );
+    const folder = join(outputDir, "component-sets");
+
+    expect(result.componentSets!.Button.file).toBe("Button.yaml");
+    expect(await readYaml(join(folder, "Button.yaml"))).toEqual({
+      ...BUTTON_SET,
+      tokens: { colors: { primary: "#9747FF" } },
+    });
+  });
+
   it("keeps only the token entries each set refers to, so its file reads on its own", async () => {
-    await externalizeComponentSets(responseWith({ Button: BUTTON_SET }, TOKENS), outputDir);
+    await externalizeComponentSets(responseWith({ Button: BUTTON_SET }, TOKENS), outputDir, "json");
 
     const written = await readJson(join(outputDir, "component-sets", "Button.json"));
     expect(written.tokens).toEqual({ colors: { primary: "#9747FF" } });
@@ -90,6 +111,7 @@ describe("externalizeComponentSets", () => {
     const result = await externalizeComponentSets(
       responseWith({ Card: CARD_SET }, TOKENS),
       outputDir,
+      "json",
       SPLIT_THRESHOLD_FOR_TESTS,
     );
     const setFolder = join(outputDir, "component-sets", "Card");
@@ -122,8 +144,25 @@ describe("externalizeComponentSets", () => {
     });
   });
 
+  it("uses YAML names for a split set when the output format is yaml", async () => {
+    const result = await externalizeComponentSets(
+      responseWith({ Card: CARD_SET }, TOKENS),
+      outputDir,
+      "yaml",
+      SPLIT_THRESHOLD_FOR_TESTS,
+    );
+    const setFolder = join(outputDir, "component-sets", "Card");
+
+    expect(result.componentSets!.Card.file).toBe("Card/index.yaml");
+    expect(await readYaml(join(setFolder, "1-1.yaml"))).toEqual({
+      props: { size: "sm" },
+      style: { radius: "radius.md" },
+      tokens: { radius: { md: 8 } },
+    });
+  });
+
   it("leaves a response without component sets or split root variants unchanged", async () => {
-    const result = await externalizeComponentSets(responseWith({}), outputDir);
+    const result = await externalizeComponentSets(responseWith({}), outputDir, "json");
 
     expect(result).not.toHaveProperty("componentSets");
     expect(result).not.toHaveProperty("componentSetsFolder");
@@ -133,6 +172,7 @@ describe("externalizeComponentSets", () => {
     const result = await externalizeComponentSets(
       responseWith({}, TOKENS, CHAT_ROOT),
       outputDir,
+      "json",
       SPLIT_THRESHOLD_FOR_TESTS,
     );
     const setFolder = join(outputDir, "component-sets", "Chat");
@@ -167,6 +207,7 @@ describe("externalizeComponentSets", () => {
     const result = await externalizeComponentSets(
       responseWith({}, undefined, CHAT_ROOT),
       outputDir,
+      "json",
     );
 
     expect(result.root.children).toEqual(CHAT_ROOT.children);
@@ -178,22 +219,11 @@ describe("externalizeComponentSets", () => {
     const result = await externalizeComponentSets(
       responseWith({ Chat: { ...BUTTON_SET, name: "Chat" } }, TOKENS, CHAT_ROOT),
       outputDir,
+      "json",
       SPLIT_THRESHOLD_FOR_TESTS,
     );
 
     expect(result.componentSets!.Chat.file).toBe("Chat/index.json");
     expect(result.root.file).toBe("Chat-2/index.json");
-  });
-});
-
-describe("reserveStems", () => {
-  it("gives every name a distinct, filesystem-safe stem", () => {
-    expect(
-      reserveStems(["Button", "button", "Icon / Search", "Icon - Search", "!!!"], "component-set"),
-    ).toEqual(["Button", "button-2", "Icon-Search", "Icon-Search-2", "component-set"]);
-  });
-
-  it("keeps variant stems distinct when node ids sanitize to the same stem", () => {
-    expect(reserveStems(["1:1", "1-1"], "variant")).toEqual(["1-1", "1-1-2"]);
   });
 });

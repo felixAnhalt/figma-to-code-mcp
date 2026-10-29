@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { FigmaService } from "~/services/figmaConnector";
 import { generateMCPResponse, extractTokens } from "~/figma";
 import { externalizeComponentSets } from "~/figma/mcp/componentSetFiles";
+import { externalizeRootFrames } from "~/figma/mcp/frameFiles";
 import yaml from "js-yaml";
 import { Logger, writeLogs } from "~/utils/logger";
 import { tmpdir } from "node:os";
@@ -34,7 +35,7 @@ const parameters = {
     .boolean()
     .default(false)
     .describe(
-      "Set true only when building components from a component library: also returns every other variant of each component this design uses (all sizes, colors, and states), with their props and any visuals that can be fetched. Every component set is written as a JSON file in componentSetsFolder and listed in componentSets by name, with its propKeys and propValues; a large set becomes a folder there with index.json and one JSON file per variant, named by node id. Every `file` value is relative to componentSetsFolder. Leave false when rebuilding this design; the response is smaller and faster.",
+      "Set true only when building components from a component library: also returns every other variant of each component this design uses (all sizes, colors, and states), with their props and any visuals that can be fetched. Every component set is written as a YAML or JSON file, matching the output format, in componentSetsFolder and listed in componentSets by name, with its propKeys and propValues; a large set becomes a folder there with an index file and one file per variant, named by node id. Every `file` value is relative to componentSetsFolder. Leave false when rebuilding this design; the response is smaller and faster.",
     ),
   svgOutputDir: z
     .string()
@@ -136,8 +137,17 @@ async function getFigmaDesign(
 
     Logger.log(`Generating ${options.outputFormat.toUpperCase()} result`);
 
-    // Component sets need their tokens resolved, so they are written after tokenizing
-    const response = await externalizeComponentSets(tokenizedResponse, outputDir);
+    // Component sets and frames need their tokens resolved, so they are written after tokenizing
+    const componentSetsResponse = await externalizeComponentSets(
+      tokenizedResponse,
+      outputDir,
+      options.outputFormat,
+    );
+    const response = await externalizeRootFrames(
+      componentSetsResponse,
+      outputDir,
+      options.outputFormat,
+    );
 
     moveAssetFieldsToEnd(response);
 
@@ -171,7 +181,8 @@ export const getFigmaDesignTool = {
     "SVG files are in svgAssetsFolder. Keep each node's layout footprint and place its asset at " +
     "svgViewport x/y (an omitted x or y means 0) using svgViewport width/height; do not stretch the expanded asset to the node's original size. " +
     "Compare against the PNG render of the requested node at renderedDesignNodeAssetsFolder + renderedDesignNodePathInAssetFolder when present. " +
-    "A large COMPONENT_SET root keeps its container here, and its variants are in root.file (index.json plus one JSON file per variant).",
+    "A large COMPONENT_SET root keeps its container here, and its variants are in root.file (an index file plus one file per variant). " +
+    "A large SECTION root keeps each frame as a stub in root.children, and each frame's full design is in its file in framesFolder.",
   parametersSchema,
   handler: getFigmaDesign,
 } as const;

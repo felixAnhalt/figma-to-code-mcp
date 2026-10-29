@@ -142,6 +142,8 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
         yaml.dump(mcpResponse),
       );
 
+      const design = inlineExternalizedFrames(mcpResponse);
+
       // 3. Report reduction
       const reduction = ((rawSize - optimizedSize) / rawSize) * 100;
       const saved = rawSize - optimizedSize;
@@ -181,9 +183,9 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
         return result.concat(...(node.children ?? []).map(findTextNodes));
       }
 
-      const nodeCount = countNodes(mcpResponse.root);
-      const instanceNodes = findInstances(mcpResponse.root);
-      const textNodes = findTextNodes(mcpResponse.root);
+      const nodeCount = countNodes(design.root);
+      const instanceNodes = findInstances(design.root);
+      const textNodes = findTextNodes(design.root);
       const componentSetCount = componentSets ? Object.keys(componentSets).length : 0;
 
       console.log(`✓ Total nodes in tree:       ${nodeCount}`);
@@ -220,7 +222,7 @@ describe.skipIf(process.env.RUN_FIGMA_INTEGRATION !== "1")(
       }
       console.log("✓ TEXT nodes have no background");
 
-      const responseStr = JSON.stringify(mcpResponse);
+      const responseStr = JSON.stringify(design);
       const aliasCount = (responseStr.match(/VARIABLE_ALIAS/g) || []).length;
       console.log(`✓ Unresolved VARIABLE_ALIAS: ${aliasCount} (should be 0)`);
       expect(aliasCount).toBe(0);
@@ -245,4 +247,25 @@ function parseCommaSeparatedEnv(value: string | undefined): string[] {
         .map((item) => item.trim())
         .filter(Boolean)
     : [];
+}
+
+/** Puts the frame files back in root.children, so checks see the whole design tree. */
+function inlineExternalizedFrames(response: Record<string, unknown>): Record<string, unknown> {
+  const folder = response.framesFolder;
+  const root = response.root as { children?: { file: string }[] };
+  if (typeof folder !== "string" || !root.children) return response;
+  return {
+    ...response,
+    root: {
+      ...root,
+      children: root.children.map((stub) => readFrameFile(folder, stub.file)),
+    },
+  };
+}
+
+function readFrameFile(folder: string, file: string): Record<string, unknown> {
+  const text = fs.readFileSync(path.join(folder, file), "utf-8");
+  return file.endsWith(".json")
+    ? (JSON.parse(text) as Record<string, unknown>)
+    : (yaml.load(text) as Record<string, unknown>);
 }
