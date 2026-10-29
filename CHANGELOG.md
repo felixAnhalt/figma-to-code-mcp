@@ -1,5 +1,12 @@
 # tmegit-figma-to-code-mcp
 
+## [0.30.0](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.29.1...v0.30.0) (2026-10-29)
+
+
+### Features
+
+* **frames:** add externalization for frame files in design response ([#58](https://github.com/felixAnhalt/figma-to-code-mcp/issues/58)) ([aac0a00](https://github.com/felixAnhalt/figma-to-code-mcp/commit/aac0a0078a7ec9b2a676bdb1e30aba5f92591441))
+
 ## [0.29.1](https://github.com/felixAnhalt/figma-to-code-mcp/compare/v0.29.0...v0.29.1) (2026-10-26)
 
 
